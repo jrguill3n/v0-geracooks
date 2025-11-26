@@ -25,7 +25,7 @@ function getItemPrice(itemName: string): number {
     "Stir fry c/vegetales": 13,
     Tinga: 12,
     Mole: 12,
-    Pollimita: 13,
+    Pollinita: 13,
     "Crema de chipotle": 14,
     "Crema de poblano y elote": 14,
     "Deshebrado 12 oz": 10,

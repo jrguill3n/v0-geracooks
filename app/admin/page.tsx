@@ -1,7 +1,11 @@
 import { createClient } from "@/lib/supabase/server"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { formatDistanceToNow } from "date-fns"
+import { redirect } from "next/navigation"
+import { checkAuth } from "@/lib/auth"
+import { logoutAction } from "./actions"
 
 interface Order {
   id: string
@@ -21,6 +25,12 @@ interface OrderItem {
 }
 
 export default async function AdminPage() {
+  const isAuthenticated = await checkAuth()
+
+  if (!isAuthenticated) {
+    redirect("/admin/login")
+  }
+
   const supabase = await createClient()
 
   // Fetch all orders with their items
@@ -81,8 +91,17 @@ export default async function AdminPage() {
       {/* Header */}
       <div className="bg-background border-b border-elegant">
         <div className="max-w-7xl mx-auto px-6 py-6">
-          <h1 className="font-playfair-display text-4xl font-bold text-foreground">GERA COOKS Admin</h1>
-          <p className="text-sm text-muted-foreground mt-2">Order Management Dashboard</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="font-playfair-display text-4xl font-bold text-foreground">GERA COOKS Admin</h1>
+              <p className="text-sm text-muted-foreground mt-2">Order Management Dashboard</p>
+            </div>
+            <form action={logoutAction}>
+              <Button variant="outline" type="submit" className="border-elegant bg-transparent">
+                Logout
+              </Button>
+            </form>
+          </div>
         </div>
       </div>
 
