@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { google } from "googleapis"
+import { createClient } from "@/lib/supabase/server"
 
 // Service account credentials
 const SERVICE_ACCOUNT = {
@@ -61,55 +61,45 @@ export async function POST(request: Request) {
   try {
     const { customerName, customerPhone, orderItems, totalPrice } = await request.json()
 
-    const auth = new google.auth.GoogleAuth({
-      credentials: SERVICE_ACCOUNT,
-      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    const supabase = await createClient()
+
+    const { data: order, error: orderError } = await supabase
+      .from("orders")
+      .insert({
+        customer_name: customerName,
+        customer_phone: customerPhone,
+        total_price: totalPrice,
+        status: "pending",
+      })
+      .select()
+      .single()
+
+    if (orderError) {
+      console.error("[v0] Error creating order:", orderError)
+      throw orderError
+    }
+
+    const orderItemsData = Object.entries(orderItems).map(([itemName, quantity]) => {
+      const unitPrice = getItemPrice(itemName)
+      const itemTotal = unitPrice * (quantity as number)
+
+      return {
+        order_id: order.id,
+        item_name: itemName,
+        quantity: quantity as number,
+        unit_price: unitPrice,
+        total_price: itemTotal,
+      }
     })
 
-    const sheets = google.sheets({ version: "v4", auth })
+    const { error: itemsError } = await supabase.from("order_items").insert(orderItemsData)
 
-    const timestamp = new Date().toLocaleString("en-US", {
-      timeZone: "America/New_York",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    })
+    if (itemsError) {
+      console.error("[v0] Error creating order items:", itemsError)
+      throw itemsError
+    }
 
-    // Create a unique order ID based on timestamp
-    const orderId = `ORD-${Date.now()}`
-
-    // Prepare rows - one row per item
-    const values = Object.entries(orderItems).map(([itemName, quantity]) => {
-      // Find the price for this item from the menu
-      const itemPrice = getItemPrice(itemName)
-      const itemTotal = itemPrice * (quantity as number)
-
-      return [
-        timestamp, // A: Date/Time
-        orderId, // B: Order ID
-        customerName, // C: Customer Name
-        customerPhone, // D: Customer Phone
-        itemName, // E: Item Name
-        quantity, // F: Quantity
-        `$${itemPrice}`, // G: Unit Price
-        `$${itemTotal}`, // H: Item Total
-        `$${totalPrice}`, // I: Order Total
-      ]
-    })
-
-    const response = await sheets.spreadsheets.values.append({
-      spreadsheetId: SPREADSHEET_ID,
-      range: "Sheet1!A:I",
-      valueInputOption: "RAW",
-      requestBody: {
-        values: values,
-      },
-    })
-
-    return NextResponse.json({ success: true, data: response.data })
+    return NextResponse.json({ success: true, orderId: order.id })
   } catch (error) {
     console.error("[v0] Error saving order:", error)
     return NextResponse.json(

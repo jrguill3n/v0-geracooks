@@ -147,8 +147,6 @@ export default function OrderPage() {
         totalPrice: getTotalPrice(),
       }
 
-      console.log("[v0] Submitting order data:", orderData)
-
       const response = await fetch("/api/save-order", {
         method: "POST",
         headers: {
@@ -157,9 +155,7 @@ export default function OrderPage() {
         body: JSON.stringify(orderData),
       })
 
-      console.log("[v0] Response status:", response.status)
       const responseData = await response.json()
-      console.log("[v0] Response data:", responseData)
 
       if (!response.ok) {
         throw new Error(`Failed to save order: ${JSON.stringify(responseData)}`)
