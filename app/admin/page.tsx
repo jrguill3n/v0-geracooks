@@ -97,26 +97,23 @@ export default async function AdminPage({
     }).length || 0
 
   return (
-    <div className="min-h-screen admin-dark">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="border-b" style={{ borderColor: "var(--admin-border)", background: "var(--admin-card)" }}>
+      <div className="border-b-2 border-primary/20 bg-gradient-to-r from-primary/10 via-card to-accent shadow-md">
         <div className="max-w-7xl mx-auto px-4 py-5 sm:px-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
-              <h1 className="font-sans text-2xl sm:text-3xl font-bold" style={{ color: "var(--admin-text)" }}>
+              <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-primary tracking-tight">
                 GERA COOKS Admin
               </h1>
-              <p className="text-sm mt-1" style={{ color: "var(--admin-text-muted)" }}>
-                Order Management Dashboard
-              </p>
+              <p className="text-sm mt-1 font-medium text-primary/70">Order Management Dashboard</p>
             </div>
             <form action={logoutAction}>
               <Button
                 variant="outline"
                 type="submit"
                 size="sm"
-                className="border hover:bg-white/10 bg-transparent"
-                style={{ borderColor: "var(--admin-border)", color: "var(--admin-text)" }}
+                className="font-semibold border-primary/30 hover:bg-primary/10 bg-transparent"
               >
                 Logout
               </Button>
@@ -128,98 +125,17 @@ export default async function AdminPage({
       <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <Card className="p-5 border" style={{ background: "var(--admin-card)", borderColor: "var(--admin-border)" }}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm mb-2" style={{ color: "var(--admin-text-muted)" }}>
-                  Total Orders
-                </p>
-                <p className="text-3xl font-bold" style={{ color: "var(--admin-text)" }}>
-                  {totalOrders || 0}
-                </p>
-              </div>
-              <div
-                className="w-12 h-12 rounded-lg flex items-center justify-center"
-                style={{ background: "rgba(59, 130, 246, 0.1)" }}
-              >
-                <svg
-                  className="w-6 h-6"
-                  style={{ color: "var(--admin-accent-blue)" }}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                  />
-                </svg>
-              </div>
-            </div>
+          <Card className="p-5 border-2 border-primary/30 shadow-md hover:shadow-lg transition-all hover:border-primary/50 bg-gradient-to-br from-card to-primary/5">
+            <p className="text-sm font-semibold text-muted-foreground mb-2">Total Orders</p>
+            <p className="text-3xl font-display font-bold text-primary">{totalOrders || 0}</p>
           </Card>
-          <Card className="p-5 border" style={{ background: "var(--admin-card)", borderColor: "var(--admin-border)" }}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm mb-2" style={{ color: "var(--admin-text-muted)" }}>
-                  Today's Orders
-                </p>
-                <p className="text-3xl font-bold" style={{ color: "var(--admin-text)" }}>
-                  {todayOrders}
-                </p>
-              </div>
-              <div
-                className="w-12 h-12 rounded-lg flex items-center justify-center"
-                style={{ background: "rgba(168, 85, 247, 0.1)" }}
-              >
-                <svg
-                  className="w-6 h-6"
-                  style={{ color: "var(--admin-accent-purple)" }}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-            </div>
+          <Card className="p-5 border-2 border-warning/30 shadow-md hover:shadow-lg transition-all hover:border-warning/50 bg-gradient-to-br from-card to-warning/5">
+            <p className="text-sm font-semibold text-muted-foreground mb-2">Today's Orders</p>
+            <p className="text-3xl font-display font-bold text-warning">{todayOrders}</p>
           </Card>
-          <Card className="p-5 border" style={{ background: "var(--admin-card)", borderColor: "var(--admin-border)" }}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm mb-2" style={{ color: "var(--admin-text-muted)" }}>
-                  Total Revenue
-                </p>
-                <p className="text-3xl font-bold" style={{ color: "var(--admin-text)" }}>
-                  ${totalRevenue.toFixed(2)}
-                </p>
-              </div>
-              <div
-                className="w-12 h-12 rounded-lg flex items-center justify-center"
-                style={{ background: "rgba(16, 185, 129, 0.1)" }}
-              >
-                <svg
-                  className="w-6 h-6"
-                  style={{ color: "var(--admin-accent-green)" }}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-            </div>
+          <Card className="p-5 border-2 border-success/30 shadow-md hover:shadow-lg transition-all hover:border-success/50 bg-gradient-to-br from-card to-success/5">
+            <p className="text-sm font-semibold text-muted-foreground mb-2">Total Revenue</p>
+            <p className="text-3xl font-display font-bold text-success">${totalRevenue.toFixed(2)}</p>
           </Card>
         </div>
 

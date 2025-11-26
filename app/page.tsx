@@ -221,12 +221,12 @@ export default function OrderPage() {
   return (
     <div className="min-h-screen bg-cream pb-40">
       {/* Header */}
-      <div className="bg-background border-b border-elegant sticky top-0 z-10">
+      <div className="bg-gradient-to-b from-primary/5 to-card border-b-2 border-primary/20 sticky top-0 z-10 shadow-sm">
         <div className="max-w-2xl mx-auto px-6 py-6">
           <div className="text-center">
-            <h1 className="font-playfair-display text-5xl font-bold mb-3 text-foreground tracking-wide">GERA COOKS</h1>
-            <p className="text-xs text-muted-foreground mb-3">Cel 631-578-0700</p>
-            <p className="text-xs text-muted-foreground italic">
+            <h1 className="font-display text-5xl font-extrabold mb-3 text-primary tracking-tight">GERA COOKS</h1>
+            <p className="text-sm font-semibold text-primary/80 mb-3">Cel 631-578-0700</p>
+            <p className="text-xs text-muted-foreground">
               Nuestros empaques son de 1 libra y sirven aproximadamente 2 porciones.
             </p>
           </div>
@@ -235,11 +235,11 @@ export default function OrderPage() {
 
       {/* Customer Info Form */}
       <div className="max-w-2xl mx-auto px-6 py-8">
-        <div className="bg-background border border-elegant p-6 mb-8">
-          <h2 className="font-serif text-2xl mb-4 text-foreground">Your Information</h2>
+        <div className="bg-card border-2 border-primary/30 rounded-lg shadow-md p-6 mb-8">
+          <h2 className="font-display text-2xl font-bold mb-5 text-foreground">Your Information</h2>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm mb-2 text-foreground/80">Name</label>
+              <label className="block text-sm font-semibold mb-2 text-foreground">Name</label>
               <Input
                 type="text"
                 value={customerName}
@@ -249,7 +249,7 @@ export default function OrderPage() {
               />
             </div>
             <div>
-              <label className="block text-sm mb-2 text-foreground/80">Phone Number</label>
+              <label className="block text-sm font-semibold mb-2 text-foreground">Phone Number</label>
               <div className="flex gap-2">
                 <select
                   value={countryCode}
@@ -277,37 +277,46 @@ export default function OrderPage() {
         {/* Menu Items */}
         {Object.entries(menuItems).map(([category, items]) => (
           <div key={category} className="mb-8">
-            <div className="bg-background border border-elegant p-6">
-              <h2 className="font-serif text-2xl mb-4 pb-2 border-b border-elegant text-foreground">{category}</h2>
-              <div className="space-y-3">
-                {items.map((item) => (
-                  <div key={item.name} className="flex items-center justify-between py-2">
-                    <div className="flex-1">
-                      <p className="text-foreground">{item.name}</p>
-                      <p className="text-sm text-muted-foreground">${item.price}</p>
+            <div className="bg-card border-2 border-border rounded-lg shadow-md overflow-hidden">
+              <div className="bg-gradient-to-r from-primary/10 to-accent p-6 border-b-2 border-primary/20">
+                <h2 className="font-display text-2xl font-bold text-foreground">{category}</h2>
+              </div>
+              <div className="p-6">
+                <div className="space-y-3">
+                  {items.map((item) => (
+                    <div
+                      key={item.name}
+                      className="flex items-center justify-between py-3 hover:bg-primary/5 px-3 -mx-3 rounded-md transition-colors border-b border-border/50 last:border-0"
+                    >
+                      <div className="flex-1">
+                        <p className="text-foreground font-semibold">{item.name}</p>
+                        <p className="text-sm font-medium text-muted-foreground">${item.price}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => updateQuantity(item.name, -1)}
+                          disabled={!orderItems[item.name]}
+                          className="h-8 w-8 p-0 border-elegant"
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <span className="w-8 text-center font-medium text-foreground">
+                          {orderItems[item.name] || 0}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => updateQuantity(item.name, 1)}
+                          className="h-8 w-8 p-0 border-elegant"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => updateQuantity(item.name, -1)}
-                        disabled={!orderItems[item.name]}
-                        className="h-8 w-8 p-0 border-elegant"
-                      >
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <span className="w-8 text-center font-medium text-foreground">{orderItems[item.name] || 0}</span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => updateQuantity(item.name, 1)}
-                        className="h-8 w-8 p-0 border-elegant"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -316,17 +325,17 @@ export default function OrderPage() {
 
       {/* Fixed Bottom Bar */}
       {getTotalItems() > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-elegant p-4 z-[100] shadow-lg">
+        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-primary to-primary/90 border-t-2 border-primary p-4 z-[100] shadow-2xl">
           <div className="max-w-2xl mx-auto">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="text-sm text-muted-foreground">Total Items: {getTotalItems()}</p>
-                <p className="text-xl font-serif text-foreground">Total: ${getTotalPrice()}</p>
+                <p className="text-sm font-semibold text-primary-foreground/90">Total Items: {getTotalItems()}</p>
+                <p className="text-2xl font-display font-bold text-primary-foreground">Total: ${getTotalPrice()}</p>
               </div>
               <Button
                 onClick={handleSubmit}
                 size="lg"
-                className="bg-primary text-primary-foreground"
+                className="bg-card text-primary font-bold text-base px-8 shadow-lg hover:shadow-xl hover:scale-105 transition-all"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? "Submitting..." : "Submit Order"}

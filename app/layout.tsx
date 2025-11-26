@@ -1,13 +1,19 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Playfair_Display } from "next/font/google"
+import { Inter, Poppins } from "next/font/google"
 import "./globals.css"
 import { Analytics } from "@vercel/analytics/next"
 
-const playfairDisplay = Playfair_Display({
+const inter = Inter({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-serif",
+  variable: "--font-sans",
+})
+
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["500", "600", "700", "800"],
+  variable: "--font-display",
 })
 
 export const metadata: Metadata = {
@@ -40,7 +46,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${playfairDisplay.className} antialiased`}>
+      <body className={`${inter.variable} ${poppins.variable} antialiased`}>
         {children}
         <Analytics />
       </body>
