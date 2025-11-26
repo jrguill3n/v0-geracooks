@@ -75,14 +75,14 @@ export default async function AdminPage() {
     <div className="min-h-screen bg-cream">
       {/* Header */}
       <div className="bg-background border-b border-elegant">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
-              <h1 className="font-playfair-display text-4xl font-bold text-foreground">GERA COOKS Admin</h1>
-              <p className="text-sm text-muted-foreground mt-2">Order Management Dashboard</p>
+              <h1 className="font-playfair-display text-2xl sm:text-3xl font-bold text-foreground">GERA COOKS Admin</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">Order Management Dashboard</p>
             </div>
             <form action={logoutAction}>
-              <Button variant="outline" type="submit" className="border-elegant bg-transparent">
+              <Button variant="outline" type="submit" size="sm" className="border-elegant bg-transparent">
                 Logout
               </Button>
             </form>
@@ -90,20 +90,20 @@ export default async function AdminPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 sm:py-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="p-6 bg-background border-elegant">
-            <p className="text-sm text-muted-foreground mb-1">Total Orders</p>
-            <p className="text-3xl font-bold text-foreground">{orders?.length || 0}</p>
+        <div className="grid grid-cols-3 gap-3 mb-4 sm:mb-6">
+          <Card className="p-3 sm:p-4 bg-background border-elegant">
+            <p className="text-xs text-muted-foreground mb-1">Total Orders</p>
+            <p className="text-xl sm:text-2xl font-bold text-foreground">{orders?.length || 0}</p>
           </Card>
-          <Card className="p-6 bg-background border-elegant">
-            <p className="text-sm text-muted-foreground mb-1">Today's Orders</p>
-            <p className="text-3xl font-bold text-foreground">{todayOrders}</p>
+          <Card className="p-3 sm:p-4 bg-background border-elegant">
+            <p className="text-xs text-muted-foreground mb-1">Today's Orders</p>
+            <p className="text-xl sm:text-2xl font-bold text-foreground">{todayOrders}</p>
           </Card>
-          <Card className="p-6 bg-background border-elegant">
-            <p className="text-sm text-muted-foreground mb-1">Total Revenue</p>
-            <p className="text-3xl font-bold text-foreground">${totalRevenue.toFixed(2)}</p>
+          <Card className="p-3 sm:p-4 bg-background border-elegant">
+            <p className="text-xs text-muted-foreground mb-1">Total Revenue</p>
+            <p className="text-xl sm:text-2xl font-bold text-foreground">${totalRevenue.toFixed(2)}</p>
           </Card>
         </div>
 

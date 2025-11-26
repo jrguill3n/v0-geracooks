@@ -72,13 +72,13 @@ export function OrderFilters({ onFiltersChange }: OrderFiltersProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Filter Controls */}
-      <div className="flex flex-col md:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-2">
         {/* Status Filter */}
         <div className="flex gap-2 items-center">
-          <Select value={statusSelect} onValueChange={addStatusFilter}>
-            <SelectTrigger className="w-[180px] border-elegant">
+          <Select value={statusSelect} onValueChange={setStatusSelect}>
+            <SelectTrigger className="w-full sm:w-[160px] border-elegant text-sm">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
@@ -87,19 +87,32 @@ export function OrderFilters({ onFiltersChange }: OrderFiltersProps) {
               <SelectItem value="cancelled">Cancelled</SelectItem>
             </SelectContent>
           </Select>
+          <Button
+            onClick={() => addStatusFilter(statusSelect)}
+            variant="outline"
+            size="sm"
+            className="border-elegant bg-transparent shrink-0"
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
         </div>
 
         {/* Phone Filter */}
         <div className="flex gap-2 items-center flex-1">
           <Input
             type="text"
-            placeholder="Filter by phone number"
+            placeholder="Filter by phone"
             value={phoneInput}
             onChange={(e) => setPhoneInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addPhoneFilter()}
-            className="border-elegant max-w-xs"
+            className="border-elegant text-sm"
           />
-          <Button onClick={addPhoneFilter} variant="outline" size="sm" className="border-elegant bg-transparent">
+          <Button
+            onClick={addPhoneFilter}
+            variant="outline"
+            size="sm"
+            className="border-elegant bg-transparent shrink-0"
+          >
             <Filter className="h-4 w-4" />
           </Button>
         </div>
@@ -108,12 +121,12 @@ export function OrderFilters({ onFiltersChange }: OrderFiltersProps) {
       {/* Active Filters */}
       {filters.length > 0 && (
         <div className="flex flex-wrap gap-2 items-center">
-          <span className="text-sm text-muted-foreground">Active filters:</span>
+          <span className="text-xs text-muted-foreground">Active filters:</span>
           {filters.map((filter, index) => (
             <Badge
               key={`${filter.type}-${filter.value}-${index}`}
               variant="secondary"
-              className="gap-1 pr-1 bg-elegant/10 hover:bg-elegant/20 border-elegant"
+              className="gap-1 pr-1 bg-elegant/10 hover:bg-elegant/20 border-elegant text-xs"
             >
               {filter.label}
               <button onClick={() => removeFilter(filter)} className="ml-1 hover:bg-elegant/30 rounded-full p-0.5">
@@ -121,7 +134,7 @@ export function OrderFilters({ onFiltersChange }: OrderFiltersProps) {
               </button>
             </Badge>
           ))}
-          <Button onClick={clearAllFilters} variant="ghost" size="sm" className="text-xs text-muted-foreground">
+          <Button onClick={clearAllFilters} variant="ghost" size="sm" className="text-xs text-muted-foreground h-7">
             Clear all
           </Button>
         </div>
