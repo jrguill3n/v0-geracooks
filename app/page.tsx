@@ -164,9 +164,10 @@ export default function OrderPage() {
       message += `\nTotal: $${getTotalPrice()}`
 
       if (method === "whatsapp") {
-        const whatsappMessage = message.replace(/\n/g, "%0A")
-        const whatsappUrl = `https://wa.me/16315780700?text=${whatsappMessage}`
-        window.open(whatsappUrl, "_blank")
+        const whatsappMessage = encodeURIComponent(message)
+        const phoneNumber = "16315780700"
+        const whatsappUrl = `https://api.whatsapp.com/send?phone=${phoneNumber}&text=${whatsappMessage}`
+        window.location.href = whatsappUrl
       } else {
         const smsMessage = encodeURIComponent(message)
         const smsUrl = `sms:+16315780700${/iPhone|iPad|iPod/.test(navigator.userAgent) ? "&" : "?"}body=${smsMessage}`
