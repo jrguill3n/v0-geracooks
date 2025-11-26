@@ -42,6 +42,11 @@
   --elegant: oklch(0.72 0.02 280); /* Richer elegant color */
   --success: oklch(0.55 0.15 145); /* Fresh green for success */
   --warning: oklch(0.65 0.18 65); /* Amber for warnings */
+  /* Adding vibrant pastel colors inspired by modern dashboard design */
+  --color-stats-purple: oklch(0.75 0.12 290); /* Soft purple for stats */
+  --color-stats-orange: oklch(0.8 0.12 50); /* Soft peach/orange */
+  --color-stats-blue: oklch(0.78 0.1 230); /* Soft blue */
+  --color-stats-green: oklch(0.75 0.12 145); /* Soft mint green */
 }
 
 .dark {

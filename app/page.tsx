@@ -221,11 +221,13 @@ export default function OrderPage() {
   return (
     <div className="min-h-screen bg-cream pb-40">
       {/* Header */}
-      <div className="bg-gradient-to-b from-primary/5 to-card border-b-2 border-primary/20 sticky top-0 z-10 shadow-sm">
+      <div className="bg-gradient-to-br from-orange-50 via-pink-50 to-purple-50 border-b-2 border-orange-300 sticky top-0 z-10 shadow-md">
         <div className="max-w-2xl mx-auto px-6 py-6">
           <div className="text-center">
-            <h1 className="font-display text-5xl font-extrabold mb-3 text-primary tracking-tight">GERA COOKS</h1>
-            <p className="text-sm font-semibold text-primary/80 mb-3">Cel 631-578-0700</p>
+            <h1 className="font-display text-5xl font-extrabold mb-3 bg-gradient-to-r from-orange-600 to-pink-600 bg-clip-text text-transparent tracking-tight">
+              GERA COOKS
+            </h1>
+            <p className="text-sm font-semibold text-orange-700 mb-3">Cel 631-578-0700</p>
             <p className="text-xs text-muted-foreground">
               Nuestros empaques son de 1 libra y sirven aproximadamente 2 porciones.
             </p>
@@ -235,26 +237,26 @@ export default function OrderPage() {
 
       {/* Customer Info Form */}
       <div className="max-w-2xl mx-auto px-6 py-8">
-        <div className="bg-card border-2 border-primary/30 rounded-lg shadow-md p-6 mb-8">
-          <h2 className="font-display text-2xl font-bold mb-5 text-foreground">Your Information</h2>
+        <div className="bg-white border-2 border-purple-300 rounded-lg shadow-lg p-6 mb-8">
+          <h2 className="font-display text-2xl font-bold mb-5 text-gray-800">Your Information</h2>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold mb-2 text-foreground">Name</label>
+              <label className="block text-sm font-semibold mb-2 text-gray-800">Name</label>
               <Input
                 type="text"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 placeholder="Enter your name"
-                className="w-full bg-background border-elegant"
+                className="w-full bg-white border-2 border-gray-300 focus:border-purple-400 focus:ring-2 focus:ring-purple-200"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold mb-2 text-foreground">Phone Number</label>
+              <label className="block text-sm font-semibold mb-2 text-gray-800">Phone Number</label>
               <div className="flex gap-2">
                 <select
                   value={countryCode}
                   onChange={(e) => setCountryCode(e.target.value)}
-                  className="w-24 px-3 py-2 bg-background border border-elegant rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-24 px-3 py-2 bg-white border-2 border-gray-300 rounded-md text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 font-medium"
                 >
                   {countryCodes.map((item, index) => (
                     <option key={`${item.code}-${item.country}-${index}`} value={item.code}>
@@ -267,7 +269,7 @@ export default function OrderPage() {
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
                   placeholder="6316205887"
-                  className="flex-1 bg-background border-elegant"
+                  className="flex-1 bg-white border-2 border-gray-300 focus:border-purple-400 focus:ring-2 focus:ring-purple-200"
                 />
               </div>
             </div>
@@ -277,20 +279,20 @@ export default function OrderPage() {
         {/* Menu Items */}
         {Object.entries(menuItems).map(([category, items]) => (
           <div key={category} className="mb-8">
-            <div className="bg-card border-2 border-border rounded-lg shadow-md overflow-hidden">
-              <div className="bg-gradient-to-r from-primary/10 to-accent p-6 border-b-2 border-primary/20">
-                <h2 className="font-display text-2xl font-bold text-foreground">{category}</h2>
+            <div className="bg-white border-2 border-gray-200 rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+              <div className="bg-gradient-to-r from-purple-100 via-pink-100 to-orange-100 p-6 border-b-2 border-purple-200">
+                <h2 className="font-display text-2xl font-bold text-gray-800">{category}</h2>
               </div>
               <div className="p-6">
                 <div className="space-y-3">
                   {items.map((item) => (
                     <div
                       key={item.name}
-                      className="flex items-center justify-between py-3 hover:bg-primary/5 px-3 -mx-3 rounded-md transition-colors border-b border-border/50 last:border-0"
+                      className="flex items-center justify-between py-3 hover:bg-purple-50 px-3 -mx-3 rounded-md transition-colors border-b border-gray-100 last:border-0"
                     >
                       <div className="flex-1">
-                        <p className="text-foreground font-semibold">{item.name}</p>
-                        <p className="text-sm font-medium text-muted-foreground">${item.price}</p>
+                        <p className="text-gray-800 font-semibold">{item.name}</p>
+                        <p className="text-sm font-medium text-purple-600">${item.price}</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <Button
@@ -298,18 +300,16 @@ export default function OrderPage() {
                           variant="outline"
                           onClick={() => updateQuantity(item.name, -1)}
                           disabled={!orderItems[item.name]}
-                          className="h-8 w-8 p-0 border-elegant"
+                          className="h-8 w-8 p-0 border-2 border-purple-300 hover:bg-purple-50 hover:border-purple-400"
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
-                        <span className="w-8 text-center font-medium text-foreground">
-                          {orderItems[item.name] || 0}
-                        </span>
+                        <span className="w-8 text-center font-bold text-gray-800">{orderItems[item.name] || 0}</span>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => updateQuantity(item.name, 1)}
-                          className="h-8 w-8 p-0 border-elegant"
+                          className="h-8 w-8 p-0 border-2 border-purple-300 hover:bg-purple-50 hover:border-purple-400"
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
@@ -325,7 +325,7 @@ export default function OrderPage() {
 
       {/* Fixed Bottom Bar */}
       {getTotalItems() > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-primary to-primary/90 border-t-2 border-primary p-4 z-[100] shadow-2xl">
+        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-orange-500 via-pink-500 to-purple-500 border-t-2 border-purple-600 p-4 z-[100] shadow-2xl">
           <div className="max-w-2xl mx-auto">
             <div className="flex items-center justify-between mb-3">
               <div>
@@ -335,7 +335,7 @@ export default function OrderPage() {
               <Button
                 onClick={handleSubmit}
                 size="lg"
-                className="bg-card text-primary font-bold text-base px-8 shadow-lg hover:shadow-xl hover:scale-105 transition-all"
+                className="bg-white text-purple-700 font-bold text-base px-8 shadow-lg hover:shadow-xl hover:scale-105 transition-all hover:bg-purple-50"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? "Submitting..." : "Submit Order"}

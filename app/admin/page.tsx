@@ -125,17 +125,59 @@ export default async function AdminPage({
       <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <Card className="p-5 border-2 border-primary/30 shadow-md hover:shadow-lg transition-all hover:border-primary/50 bg-gradient-to-br from-card to-primary/5">
-            <p className="text-sm font-semibold text-muted-foreground mb-2">Total Orders</p>
-            <p className="text-3xl font-display font-bold text-primary">{totalOrders || 0}</p>
+          <Card className="p-5 border-2 border-purple-300 shadow-lg hover:shadow-xl transition-all bg-gradient-to-br from-purple-50 to-purple-100">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-purple-200 rounded-lg">
+                <svg className="w-6 h-6 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-purple-600 mb-1">Total Orders</p>
+                <p className="text-3xl font-display font-bold text-purple-900">{totalOrders || 0}</p>
+              </div>
+            </div>
           </Card>
-          <Card className="p-5 border-2 border-warning/30 shadow-md hover:shadow-lg transition-all hover:border-warning/50 bg-gradient-to-br from-card to-warning/5">
-            <p className="text-sm font-semibold text-muted-foreground mb-2">Today's Orders</p>
-            <p className="text-3xl font-display font-bold text-warning">{todayOrders}</p>
+          <Card className="p-5 border-2 border-orange-300 shadow-lg hover:shadow-xl transition-all bg-gradient-to-br from-orange-50 to-orange-100">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-orange-200 rounded-lg">
+                <svg className="w-6 h-6 text-orange-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-orange-600 mb-1">Today's Orders</p>
+                <p className="text-3xl font-display font-bold text-orange-900">{todayOrders}</p>
+              </div>
+            </div>
           </Card>
-          <Card className="p-5 border-2 border-success/30 shadow-md hover:shadow-lg transition-all hover:border-success/50 bg-gradient-to-br from-card to-success/5">
-            <p className="text-sm font-semibold text-muted-foreground mb-2">Total Revenue</p>
-            <p className="text-3xl font-display font-bold text-success">${totalRevenue.toFixed(2)}</p>
+          <Card className="p-5 border-2 border-green-300 shadow-lg hover:shadow-xl transition-all bg-gradient-to-br from-green-50 to-green-100">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-green-200 rounded-lg">
+                <svg className="w-6 h-6 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-green-600 mb-1">Total Revenue</p>
+                <p className="text-3xl font-display font-bold text-green-900">${totalRevenue.toFixed(2)}</p>
+              </div>
+            </div>
           </Card>
         </div>
 

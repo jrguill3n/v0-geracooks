@@ -101,21 +101,21 @@ export function OrdersList({
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":
-        return "bg-warning/20 text-warning border-warning/40 border-2"
+        return "bg-amber-100 text-amber-800 border-amber-400 border-2 font-semibold"
       case "packed":
-        return "bg-blue-100 text-blue-700 border-blue-400 border-2"
+        return "bg-blue-100 text-blue-800 border-blue-400 border-2 font-semibold"
       case "delivered":
-        return "bg-success/20 text-success border-success/40 border-2"
+        return "bg-green-100 text-green-800 border-green-400 border-2 font-semibold"
       case "cancelled":
-        return "bg-destructive/20 text-destructive border-destructive/40 border-2"
+        return "bg-red-100 text-red-800 border-red-400 border-2 font-semibold"
       default:
-        return "bg-gray-100 text-gray-800 border-gray-300 border-2"
+        return "bg-gray-100 text-gray-800 border-gray-400 border-2 font-semibold"
     }
   }
 
   return (
     <div className="space-y-3">
-      <Card className="p-4 border-2 border-primary/20 shadow-md">
+      <Card className="p-4 border-2 border-gray-200 shadow-md bg-white">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
           <h2 className="text-xl sm:text-2xl font-bold">Recent Orders</h2>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -179,7 +179,7 @@ export function OrdersList({
       </Card>
 
       {orders.length === 0 ? (
-        <Card className="p-8 text-center border-2 border-border">
+        <Card className="p-8 text-center border-2 border-border bg-white">
           <p className="text-sm text-muted-foreground">
             {statusFilter ? "No orders match your filters" : "No orders yet"}
           </p>
@@ -191,7 +191,7 @@ export function OrdersList({
           return (
             <Card
               key={order.id}
-              className="p-4 border-2 border-border hover:border-primary/30 hover:shadow-lg transition-all"
+              className="p-4 border-2 border-gray-200 hover:border-purple-300 hover:shadow-xl transition-all bg-white"
             >
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3 gap-3">
                 <div className="flex-1 min-w-0">
@@ -213,13 +213,13 @@ export function OrdersList({
               </div>
 
               {/* Order Items */}
-              <div className="border-t-2 border-primary/10 pt-3 mt-3">
-                <p className="text-sm font-semibold mb-2">Order Items:</p>
+              <div className="border-t-2 border-gray-100 pt-3 mt-3">
+                <p className="text-sm font-semibold mb-2 text-gray-700">Order Items:</p>
                 <div className="space-y-2">
                   {items.map((item: OrderItem) => (
                     <div
                       key={item.id}
-                      className="flex items-center justify-between text-sm gap-3 py-2 px-3 bg-gradient-to-r from-accent/30 to-primary/5 rounded-md border border-primary/10"
+                      className="flex items-center justify-between text-sm gap-3 py-2 px-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-md border border-purple-200"
                     >
                       <span className="truncate">
                         <span className="font-semibold">{item.quantity}x</span> {item.item_name}
