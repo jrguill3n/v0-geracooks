@@ -242,7 +242,7 @@ export default function OrderPage() {
         {Object.entries(menuItems).map(([category, items]) => (
           <div key={category} className="mb-6">
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-teal-50 to-blue-50 border-b border-gray-200 p-4">
+              <div className="bg-gradient-to-r from-teal-100 to-blue-100 border-b border-gray-200 p-4">
                 <h2 className="text-lg font-bold text-gray-900">{category}</h2>
               </div>
               <div className="p-4">
@@ -254,7 +254,7 @@ export default function OrderPage() {
                     >
                       <div className="flex-1">
                         <p className="text-gray-900 font-medium">{item.name}</p>
-                        <p className="text-base font-bold text-teal-600">${item.price}</p>
+                        <p className="text-base font-bold text-teal-400">${item.price}</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <Button
@@ -262,7 +262,7 @@ export default function OrderPage() {
                           variant="outline"
                           onClick={() => updateQuantity(item.name, -1)}
                           disabled={!orderItems[item.name]}
-                          className="h-9 w-9 p-0 bg-teal-500 text-white border-teal-600 hover:bg-teal-600 disabled:opacity-30 disabled:bg-gray-200"
+                          className="h-9 w-9 p-0 bg-teal-300 text-white border-teal-400 hover:bg-teal-400 disabled:opacity-30 disabled:bg-gray-200"
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
@@ -271,7 +271,7 @@ export default function OrderPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => updateQuantity(item.name, 1)}
-                          className="h-9 w-9 p-0 bg-teal-500 text-white border-teal-600 hover:bg-teal-600"
+                          className="h-9 w-9 p-0 bg-teal-300 text-white border-teal-400 hover:bg-teal-400"
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
@@ -311,8 +311,7 @@ export default function OrderPage() {
                 <Button
                   onClick={(e) => handleSubmit(e, "sms")}
                   size="lg"
-                  variant="outline"
-                  className="border-2 border-white text-white font-bold hover:bg-teal-700 shadow-md"
+                  className="bg-teal-700 text-white font-bold hover:bg-teal-800 border-2 border-white shadow-md"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? "..." : "SMS"}

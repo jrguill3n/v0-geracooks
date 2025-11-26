@@ -87,7 +87,7 @@ export function DeleteOrderButton({ orderId, customerName, onDeleteStart }: Dele
       </Button>
 
       <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="border-2 border-teal-400">
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
