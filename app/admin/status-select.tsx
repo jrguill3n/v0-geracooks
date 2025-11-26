@@ -30,10 +30,13 @@ export function StatusSelect({ orderId, currentStatus }: StatusSelectProps) {
 
   return (
     <Select value={currentStatus} onValueChange={handleStatusChange} disabled={isPending}>
-      <SelectTrigger className="w-[140px] border-elegant">
+      <SelectTrigger
+        className="w-[150px] h-9 text-sm border"
+        style={{ background: "var(--admin-bg)", borderColor: "var(--admin-border)", color: "var(--admin-text)" }}
+      >
         <SelectValue />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent style={{ background: "var(--admin-card)", borderColor: "var(--admin-border)" }}>
         <SelectItem value="pending">Pending</SelectItem>
         <SelectItem value="packed">Packed</SelectItem>
         <SelectItem value="delivered">Delivered</SelectItem>

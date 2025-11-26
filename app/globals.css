@@ -4,23 +4,23 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.98 0.01 85); /* Warm off-white */
-  --foreground: oklch(0.15 0.01 85); /* Deep charcoal */
+  --background: oklch(0.98 0.01 85);
+  --foreground: oklch(0.15 0.01 85);
   --card: oklch(0.98 0.01 85);
   --card-foreground: oklch(0.15 0.01 85);
   --popover: oklch(0.98 0.01 85);
   --popover-foreground: oklch(0.15 0.01 85);
-  --primary: oklch(0.2 0.01 85); /* Dark elegant */
+  --primary: oklch(0.2 0.01 85);
   --primary-foreground: oklch(0.98 0.01 85);
-  --secondary: oklch(0.94 0.01 85); /* Light gray */
+  --secondary: oklch(0.94 0.01 85);
   --secondary-foreground: oklch(0.2 0.01 85);
   --muted: oklch(0.94 0.01 85);
   --muted-foreground: oklch(0.45 0.01 85);
-  --accent: oklch(0.92 0.01 85); /* Soft gray accent */
+  --accent: oklch(0.92 0.01 85);
   --accent-foreground: oklch(0.2 0.01 85);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.88 0.01 85); /* Elegant border */
+  --border: oklch(0.88 0.01 85);
   --input: oklch(0.88 0.01 85);
   --ring: oklch(0.45 0.01 85);
   --chart-1: oklch(0.646 0.222 41.116);
@@ -28,7 +28,7 @@
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.125rem; /* Minimal rounded corners */
+  --radius: 0.125rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -38,9 +38,20 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 
-  /* Custom colors */
   --cream: oklch(0.96 0.015 85);
   --elegant: oklch(0.75 0.01 85);
+
+  /* Adding admin-specific modern dark theme colors */
+  --admin-bg: #0a0a0a;
+  --admin-card: #1a1a1a;
+  --admin-border: #2a2a2a;
+  --admin-text: #ffffff;
+  --admin-text-muted: #a0a0a0;
+  --admin-accent-blue: #3b82f6;
+  --admin-accent-purple: #a855f7;
+  --admin-accent-green: #10b981;
+  --admin-accent-orange: #f59e0b;
+  --admin-accent-red: #ef4444;
 }
 
 .dark {
@@ -82,10 +93,8 @@
 }
 
 @theme inline {
-  /* Updated font to Playfair Display for better readability */
   --font-sans: "Playfair Display", "Georgia", serif;
   --font-mono: "Geist Mono", "Geist Mono Fallback";
-  /* Added Lovelay May font variable */
   --font-lovelay: var(--font-lovelay);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -134,5 +143,11 @@
   }
   body {
     @apply bg-cream text-foreground;
+  }
+
+  /* Adding admin-specific body styling */
+  .admin-dark {
+    background: var(--admin-bg);
+    color: var(--admin-text);
   }
 }

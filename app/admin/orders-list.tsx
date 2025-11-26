@@ -101,24 +101,29 @@ export function OrdersList({
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":
-        return "bg-yellow-100 text-yellow-800"
+        return { bg: "rgba(245, 158, 11, 0.1)", text: "var(--admin-accent-orange)", border: "rgba(245, 158, 11, 0.3)" }
       case "packed":
-        return "bg-blue-100 text-blue-800"
+        return { bg: "rgba(59, 130, 246, 0.1)", text: "var(--admin-accent-blue)", border: "rgba(59, 130, 246, 0.3)" }
       case "delivered":
-        return "bg-green-100 text-green-800"
+        return { bg: "rgba(16, 185, 129, 0.1)", text: "var(--admin-accent-green)", border: "rgba(16, 185, 129, 0.3)" }
       case "cancelled":
-        return "bg-red-100 text-red-800"
+        return { bg: "rgba(239, 68, 68, 0.1)", text: "var(--admin-accent-red)", border: "rgba(239, 68, 68, 0.3)" }
       default:
-        return "bg-gray-100 text-gray-800"
+        return { bg: "rgba(160, 160, 160, 0.1)", text: "var(--admin-text-muted)", border: "rgba(160, 160, 160, 0.3)" }
     }
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-          <h2 className="font-serif text-xl sm:text-2xl text-foreground">Recent Orders</h2>
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+      <div
+        className="flex flex-col gap-4 p-5 rounded-lg border"
+        style={{ background: "var(--admin-card)", borderColor: "var(--admin-border)" }}
+      >
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <h2 className="text-xl sm:text-2xl font-bold" style={{ color: "var(--admin-text)" }}>
+            Recent Orders
+          </h2>
+          <div className="flex items-center gap-2 text-sm" style={{ color: "var(--admin-text-muted)" }}>
             <span>
               Page {currentPage} of {totalPages}
             </span>
@@ -129,12 +134,21 @@ export function OrdersList({
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
           <div className="flex items-center gap-2">
-            <label className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">Filter by status:</label>
+            <label className="text-sm whitespace-nowrap" style={{ color: "var(--admin-text-muted)" }}>
+              Filter by status:
+            </label>
             <Select value={statusFilter || "all"} onValueChange={handleStatusFilterChange}>
-              <SelectTrigger className="w-[140px] h-8 text-xs sm:text-sm">
+              <SelectTrigger
+                className="w-[140px] h-9 text-sm border"
+                style={{
+                  background: "var(--admin-bg)",
+                  borderColor: "var(--admin-border)",
+                  color: "var(--admin-text)",
+                }}
+              >
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent style={{ background: "var(--admin-card)", borderColor: "var(--admin-border)" }}>
                 <SelectItem value="all">All Orders</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="packed">Packed</SelectItem>
@@ -143,19 +157,34 @@ export function OrdersList({
               </SelectContent>
             </Select>
             {statusFilter && (
-              <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 text-xs">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="h-9 text-sm hover:bg-white/10"
+                style={{ color: "var(--admin-text-muted)" }}
+              >
                 Clear
               </Button>
             )}
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">Per page:</label>
+            <label className="text-sm whitespace-nowrap" style={{ color: "var(--admin-text-muted)" }}>
+              Per page:
+            </label>
             <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
-              <SelectTrigger className="w-[100px] h-8 text-xs sm:text-sm">
+              <SelectTrigger
+                className="w-[100px] h-9 text-sm border"
+                style={{
+                  background: "var(--admin-bg)",
+                  borderColor: "var(--admin-border)",
+                  color: "var(--admin-text)",
+                }}
+              >
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent style={{ background: "var(--admin-card)", borderColor: "var(--admin-border)" }}>
                 <SelectItem value="10">10</SelectItem>
                 <SelectItem value="20">20</SelectItem>
                 <SelectItem value="50">50</SelectItem>
@@ -167,12 +196,21 @@ export function OrdersList({
 
         {statusFilter && (
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-muted-foreground">Active filters:</span>
-            <Badge variant="secondary" className="gap-1.5 text-xs">
+            <span className="text-sm" style={{ color: "var(--admin-text-muted)" }}>
+              Active filters:
+            </span>
+            <Badge
+              className="gap-1.5 text-sm px-3 py-1 rounded-md border font-medium"
+              style={{
+                background: getStatusColor(statusFilter).bg,
+                color: getStatusColor(statusFilter).text,
+                borderColor: getStatusColor(statusFilter).border,
+              }}
+            >
               Status: {statusFilter}
               <button
                 onClick={clearFilters}
-                className="ml-1 hover:bg-foreground/20 rounded-full w-3.5 h-3.5 flex items-center justify-center"
+                className="ml-1 hover:opacity-70 rounded-full w-4 h-4 flex items-center justify-center"
               >
                 ×
               </button>
@@ -181,47 +219,78 @@ export function OrdersList({
         )}
       </div>
 
-      {/* Orders List */}
       {orders.length === 0 ? (
-        <Card className="p-6 text-center bg-background border-elegant">
-          <p className="text-sm text-muted-foreground">
+        <Card
+          className="p-8 text-center border"
+          style={{ background: "var(--admin-card)", borderColor: "var(--admin-border)" }}
+        >
+          <p className="text-sm" style={{ color: "var(--admin-text-muted)" }}>
             {statusFilter ? "No orders match your filters" : "No orders yet"}
           </p>
         </Card>
       ) : (
         orders.map((order: Order) => {
           const items = itemsByOrder[order.id] || []
+          const statusColors = getStatusColor(order.status)
+
           return (
-            <Card key={order.id} className="p-4 bg-background border-elegant">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3 gap-3">
+            <Card
+              key={order.id}
+              className="p-5 border hover:border-opacity-60 transition-all"
+              style={{ background: "var(--admin-card)", borderColor: "var(--admin-border)" }}
+            >
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4 gap-4">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <h3 className="font-serif text-lg sm:text-xl text-foreground truncate">{order.customer_name}</h3>
-                    <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
+                  <div className="flex items-center gap-3 mb-2 flex-wrap">
+                    <h3 className="text-lg sm:text-xl font-bold truncate" style={{ color: "var(--admin-text)" }}>
+                      {order.customer_name}
+                    </h3>
+                    <Badge
+                      className="text-sm px-3 py-1 rounded-md border font-medium"
+                      style={{
+                        background: statusColors.bg,
+                        color: statusColors.text,
+                        borderColor: statusColors.border,
+                      }}
+                    >
+                      {order.status}
+                    </Badge>
                   </div>
-                  <p className="text-xs sm:text-sm text-muted-foreground truncate">{order.customer_phone}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{formatTimeAgo(new Date(order.created_at))}</p>
+                  <p className="text-sm truncate mb-1" style={{ color: "var(--admin-text-muted)" }}>
+                    {order.customer_phone}
+                  </p>
+                  <p className="text-xs mb-3" style={{ color: "var(--admin-text-muted)" }}>
+                    {formatTimeAgo(new Date(order.created_at))}
+                  </p>
                   <div className="mt-2">
                     <StatusSelect orderId={order.id} currentStatus={order.status} />
                   </div>
                 </div>
                 <div className="sm:text-right shrink-0">
-                  <p className="text-xl sm:text-2xl font-serif text-foreground">
+                  <p className="text-2xl sm:text-3xl font-bold" style={{ color: "var(--admin-accent-green)" }}>
                     ${Number(order.total_price).toFixed(2)}
                   </p>
                 </div>
               </div>
 
               {/* Order Items */}
-              <div className="border-t border-elegant pt-3 mt-3">
-                <p className="text-xs sm:text-sm font-medium text-foreground mb-2">Order Items:</p>
-                <div className="space-y-1.5">
+              <div className="border-t pt-4 mt-4" style={{ borderColor: "var(--admin-border)" }}>
+                <p className="text-sm font-semibold mb-3" style={{ color: "var(--admin-text)" }}>
+                  Order Items:
+                </p>
+                <div className="space-y-2">
                   {items.map((item: OrderItem) => (
-                    <div key={item.id} className="flex items-center justify-between text-xs sm:text-sm gap-2">
-                      <span className="text-foreground truncate">
-                        {item.quantity}x {item.item_name}
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between text-sm gap-3 py-2 px-3 rounded-md"
+                      style={{ background: "var(--admin-bg)" }}
+                    >
+                      <span className="truncate" style={{ color: "var(--admin-text)" }}>
+                        <span className="font-semibold">{item.quantity}x</span> {item.item_name}
                       </span>
-                      <span className="text-muted-foreground shrink-0">${Number(item.total_price).toFixed(2)}</span>
+                      <span className="shrink-0 font-medium" style={{ color: "var(--admin-text-muted)" }}>
+                        ${Number(item.total_price).toFixed(2)}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -232,8 +301,8 @@ export function OrdersList({
       )}
 
       {totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-          <p className="text-xs sm:text-sm text-muted-foreground">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+          <p className="text-sm" style={{ color: "var(--admin-text-muted)" }}>
             Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalOrders)} of{" "}
             {totalOrders} orders
           </p>
@@ -244,7 +313,8 @@ export function OrdersList({
               size="sm"
               onClick={() => goToPage(1)}
               disabled={currentPage === 1}
-              className="h-8 px-2 sm:px-3"
+              className="h-9 px-3 border hover:bg-white/10"
+              style={{ borderColor: "var(--admin-border)", color: "var(--admin-text)" }}
             >
               First
             </Button>
@@ -253,12 +323,12 @@ export function OrdersList({
               size="sm"
               onClick={() => goToPage(currentPage - 1)}
               disabled={currentPage === 1}
-              className="h-8 px-2 sm:px-3"
+              className="h-9 px-3 border hover:bg-white/10"
+              style={{ borderColor: "var(--admin-border)", color: "var(--admin-text)" }}
             >
               Previous
             </Button>
 
-            {/* Page numbers */}
             <div className="flex items-center gap-1">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 let pageNum
@@ -278,7 +348,19 @@ export function OrdersList({
                     variant={currentPage === pageNum ? "default" : "outline"}
                     size="sm"
                     onClick={() => goToPage(pageNum)}
-                    className="h-8 w-8 p-0 text-xs sm:text-sm"
+                    className="h-9 w-9 p-0 text-sm border hover:bg-white/10"
+                    style={
+                      currentPage === pageNum
+                        ? {
+                            background: "var(--admin-accent-blue)",
+                            borderColor: "var(--admin-accent-blue)",
+                            color: "white",
+                          }
+                        : {
+                            borderColor: "var(--admin-border)",
+                            color: "var(--admin-text)",
+                          }
+                    }
                   >
                     {pageNum}
                   </Button>
@@ -291,7 +373,8 @@ export function OrdersList({
               size="sm"
               onClick={() => goToPage(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="h-8 px-2 sm:px-3"
+              className="h-9 px-3 border hover:bg-white/10"
+              style={{ borderColor: "var(--admin-border)", color: "var(--admin-text)" }}
             >
               Next
             </Button>
@@ -300,7 +383,8 @@ export function OrdersList({
               size="sm"
               onClick={() => goToPage(totalPages)}
               disabled={currentPage === totalPages}
-              className="h-8 px-2 sm:px-3"
+              className="h-9 px-3 border hover:bg-white/10"
+              style={{ borderColor: "var(--admin-border)", color: "var(--admin-text)" }}
             >
               Last
             </Button>

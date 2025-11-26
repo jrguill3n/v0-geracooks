@@ -97,17 +97,27 @@ export default async function AdminPage({
     }).length || 0
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen admin-dark">
       {/* Header */}
-      <div className="bg-background border-b border-elegant">
-        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6">
+      <div className="border-b" style={{ borderColor: "var(--admin-border)", background: "var(--admin-card)" }}>
+        <div className="max-w-7xl mx-auto px-4 py-5 sm:px-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
-              <h1 className="font-playfair-display text-2xl sm:text-3xl font-bold text-foreground">GERA COOKS Admin</h1>
-              <p className="text-xs sm:text-sm text-muted-foreground mt-1">Order Management Dashboard</p>
+              <h1 className="font-sans text-2xl sm:text-3xl font-bold" style={{ color: "var(--admin-text)" }}>
+                GERA COOKS Admin
+              </h1>
+              <p className="text-sm mt-1" style={{ color: "var(--admin-text-muted)" }}>
+                Order Management Dashboard
+              </p>
             </div>
             <form action={logoutAction}>
-              <Button variant="outline" type="submit" size="sm" className="border-elegant bg-transparent">
+              <Button
+                variant="outline"
+                type="submit"
+                size="sm"
+                className="border hover:bg-white/10 bg-transparent"
+                style={{ borderColor: "var(--admin-border)", color: "var(--admin-text)" }}
+              >
                 Logout
               </Button>
             </form>
@@ -115,20 +125,101 @@ export default async function AdminPage({
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 sm:py-6">
+      <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-3 gap-3 mb-4 sm:mb-6">
-          <Card className="p-3 sm:p-4 bg-background border-elegant">
-            <p className="text-xs text-muted-foreground mb-1">Total Orders</p>
-            <p className="text-xl sm:text-2xl font-bold text-foreground">{totalOrders || 0}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <Card className="p-5 border" style={{ background: "var(--admin-card)", borderColor: "var(--admin-border)" }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm mb-2" style={{ color: "var(--admin-text-muted)" }}>
+                  Total Orders
+                </p>
+                <p className="text-3xl font-bold" style={{ color: "var(--admin-text)" }}>
+                  {totalOrders || 0}
+                </p>
+              </div>
+              <div
+                className="w-12 h-12 rounded-lg flex items-center justify-center"
+                style={{ background: "rgba(59, 130, 246, 0.1)" }}
+              >
+                <svg
+                  className="w-6 h-6"
+                  style={{ color: "var(--admin-accent-blue)" }}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                  />
+                </svg>
+              </div>
+            </div>
           </Card>
-          <Card className="p-3 sm:p-4 bg-background border-elegant">
-            <p className="text-xs text-muted-foreground mb-1">Today's Orders</p>
-            <p className="text-xl sm:text-2xl font-bold text-foreground">{todayOrders}</p>
+          <Card className="p-5 border" style={{ background: "var(--admin-card)", borderColor: "var(--admin-border)" }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm mb-2" style={{ color: "var(--admin-text-muted)" }}>
+                  Today's Orders
+                </p>
+                <p className="text-3xl font-bold" style={{ color: "var(--admin-text)" }}>
+                  {todayOrders}
+                </p>
+              </div>
+              <div
+                className="w-12 h-12 rounded-lg flex items-center justify-center"
+                style={{ background: "rgba(168, 85, 247, 0.1)" }}
+              >
+                <svg
+                  className="w-6 h-6"
+                  style={{ color: "var(--admin-accent-purple)" }}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+            </div>
           </Card>
-          <Card className="p-3 sm:p-4 bg-background border-elegant">
-            <p className="text-xs text-muted-foreground mb-1">Total Revenue</p>
-            <p className="text-xl sm:text-2xl font-bold text-foreground">${totalRevenue.toFixed(2)}</p>
+          <Card className="p-5 border" style={{ background: "var(--admin-card)", borderColor: "var(--admin-border)" }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm mb-2" style={{ color: "var(--admin-text-muted)" }}>
+                  Total Revenue
+                </p>
+                <p className="text-3xl font-bold" style={{ color: "var(--admin-text)" }}>
+                  ${totalRevenue.toFixed(2)}
+                </p>
+              </div>
+              <div
+                className="w-12 h-12 rounded-lg flex items-center justify-center"
+                style={{ background: "rgba(16, 185, 129, 0.1)" }}
+              >
+                <svg
+                  className="w-6 h-6"
+                  style={{ color: "var(--admin-accent-green)" }}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+            </div>
           </Card>
         </div>
 
