@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { StatusSelect } from "./status-select"
+import { DeleteOrderButton } from "./delete-order-button"
 
 interface Order {
   id: string
@@ -201,8 +202,9 @@ export function OrdersList({
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground mb-3">{formatTimeAgo(new Date(order.created_at))}</p>
-                  <div className="mt-2">
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <StatusSelect orderId={order.id} currentStatus={order.status} />
+                    <DeleteOrderButton orderId={order.id} customerName={order.customer_name} />
                   </div>
                 </div>
                 <div className="sm:text-right shrink-0">

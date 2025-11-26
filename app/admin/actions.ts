@@ -28,3 +28,32 @@ export async function updateOrderStatus(orderId: string, newStatus: string) {
     return { success: false, error: "Failed to update order status" }
   }
 }
+
+export async function deleteOrder(orderId: string) {
+  try {
+    console.log("[v0] Server action: deleting order", orderId)
+    const supabase = await createClient()
+
+    // First delete order items (foreign key constraint)
+    const { error: itemsError } = await supabase.from("order_items").delete().eq("order_id", orderId)
+
+    if (itemsError) {
+      console.error("[v0] Error deleting order items:", itemsError)
+      return { success: false, error: itemsError.message }
+    }
+
+    // Then delete the order
+    const { error: orderError } = await supabase.from("orders").delete().eq("id", orderId)
+
+    if (orderError) {
+      console.error("[v0] Error deleting order:", orderError)
+      return { success: false, error: orderError.message }
+    }
+
+    console.log("[v0] Successfully deleted order and its items")
+    return { success: true }
+  } catch (error) {
+    console.error("[v0] Unexpected error deleting order:", error)
+    return { success: false, error: "Failed to delete order" }
+  }
+}
