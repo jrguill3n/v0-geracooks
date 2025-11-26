@@ -10,19 +10,19 @@
   --card-foreground: oklch(0.15 0.02 280);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.15 0.02 280);
-  --primary: oklch(0.55 0.18 35); /* Warm terracotta/orange */
+  --primary: oklch(0.72 0.14 45); /* Peachy coral */
   --primary-foreground: oklch(0.98 0.005 85);
   --secondary: oklch(0.94 0.02 85);
   --secondary-foreground: oklch(0.2 0.02 280);
   --muted: oklch(0.96 0.01 75);
   --muted-foreground: oklch(0.45 0.02 280);
-  --accent: oklch(0.96 0.025 75); /* Light peach accent */
+  --accent: oklch(0.92 0.02 65); /* Soft warm beige */
   --accent-foreground: oklch(0.2 0.02 280);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.85 0.015 75); /* Warmer border */
+  --border: oklch(0.85 0.015 75);
   --input: oklch(0.91 0.01 75);
-  --ring: oklch(0.55 0.18 35);
+  --ring: oklch(0.72 0.14 45);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -38,15 +38,16 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 
-  --cream: oklch(0.98 0.015 75); /* Warmer cream */
-  --elegant: oklch(0.72 0.02 280); /* Richer elegant color */
-  --success: oklch(0.55 0.15 145); /* Fresh green for success */
-  --warning: oklch(0.65 0.18 65); /* Amber for warnings */
-  /* Adding vibrant pastel colors inspired by modern dashboard design */
-  --color-stats-purple: oklch(0.75 0.12 290); /* Soft purple for stats */
-  --color-stats-orange: oklch(0.8 0.12 50); /* Soft peach/orange */
-  --color-stats-blue: oklch(0.78 0.1 230); /* Soft blue */
-  --color-stats-green: oklch(0.75 0.12 145); /* Soft mint green */
+  --cream: oklch(0.97 0.015 65); /* Warm beige cream */
+  --elegant: oklch(0.72 0.02 280);
+  --success: oklch(0.6 0.12 145); /* Soft sage green for success */
+  --warning: oklch(0.72 0.14 45); /* Peachy coral for warnings */
+
+  /* Updated stats colors to match soft, natural palette */
+  --color-stats-sage: oklch(0.78 0.1 140); /* Soft sage green */
+  --color-stats-coral: oklch(0.78 0.12 45); /* Soft peachy coral */
+  --color-stats-mint: oklch(0.8 0.08 160); /* Soft mint */
+  --color-stats-peach: oklch(0.82 0.1 50); /* Light peach */
 }
 
 .dark {

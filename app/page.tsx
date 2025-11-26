@@ -85,8 +85,6 @@ const menuItems = {
 
 export default function OrderPage() {
   const [customerName, setCustomerName] = useState("")
-  const [countryCode, setCountryCode] = useState("+1")
-  const [customerPhone, setCustomerPhone] = useState("")
   const [orderItems, setOrderItems] = useState<Record<string, number>>({})
   const [orderSubmitted, setOrderSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -119,21 +117,11 @@ export default function OrderPage() {
     return total
   }
 
-  const validatePhoneNumber = (phone: string) => {
-    const cleaned = phone.replace(/\D/g, "")
-    return cleaned.length >= 10
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, method: "whatsapp" | "sms") => {
     e.preventDefault()
 
-    if (!customerName || !customerPhone || getTotalItems() === 0) {
-      alert("Please fill in all fields and select at least one item")
-      return
-    }
-
-    if (!validatePhoneNumber(customerPhone)) {
-      alert("Please enter a valid phone number (at least 10 digits)")
+    if (!customerName || getTotalItems() === 0) {
+      alert("Please fill in your name and select at least one item")
       return
     }
 
@@ -142,7 +130,6 @@ export default function OrderPage() {
     try {
       const orderData = {
         customerName,
-        customerPhone: `${countryCode} ${customerPhone}`,
         orderItems,
         totalPrice: getTotalPrice(),
       }
@@ -161,24 +148,30 @@ export default function OrderPage() {
         throw new Error(`Failed to save order: ${JSON.stringify(responseData)}`)
       }
 
-      let message = `*New Order from GERA COOKS*%0A%0A`
-      message += `*Customer:* ${customerName}%0A`
-      message += `*Phone:* ${countryCode} ${customerPhone}%0A%0A`
-      message += `*Order:*%0A`
+      let message = `New Order from GERA COOKS\n\n`
+      message += `Customer: ${customerName}\n\n`
+      message += `Order:\n`
 
       Object.entries(orderItems).forEach(([itemName, quantity]) => {
         const item = Object.values(menuItems)
           .flat()
           .find((i) => i.name === itemName)
         if (item) {
-          message += `• ${quantity}x ${itemName} - $${item.price * quantity}%0A`
+          message += `• ${quantity}x ${itemName} - $${item.price * quantity}\n`
         }
       })
 
-      message += `%0A*Total: $${getTotalPrice()}*`
+      message += `\nTotal: $${getTotalPrice()}`
 
-      const whatsappUrl = `https://wa.me/16315780700?text=${message}`
-      window.open(whatsappUrl, "_blank")
+      if (method === "whatsapp") {
+        const whatsappMessage = message.replace(/\n/g, "%0A")
+        const whatsappUrl = `https://wa.me/16315780700?text=${whatsappMessage}`
+        window.open(whatsappUrl, "_blank")
+      } else {
+        const smsMessage = encodeURIComponent(message)
+        const smsUrl = `sms:+16315780700${/iPhone|iPad|iPod/.test(navigator.userAgent) ? "&" : "?"}body=${smsMessage}`
+        window.location.href = smsUrl
+      }
 
       setOrderSubmitted(true)
     } catch (error) {
@@ -206,7 +199,6 @@ export default function OrderPage() {
             onClick={() => {
               setOrderSubmitted(false)
               setCustomerName("")
-              setCustomerPhone("")
               setOrderItems({})
             }}
             className="w-full bg-primary text-primary-foreground"
@@ -221,11 +213,11 @@ export default function OrderPage() {
   return (
     <div className="min-h-screen bg-cream pb-40">
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-100 via-pink-100 to-orange-100 border-b-2 border-purple-200 shadow-md">
+      <div className="bg-gradient-to-r from-green-50 via-emerald-50 to-teal-50 border-b-2 border-emerald-200 shadow-md">
         <div className="max-w-2xl mx-auto px-6 py-6">
           <div className="text-center">
             <h1 className="font-sans text-4xl font-black mb-3 text-black tracking-wider uppercase">GERA COOKS</h1>
-            <p className="text-sm font-semibold text-orange-700 mb-3">Cel 631-578-0700</p>
+            <p className="text-sm font-semibold text-emerald-700 mb-3">Cel 631-578-0700</p>
             <p className="text-xs text-muted-foreground">
               Nuestros empaques son de 1 libra y sirven aproximadamente 2 porciones.
             </p>
@@ -235,42 +227,17 @@ export default function OrderPage() {
 
       {/* Customer Info Form */}
       <div className="max-w-2xl mx-auto px-6 py-8">
-        <div className="bg-white border-2 border-purple-300 rounded-lg shadow-lg p-6 mb-8">
+        <div className="bg-white border-2 border-emerald-300 rounded-lg shadow-lg p-6 mb-8">
           <h2 className="font-display text-2xl font-bold mb-5 text-gray-800">Your Information</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold mb-2 text-gray-800">Name</label>
-              <Input
-                type="text"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="Enter your name"
-                className="w-full bg-white border-2 border-gray-300 focus:border-purple-400 focus:ring-2 focus:ring-purple-200"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold mb-2 text-gray-800">Phone Number</label>
-              <div className="flex gap-2">
-                <select
-                  value={countryCode}
-                  onChange={(e) => setCountryCode(e.target.value)}
-                  className="w-24 px-3 py-2 bg-white border-2 border-gray-300 rounded-md text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 font-medium"
-                >
-                  {countryCodes.map((item, index) => (
-                    <option key={`${item.code}-${item.country}-${index}`} value={item.code}>
-                      {item.country} {item.code}
-                    </option>
-                  ))}
-                </select>
-                <Input
-                  type="tel"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="6316205887"
-                  className="flex-1 bg-white border-2 border-gray-300 focus:border-purple-400 focus:ring-2 focus:ring-purple-200"
-                />
-              </div>
-            </div>
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-gray-800">Name</label>
+            <Input
+              type="text"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              placeholder="Enter your name"
+              className="w-full bg-white border-2 border-gray-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
+            />
           </div>
         </div>
 
@@ -278,7 +245,7 @@ export default function OrderPage() {
         {Object.entries(menuItems).map(([category, items]) => (
           <div key={category} className="mb-8">
             <div className="bg-white border-2 border-gray-200 rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-              <div className="bg-gradient-to-r from-purple-100 via-pink-100 to-orange-100 p-6 border-b-2 border-purple-200">
+              <div className="bg-gradient-to-r from-emerald-100 via-teal-100 to-green-100 p-6 border-b-2 border-emerald-200">
                 <h2 className="font-display text-2xl font-bold text-gray-800">{category}</h2>
               </div>
               <div className="p-6">
@@ -286,11 +253,11 @@ export default function OrderPage() {
                   {items.map((item) => (
                     <div
                       key={item.name}
-                      className="flex items-center justify-between py-3 hover:bg-purple-50 px-3 -mx-3 rounded-md transition-colors border-b border-gray-100 last:border-0"
+                      className="flex items-center justify-between py-3 hover:bg-emerald-50 px-3 -mx-3 rounded-md transition-colors border-b border-gray-100 last:border-0"
                     >
                       <div className="flex-1">
                         <p className="text-gray-800 font-semibold">{item.name}</p>
-                        <p className="text-sm font-medium text-purple-600">${item.price}</p>
+                        <p className="text-sm font-medium text-emerald-600">${item.price}</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <Button
@@ -298,7 +265,7 @@ export default function OrderPage() {
                           variant="outline"
                           onClick={() => updateQuantity(item.name, -1)}
                           disabled={!orderItems[item.name]}
-                          className="h-8 w-8 p-0 border-2 border-purple-300 hover:bg-purple-50 hover:border-purple-400"
+                          className="h-8 w-8 p-0 border-2 border-emerald-300 hover:bg-emerald-50 hover:border-emerald-400"
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
@@ -307,7 +274,7 @@ export default function OrderPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => updateQuantity(item.name, 1)}
-                          className="h-8 w-8 p-0 border-2 border-purple-300 hover:bg-purple-50 hover:border-purple-400"
+                          className="h-8 w-8 p-0 border-2 border-emerald-300 hover:bg-emerald-50 hover:border-emerald-400"
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
@@ -323,21 +290,31 @@ export default function OrderPage() {
 
       {/* Fixed Bottom Bar */}
       {getTotalItems() > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-orange-500 via-pink-500 to-purple-500 border-t-2 border-purple-600 p-4 z-[100] shadow-2xl">
+        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-orange-400 via-coral-400 to-pink-400 border-t-2 border-orange-500 p-4 z-[100] shadow-2xl">
           <div className="max-w-2xl mx-auto">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="text-sm font-semibold text-primary-foreground/90">Total Items: {getTotalItems()}</p>
-                <p className="text-2xl font-display font-bold text-primary-foreground">Total: ${getTotalPrice()}</p>
+                <p className="text-sm font-semibold text-white/90">Total Items: {getTotalItems()}</p>
+                <p className="text-2xl font-display font-bold text-white">Total: ${getTotalPrice()}</p>
               </div>
-              <Button
-                onClick={handleSubmit}
-                size="lg"
-                className="bg-white text-purple-700 font-bold text-base px-8 shadow-lg hover:shadow-xl hover:scale-105 transition-all hover:bg-purple-50"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Submitting..." : "Submit Order"}
-              </Button>
+              <div className="flex gap-3">
+                <Button
+                  onClick={(e) => handleSubmit(e, "whatsapp")}
+                  size="lg"
+                  className="bg-green-500 text-white font-bold text-base px-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all hover:bg-green-600"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "..." : "WhatsApp"}
+                </Button>
+                <Button
+                  onClick={(e) => handleSubmit(e, "sms")}
+                  size="lg"
+                  className="bg-white text-orange-700 font-bold text-base px-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all hover:bg-orange-50"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "..." : "SMS"}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

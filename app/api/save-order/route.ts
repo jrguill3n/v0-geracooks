@@ -59,7 +59,7 @@ function getItemPrice(itemName: string): number {
 
 export async function POST(request: Request) {
   try {
-    const { customerName, customerPhone, orderItems, totalPrice } = await request.json()
+    const { customerName, orderItems, totalPrice } = await request.json()
 
     const supabase = await createClient()
 
@@ -67,7 +67,6 @@ export async function POST(request: Request) {
       .from("orders")
       .insert({
         customer_name: customerName,
-        customer_phone: customerPhone,
         total_price: totalPrice,
         status: "pending",
       })

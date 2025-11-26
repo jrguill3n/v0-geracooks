@@ -9,7 +9,6 @@ import { StatusSelect } from "./status-select"
 interface Order {
   id: string
   customer_name: string
-  customer_phone: string
   total_price: number
   status: string
   created_at: string
@@ -103,11 +102,11 @@ export function OrdersList({
       case "pending":
         return "bg-amber-100 text-amber-800 border-amber-400 border-2 font-semibold"
       case "packed":
-        return "bg-blue-100 text-blue-800 border-blue-400 border-2 font-semibold"
+        return "bg-teal-100 text-teal-800 border-teal-400 border-2 font-semibold"
       case "delivered":
-        return "bg-green-100 text-green-800 border-green-400 border-2 font-semibold"
+        return "bg-emerald-100 text-emerald-800 border-emerald-400 border-2 font-semibold"
       case "cancelled":
-        return "bg-red-100 text-red-800 border-red-400 border-2 font-semibold"
+        return "bg-rose-100 text-rose-800 border-rose-400 border-2 font-semibold"
       default:
         return "bg-gray-100 text-gray-800 border-gray-400 border-2 font-semibold"
     }
@@ -191,7 +190,7 @@ export function OrdersList({
           return (
             <Card
               key={order.id}
-              className="p-4 border-2 border-gray-200 hover:border-purple-300 hover:shadow-xl transition-all bg-white"
+              className="p-4 border-2 border-gray-200 hover:border-emerald-300 hover:shadow-xl transition-all bg-white"
             >
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3 gap-3">
                 <div className="flex-1 min-w-0">
@@ -201,7 +200,6 @@ export function OrdersList({
                       {order.status}
                     </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground truncate mb-1">{order.customer_phone}</p>
                   <p className="text-xs text-muted-foreground mb-3">{formatTimeAgo(new Date(order.created_at))}</p>
                   <div className="mt-2">
                     <StatusSelect orderId={order.id} currentStatus={order.status} />
@@ -219,7 +217,7 @@ export function OrdersList({
                   {items.map((item: OrderItem) => (
                     <div
                       key={item.id}
-                      className="flex items-center justify-between text-sm gap-3 py-2 px-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-md border border-purple-200"
+                      className="flex items-center justify-between text-sm gap-3 py-2 px-3 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-md border border-emerald-200"
                     >
                       <span className="truncate">
                         <span className="font-semibold">{item.quantity}x</span> {item.item_name}
