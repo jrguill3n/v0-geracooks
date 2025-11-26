@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { StatusSelect } from "./status-select"
 import { DeleteOrderButton } from "./delete-order-button"
+import { EditOrderModal } from "./edit-order-modal"
 import { useState } from "react"
+import { Pencil } from "lucide-react"
 
 interface Order {
   id: string
@@ -68,6 +70,7 @@ export function OrdersList({
   const searchParams = useSearchParams()
   const totalPages = Math.ceil(totalOrders / pageSize)
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null)
+  const [editingOrder, setEditingOrder] = useState<{ id: string; name: string; items: OrderItem[] } | null>(null)
 
   const goToPage = (page: number) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -207,6 +210,15 @@ export function OrdersList({
                   <p className="text-xs text-gray-500 mb-3">{formatTimeAgo(new Date(order.created_at))}</p>
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <StatusSelect orderId={order.id} currentStatus={order.status} />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setEditingOrder({ id: order.id, name: order.customer_name, items })}
+                      className="h-9 border-teal-300 text-teal-600 hover:bg-teal-50"
+                    >
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
                     <DeleteOrderButton
                       orderId={order.id}
                       customerName={order.customer_name}
@@ -316,6 +328,16 @@ export function OrdersList({
             </Button>
           </div>
         </div>
+      )}
+
+      {editingOrder && (
+        <EditOrderModal
+          orderId={editingOrder.id}
+          customerName={editingOrder.name}
+          items={editingOrder.items}
+          open={!!editingOrder}
+          onOpenChange={(open) => !open && setEditingOrder(null)}
+        />
       )}
     </div>
   )

@@ -57,3 +57,52 @@ export async function deleteOrder(orderId: string) {
     return { success: false, error: "Failed to delete order" }
   }
 }
+
+export async function updateOrderItems(
+  orderId: string,
+  items: Array<{ id?: string; item_name: string; quantity: number; unit_price: number }>,
+) {
+  try {
+    console.log("[v0] Server action: updating order items for", orderId)
+    const supabase = await createClient()
+
+    // Delete all existing order items
+    const { error: deleteError } = await supabase.from("order_items").delete().eq("order_id", orderId)
+
+    if (deleteError) {
+      console.error("[v0] Error deleting order items:", deleteError)
+      return { success: false, error: deleteError.message }
+    }
+
+    // Insert new order items
+    const newItems = items.map((item) => ({
+      order_id: orderId,
+      item_name: item.item_name,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      total_price: item.quantity * item.unit_price,
+    }))
+
+    const { error: insertError } = await supabase.from("order_items").insert(newItems)
+
+    if (insertError) {
+      console.error("[v0] Error inserting order items:", insertError)
+      return { success: false, error: insertError.message }
+    }
+
+    // Update order total price
+    const totalPrice = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
+    const { error: updateError } = await supabase.from("orders").update({ total_price: totalPrice }).eq("id", orderId)
+
+    if (updateError) {
+      console.error("[v0] Error updating order total:", updateError)
+      return { success: false, error: updateError.message }
+    }
+
+    console.log("[v0] Successfully updated order items")
+    return { success: true }
+  } catch (error) {
+    console.error("[v0] Unexpected error updating order items:", error)
+    return { success: false, error: "Failed to update order items" }
+  }
+}
