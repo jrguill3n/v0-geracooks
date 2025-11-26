@@ -11,18 +11,20 @@ export async function logoutAction() {
 
 export async function updateOrderStatus(orderId: string, newStatus: string) {
   try {
+    console.log("[v0] Server action: updating order", orderId, "to status:", newStatus)
     const supabase = await createClient()
 
-    const { error } = await supabase.from("orders").update({ status: newStatus }).eq("id", orderId)
+    const { data, error } = await supabase.from("orders").update({ status: newStatus }).eq("id", orderId).select()
 
     if (error) {
-      console.error("Error updating order status:", error)
+      console.error("[v0] Error updating order status:", error)
       return { success: false, error: error.message }
     }
 
+    console.log("[v0] Successfully updated order:", data)
     return { success: true }
   } catch (error) {
-    console.error("Unexpected error updating order status:", error)
+    console.error("[v0] Unexpected error updating order status:", error)
     return { success: false, error: "Failed to update order status" }
   }
 }

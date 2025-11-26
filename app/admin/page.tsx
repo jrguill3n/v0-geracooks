@@ -24,28 +24,51 @@ interface OrderItem {
   total_price: number
 }
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; pageSize?: string; status?: string }>
+}) {
   const isAuthenticated = await checkAuth()
 
   if (!isAuthenticated) {
     redirect("/admin/login")
   }
 
+  const params = await searchParams
+  const currentPage = Number.parseInt(params.page || "1")
+  const pageSize = Number.parseInt(params.pageSize || "20")
+  const statusFilter = params.status || ""
+
   const supabase = await createClient()
 
-  // Fetch all orders with their items
-  const { data: orders, error: ordersError } = await supabase
+  let countQuery = supabase.from("orders").select("*", { count: "exact", head: true })
+
+  if (statusFilter) {
+    countQuery = countQuery.eq("status", statusFilter)
+  }
+
+  const { count: totalOrders } = await countQuery
+
+  let ordersQuery = supabase
     .from("orders")
     .select("*")
     .order("created_at", { ascending: false })
+    .range((currentPage - 1) * pageSize, currentPage * pageSize - 1)
+
+  if (statusFilter) {
+    ordersQuery = ordersQuery.eq("status", statusFilter)
+  }
+
+  const { data: orders, error: ordersError } = await ordersQuery
 
   if (ordersError) {
     console.error("Error fetching orders:", ordersError)
     return <div className="p-8">Error loading orders</div>
   }
 
-  // Fetch all order items
-  const { data: allItems, error: itemsError } = await supabase.from("order_items").select("*")
+  const orderIds = orders?.map((order) => order.id) || []
+  const { data: allItems, error: itemsError } = await supabase.from("order_items").select("*").in("order_id", orderIds)
 
   if (itemsError) {
     console.error("Error fetching order items:", itemsError)
@@ -63,9 +86,11 @@ export default async function AdminPage() {
     {} as Record<string, OrderItem[]>,
   )
 
-  const totalRevenue = orders?.reduce((sum, order) => sum + Number(order.total_price), 0) || 0
+  const { data: allOrdersForStats } = await supabase.from("orders").select("total_price, created_at")
+
+  const totalRevenue = allOrdersForStats?.reduce((sum, order) => sum + Number(order.total_price), 0) || 0
   const todayOrders =
-    orders?.filter((order) => {
+    allOrdersForStats?.filter((order) => {
       const orderDate = new Date(order.created_at)
       const today = new Date()
       return orderDate.toDateString() === today.toDateString()
@@ -95,7 +120,7 @@ export default async function AdminPage() {
         <div className="grid grid-cols-3 gap-3 mb-4 sm:mb-6">
           <Card className="p-3 sm:p-4 bg-background border-elegant">
             <p className="text-xs text-muted-foreground mb-1">Total Orders</p>
-            <p className="text-xl sm:text-2xl font-bold text-foreground">{orders?.length || 0}</p>
+            <p className="text-xl sm:text-2xl font-bold text-foreground">{totalOrders || 0}</p>
           </Card>
           <Card className="p-3 sm:p-4 bg-background border-elegant">
             <p className="text-xs text-muted-foreground mb-1">Today's Orders</p>
@@ -108,7 +133,14 @@ export default async function AdminPage() {
         </div>
 
         {/* Orders List */}
-        <OrdersList orders={orders || []} itemsByOrder={itemsByOrder} />
+        <OrdersList
+          orders={orders || []}
+          itemsByOrder={itemsByOrder}
+          totalOrders={totalOrders || 0}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          statusFilter={statusFilter}
+        />
       </div>
     </div>
   )

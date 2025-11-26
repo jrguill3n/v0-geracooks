@@ -15,12 +15,15 @@ export function StatusSelect({ orderId, currentStatus }: StatusSelectProps) {
   const router = useRouter()
 
   const handleStatusChange = (newStatus: string) => {
+    console.log("[v0] Updating order", orderId, "to status:", newStatus)
     startTransition(async () => {
       const result = await updateOrderStatus(orderId, newStatus)
+      console.log("[v0] Update result:", result)
       if (result.success) {
         router.refresh()
       } else {
         console.error("Failed to update status:", result.error)
+        alert(`Failed to update status: ${result.error}`)
       }
     })
   }
@@ -32,6 +35,7 @@ export function StatusSelect({ orderId, currentStatus }: StatusSelectProps) {
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="pending">Pending</SelectItem>
+        <SelectItem value="packed">Packed</SelectItem>
         <SelectItem value="delivered">Delivered</SelectItem>
         <SelectItem value="cancelled">Cancelled</SelectItem>
       </SelectContent>

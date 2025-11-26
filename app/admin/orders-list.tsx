@@ -1,10 +1,10 @@
 "use client"
-
-import { useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { StatusSelect } from "./status-select"
-import { OrderFilters } from "./order-filters"
 
 interface Order {
   id: string
@@ -32,6 +32,10 @@ interface FilterTag {
 interface OrdersListProps {
   orders: Order[]
   itemsByOrder: Record<string, OrderItem[]>
+  totalOrders: number
+  currentPage: number
+  pageSize: number
+  statusFilter: string
 }
 
 function formatTimeAgo(date: Date): string {
@@ -51,13 +55,55 @@ function formatTimeAgo(date: Date): string {
   return `${months} month${months > 1 ? "s" : ""} ago`
 }
 
-export function OrdersList({ orders, itemsByOrder }: OrdersListProps) {
-  const [filters, setFilters] = useState<FilterTag[]>([])
+export function OrdersList({
+  orders,
+  itemsByOrder,
+  totalOrders,
+  currentPage,
+  pageSize,
+  statusFilter,
+}: OrdersListProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const totalPages = Math.ceil(totalOrders / pageSize)
+
+  const goToPage = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("page", page.toString())
+    router.push(`/admin?${params.toString()}`)
+  }
+
+  const handlePageSizeChange = (newSize: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("pageSize", newSize)
+    params.set("page", "1") // Reset to first page
+    router.push(`/admin?${params.toString()}`)
+  }
+
+  const handleStatusFilterChange = (status: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (status === "all") {
+      params.delete("status")
+    } else {
+      params.set("status", status)
+    }
+    params.set("page", "1") // Reset to first page
+    router.push(`/admin?${params.toString()}`)
+  }
+
+  const clearFilters = () => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete("status")
+    params.set("page", "1")
+    router.push(`/admin?${params.toString()}`)
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":
         return "bg-yellow-100 text-yellow-800"
+      case "packed":
+        return "bg-blue-100 text-blue-800"
       case "delivered":
         return "bg-green-100 text-green-800"
       case "cancelled":
@@ -67,44 +113,83 @@ export function OrdersList({ orders, itemsByOrder }: OrdersListProps) {
     }
   }
 
-  // Apply filters
-  const filteredOrders = orders.filter((order) => {
-    // If no filters, show all
-    if (filters.length === 0) return true
-
-    // Check each filter
-    for (const filter of filters) {
-      if (filter.type === "status") {
-        if (order.status !== filter.value) return false
-      }
-      if (filter.type === "phone") {
-        if (!order.customer_phone.includes(filter.value)) return false
-      }
-    }
-
-    return true
-  })
-
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-        <h2 className="font-serif text-xl sm:text-2xl text-foreground">Recent Orders</h2>
-        <p className="text-xs sm:text-sm text-muted-foreground">
-          Showing {filteredOrders.length} of {orders.length} orders
-        </p>
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+          <h2 className="font-serif text-xl sm:text-2xl text-foreground">Recent Orders</h2>
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+            <span>
+              Page {currentPage} of {totalPages}
+            </span>
+            <span>•</span>
+            <span>{totalOrders} total orders</span>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="flex items-center gap-2">
+            <label className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">Filter by status:</label>
+            <Select value={statusFilter || "all"} onValueChange={handleStatusFilterChange}>
+              <SelectTrigger className="w-[140px] h-8 text-xs sm:text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Orders</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="packed">Packed</SelectItem>
+                <SelectItem value="delivered">Delivered</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+            {statusFilter && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 text-xs">
+                Clear
+              </Button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">Per page:</label>
+            <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+              <SelectTrigger className="w-[100px] h-8 text-xs sm:text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {statusFilter && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-muted-foreground">Active filters:</span>
+            <Badge variant="secondary" className="gap-1.5 text-xs">
+              Status: {statusFilter}
+              <button
+                onClick={clearFilters}
+                className="ml-1 hover:bg-foreground/20 rounded-full w-3.5 h-3.5 flex items-center justify-center"
+              >
+                ×
+              </button>
+            </Badge>
+          </div>
+        )}
       </div>
 
-      <OrderFilters onFiltersChange={setFilters} />
-
       {/* Orders List */}
-      {filteredOrders.length === 0 ? (
+      {orders.length === 0 ? (
         <Card className="p-6 text-center bg-background border-elegant">
           <p className="text-sm text-muted-foreground">
-            {filters.length > 0 ? "No orders match your filters" : "No orders yet"}
+            {statusFilter ? "No orders match your filters" : "No orders yet"}
           </p>
         </Card>
       ) : (
-        filteredOrders.map((order: Order) => {
+        orders.map((order: Order) => {
           const items = itemsByOrder[order.id] || []
           return (
             <Card key={order.id} className="p-4 bg-background border-elegant">
@@ -144,6 +229,83 @@ export function OrdersList({ orders, itemsByOrder }: OrdersListProps) {
             </Card>
           )
         })
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalOrders)} of{" "}
+            {totalOrders} orders
+          </p>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => goToPage(1)}
+              disabled={currentPage === 1}
+              className="h-8 px-2 sm:px-3"
+            >
+              First
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="h-8 px-2 sm:px-3"
+            >
+              Previous
+            </Button>
+
+            {/* Page numbers */}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum
+                if (totalPages <= 5) {
+                  pageNum = i + 1
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i
+                } else {
+                  pageNum = currentPage - 2 + i
+                }
+
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={currentPage === pageNum ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => goToPage(pageNum)}
+                    className="h-8 w-8 p-0 text-xs sm:text-sm"
+                  >
+                    {pageNum}
+                  </Button>
+                )
+              })}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="h-8 px-2 sm:px-3"
+            >
+              Next
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => goToPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="h-8 px-2 sm:px-3"
+            >
+              Last
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   )
