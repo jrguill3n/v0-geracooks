@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { StatusSelect } from "./status-select"
 import { DeleteOrderButton } from "./delete-order-button"
+import { useState } from "react"
 
 interface Order {
   id: string
@@ -66,6 +67,7 @@ export function OrdersList({
   const router = useRouter()
   const searchParams = useSearchParams()
   const totalPages = Math.ceil(totalOrders / pageSize)
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null)
 
   const goToPage = (page: number) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -187,11 +189,14 @@ export function OrdersList({
       ) : (
         orders.map((order: Order) => {
           const items = itemsByOrder[order.id] || []
+          const isDeleting = deletingOrderId === order.id
 
           return (
             <Card
               key={order.id}
-              className="p-4 border-2 border-gray-200 hover:border-emerald-300 hover:shadow-xl transition-all bg-white"
+              className={`p-4 border-2 border-gray-200 hover:border-emerald-300 hover:shadow-xl bg-white transition-all duration-300 ${
+                isDeleting ? "opacity-0 scale-95 -translate-x-4" : "opacity-100 scale-100 translate-x-0"
+              }`}
             >
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3 gap-3">
                 <div className="flex-1 min-w-0">
@@ -204,7 +209,11 @@ export function OrdersList({
                   <p className="text-xs text-muted-foreground mb-3">{formatTimeAgo(new Date(order.created_at))}</p>
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <StatusSelect orderId={order.id} currentStatus={order.status} />
-                    <DeleteOrderButton orderId={order.id} customerName={order.customer_name} />
+                    <DeleteOrderButton
+                      orderId={order.id}
+                      customerName={order.customer_name}
+                      onDeleteStart={() => setDeletingOrderId(order.id)}
+                    />
                   </div>
                 </div>
                 <div className="sm:text-right shrink-0">

@@ -15,26 +15,61 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Trash2 } from "lucide-react"
 import { deleteOrder } from "./actions"
+import { useToast } from "@/hooks/use-toast"
 
 interface DeleteOrderButtonProps {
   orderId: string
   customerName: string
+  onDeleteStart?: () => void
 }
 
-export function DeleteOrderButton({ orderId, customerName }: DeleteOrderButtonProps) {
+export function DeleteOrderButton({ orderId, customerName, onDeleteStart }: DeleteOrderButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const router = useRouter()
+  const { toast } = useToast()
 
   const handleDelete = async () => {
+    console.log("[v0] Delete button clicked for order:", orderId)
     setIsDeleting(true)
-    const result = await deleteOrder(orderId)
 
-    if (result.success) {
-      setIsOpen(false)
-      router.refresh()
-    } else {
-      alert(`Failed to delete order: ${result.error}`)
+    if (onDeleteStart) {
+      onDeleteStart()
+    }
+
+    try {
+      const result = await deleteOrder(orderId)
+      console.log("[v0] Delete result:", result)
+
+      if (result.success) {
+        toast({
+          title: "Order deleted",
+          description: `Order from ${customerName} has been removed.`,
+          duration: 3000,
+        })
+
+        setIsOpen(false)
+
+        setTimeout(() => {
+          router.refresh()
+        }, 300)
+      } else {
+        toast({
+          title: "Failed to delete order",
+          description: result.error || "An unknown error occurred",
+          variant: "destructive",
+          duration: 5000,
+        })
+        setIsDeleting(false)
+      }
+    } catch (error) {
+      console.error("[v0] Delete error:", error)
+      toast({
+        title: "Failed to delete order",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+        duration: 5000,
+      })
       setIsDeleting(false)
     }
   }

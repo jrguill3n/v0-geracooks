@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import Image from "next/image"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -213,14 +214,11 @@ export default function OrderPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-40">
-      <div className="bg-gradient-to-r from-purple-100 via-purple-50 to-purple-100 border-b-2 border-purple-200 shadow-md">
-        <div className="max-w-2xl mx-auto px-6 py-6">
-          <div className="text-center">
-            <h1 className="font-sans text-4xl font-black mb-3 text-black tracking-wider uppercase">GERA COOKS</h1>
-            <p className="text-sm font-semibold text-purple-700 mb-3">Cel 631-578-0700</p>
-            <p className="text-xs text-muted-foreground">
-              Nuestros empaques son de 1 libra y sirven aproximadamente 2 porciones.
-            </p>
+      <div className="bg-white">
+        <div className="max-w-2xl mx-auto px-6 py-8">
+          <div className="flex flex-col items-center text-center">
+            <Image src="/gera-logo.png" alt="GERA COOKS" width={180} height={180} className="object-contain mb-4" />
+            <p className="text-sm font-semibold text-purple-600">Cel 631-578-0700</p>
           </div>
         </div>
       </div>
@@ -305,6 +303,9 @@ export default function OrderPage() {
       {getTotalItems() > 0 && (
         <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700 border-t-2 border-purple-700 p-4 z-[100] shadow-2xl">
           <div className="max-w-2xl mx-auto">
+            <p className="text-xs text-white/80 text-center mb-2">
+              Nuestros empaques son de 1 libra y sirven aproximadamente 2 porciones.
+            </p>
             <div className="flex items-center justify-between mb-3">
               <div>
                 <p className="text-sm font-semibold text-white/90">Total Items: {getTotalItems()}</p>
