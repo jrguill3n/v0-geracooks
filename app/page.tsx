@@ -221,12 +221,10 @@ export default function OrderPage() {
   return (
     <div className="min-h-screen bg-cream pb-40">
       {/* Header */}
-      <div className="bg-gradient-to-br from-orange-50 via-pink-50 to-purple-50 border-b-2 border-orange-300 sticky top-0 z-10 shadow-md">
+      <div className="bg-gradient-to-r from-purple-100 via-pink-100 to-orange-100 border-b-2 border-purple-200 shadow-md">
         <div className="max-w-2xl mx-auto px-6 py-6">
           <div className="text-center">
-            <h1 className="font-display text-5xl font-extrabold mb-3 bg-gradient-to-r from-orange-600 to-pink-600 bg-clip-text text-transparent tracking-tight">
-              GERA COOKS
-            </h1>
+            <h1 className="font-sans text-4xl font-black mb-3 text-black tracking-wider uppercase">GERA COOKS</h1>
             <p className="text-sm font-semibold text-orange-700 mb-3">Cel 631-578-0700</p>
             <p className="text-xs text-muted-foreground">
               Nuestros empaques son de 1 libra y sirven aproximadamente 2 porciones.
