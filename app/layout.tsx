@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Playfair_Display, Dancing_Script } from "next/font/google"
+import { Playfair_Display } from "next/font/google"
 import "./globals.css"
 import { Analytics } from "@vercel/analytics/next"
 
@@ -8,13 +8,6 @@ const playfairDisplay = Playfair_Display({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
   variable: "--font-serif",
-})
-
-const dancingScript = Dancing_Script({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-lovelay",
-  display: "swap",
 })
 
 export const metadata: Metadata = {
@@ -47,7 +40,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${playfairDisplay.className} ${dancingScript.variable} antialiased`}>
+      <body className={`${playfairDisplay.className} antialiased`}>
         {children}
         <Analytics />
       </body>

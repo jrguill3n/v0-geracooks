@@ -228,7 +228,7 @@ export default function OrderPage() {
       <div className="bg-background border-b border-elegant sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-6 py-6">
           <div className="text-center">
-            <h1 className="font-lovelay text-5xl mb-3 text-foreground">GERA COOKS</h1>
+            <h1 className="font-playfair-display text-5xl font-bold mb-3 text-foreground tracking-wide">GERA COOKS</h1>
             <p className="text-xs text-muted-foreground mb-3">Cel 631-578-0700</p>
             <p className="text-xs text-muted-foreground italic">
               Nuestros empaques son de 1 libra y sirven aproximadamente 2 porciones.
