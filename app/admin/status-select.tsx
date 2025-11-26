@@ -3,6 +3,7 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { updateOrderStatus } from "./actions"
 import { useTransition } from "react"
+import { useRouter } from "next/navigation"
 
 interface StatusSelectProps {
   orderId: string
@@ -11,10 +12,16 @@ interface StatusSelectProps {
 
 export function StatusSelect({ orderId, currentStatus }: StatusSelectProps) {
   const [isPending, startTransition] = useTransition()
+  const router = useRouter()
 
   const handleStatusChange = (newStatus: string) => {
     startTransition(async () => {
-      await updateOrderStatus(orderId, newStatus)
+      const result = await updateOrderStatus(orderId, newStatus)
+      if (result.success) {
+        router.refresh()
+      } else {
+        console.error("Failed to update status:", result.error)
+      }
     })
   }
 

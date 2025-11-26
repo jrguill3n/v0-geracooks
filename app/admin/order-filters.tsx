@@ -3,12 +3,11 @@
 import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { X, Filter } from "lucide-react"
 
 interface FilterTag {
-  type: "status" | "phone"
+  type: "status"
   value: string
   label: string
 }
@@ -19,13 +18,11 @@ interface OrderFiltersProps {
 
 export function OrderFilters({ onFiltersChange }: OrderFiltersProps) {
   const [filters, setFilters] = useState<FilterTag[]>([])
-  const [phoneInput, setPhoneInput] = useState("")
   const [statusSelect, setStatusSelect] = useState("")
 
   const addStatusFilter = (status: string) => {
     if (!status) return
 
-    // Check if status filter already exists
     if (filters.some((f) => f.type === "status" && f.value === status)) {
       return
     }
@@ -39,25 +36,6 @@ export function OrderFilters({ onFiltersChange }: OrderFiltersProps) {
     setFilters(newFilters)
     onFiltersChange(newFilters)
     setStatusSelect("")
-  }
-
-  const addPhoneFilter = () => {
-    if (!phoneInput.trim()) return
-
-    // Check if this phone filter already exists
-    if (filters.some((f) => f.type === "phone" && f.value === phoneInput)) {
-      return
-    }
-
-    const newFilter: FilterTag = {
-      type: "phone",
-      value: phoneInput,
-      label: `Phone: ${phoneInput}`,
-    }
-    const newFilters = [...filters, newFilter]
-    setFilters(newFilters)
-    onFiltersChange(newFilters)
-    setPhoneInput("")
   }
 
   const removeFilter = (filterToRemove: FilterTag) => {
@@ -89,26 +67,6 @@ export function OrderFilters({ onFiltersChange }: OrderFiltersProps) {
           </Select>
           <Button
             onClick={() => addStatusFilter(statusSelect)}
-            variant="outline"
-            size="sm"
-            className="border-elegant bg-transparent shrink-0"
-          >
-            <Filter className="h-4 w-4" />
-          </Button>
-        </div>
-
-        {/* Phone Filter */}
-        <div className="flex gap-2 items-center flex-1">
-          <Input
-            type="text"
-            placeholder="Filter by phone"
-            value={phoneInput}
-            onChange={(e) => setPhoneInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addPhoneFilter()}
-            className="border-elegant text-sm"
-          />
-          <Button
-            onClick={addPhoneFilter}
             variant="outline"
             size="sm"
             className="border-elegant bg-transparent shrink-0"
