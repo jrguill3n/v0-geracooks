@@ -103,35 +103,35 @@ export function OrdersList({
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":
-        return "bg-amber-100 text-amber-800 border-amber-400 border-2 font-semibold"
+        return "bg-amber-50 text-amber-700 border-amber-300"
       case "packed":
-        return "bg-cyan-100 text-cyan-800 border-cyan-400 border-2 font-semibold"
+        return "bg-blue-50 text-blue-700 border-blue-300"
       case "delivered":
-        return "bg-emerald-100 text-emerald-800 border-emerald-400 border-2 font-semibold"
+        return "bg-teal-50 text-teal-700 border-teal-300"
       case "cancelled":
-        return "bg-pink-100 text-pink-800 border-pink-400 border-2 font-semibold"
+        return "bg-gray-100 text-gray-700 border-gray-300"
       default:
-        return "bg-gray-100 text-gray-800 border-gray-400 border-2 font-semibold"
+        return "bg-gray-50 text-gray-600 border-gray-200"
     }
   }
 
   return (
-    <div className="space-y-3">
-      <Card className="p-4 border-2 border-gray-200 shadow-md bg-white">
+    <div className="space-y-4">
+      <Card className="p-5 border border-gray-200 shadow-sm bg-white">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
-          <h2 className="text-xl sm:text-2xl font-bold">Recent Orders</h2>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <h2 className="text-xl font-bold text-gray-900">Recent Orders</h2>
+          <div className="flex items-center gap-2 text-sm text-gray-600">
             <span>
               Page {currentPage} of {totalPages}
             </span>
             <span>•</span>
-            <span>{totalOrders} total orders</span>
+            <span>{totalOrders} total</span>
           </div>
         </div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground whitespace-nowrap">Filter by status:</label>
+            <label className="text-sm text-gray-600 whitespace-nowrap">Filter by status:</label>
             <Select value={statusFilter || "all"} onValueChange={handleStatusFilterChange}>
               <SelectTrigger className="w-[140px] h-9 text-sm">
                 <SelectValue />
@@ -152,7 +152,7 @@ export function OrdersList({
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-sm text-muted-foreground whitespace-nowrap">Per page:</label>
+            <label className="text-sm text-gray-600 whitespace-nowrap">Per page:</label>
             <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
               <SelectTrigger className="w-[100px] h-9 text-sm">
                 <SelectValue />
@@ -169,8 +169,8 @@ export function OrdersList({
 
         {statusFilter && (
           <div className="flex items-center gap-2 flex-wrap mt-3">
-            <span className="text-sm text-muted-foreground">Active filters:</span>
-            <Badge className={`gap-1.5 text-sm px-3 py-1 ${getStatusColor(statusFilter)}`}>
+            <span className="text-sm text-gray-600">Active filters:</span>
+            <Badge className={`gap-1.5 text-sm px-3 py-1 font-semibold ${getStatusColor(statusFilter)}`}>
               Status: {statusFilter}
               <button onClick={clearFilters} className="ml-1 hover:opacity-70">
                 ×
@@ -181,10 +181,8 @@ export function OrdersList({
       </Card>
 
       {orders.length === 0 ? (
-        <Card className="p-8 text-center border-2 border-border bg-white">
-          <p className="text-sm text-muted-foreground">
-            {statusFilter ? "No orders match your filters" : "No orders yet"}
-          </p>
+        <Card className="p-8 text-center border border-gray-200 bg-white">
+          <p className="text-sm text-gray-600">{statusFilter ? "No orders match your filters" : "No orders yet"}</p>
         </Card>
       ) : (
         orders.map((order: Order) => {
@@ -194,19 +192,19 @@ export function OrdersList({
           return (
             <Card
               key={order.id}
-              className={`p-4 border-2 border-gray-200 hover:border-emerald-300 hover:shadow-xl bg-white transition-all duration-300 ${
+              className={`p-5 border border-gray-200 hover:border-gray-300 hover:shadow-md bg-white transition-all duration-300 ${
                 isDeleting ? "opacity-0 scale-95 -translate-x-4" : "opacity-100 scale-100 translate-x-0"
               }`}
             >
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3 gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4 gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-2 flex-wrap">
-                    <h3 className="text-lg sm:text-xl font-bold truncate text-foreground">{order.customer_name}</h3>
-                    <Badge className={`text-sm px-3 py-1 font-semibold ${getStatusColor(order.status)}`}>
+                    <h3 className="text-xl font-bold text-gray-900">{order.customer_name}</h3>
+                    <Badge className={`text-xs px-2.5 py-1 border ${getStatusColor(order.status)}`}>
                       {order.status}
                     </Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground mb-3">{formatTimeAgo(new Date(order.created_at))}</p>
+                  <p className="text-xs text-gray-500 mb-3">{formatTimeAgo(new Date(order.created_at))}</p>
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <StatusSelect orderId={order.id} currentStatus={order.status} />
                     <DeleteOrderButton
@@ -217,23 +215,22 @@ export function OrdersList({
                   </div>
                 </div>
                 <div className="sm:text-right shrink-0">
-                  <p className="text-2xl sm:text-3xl font-bold text-success">${Number(order.total_price).toFixed(2)}</p>
+                  <p className="text-3xl font-bold text-gray-900">${Number(order.total_price).toFixed(2)}</p>
                 </div>
               </div>
 
-              {/* Order Items */}
-              <div className="border-t-2 border-gray-100 pt-3 mt-3">
-                <p className="text-sm font-semibold mb-2 text-gray-700">Order Items:</p>
+              <div className="border-t border-gray-100 pt-4 mt-4">
+                <p className="text-sm font-semibold mb-3 text-gray-700">Order Items:</p>
                 <div className="space-y-2">
                   {items.map((item: OrderItem) => (
                     <div
                       key={item.id}
-                      className="flex items-center justify-between text-sm gap-3 py-2 px-3 bg-gradient-to-r from-purple-50 to-purple-100 rounded-md border border-purple-200"
+                      className="flex items-center justify-between text-sm gap-3 py-2.5 px-3 bg-gray-50 rounded-md"
                     >
-                      <span className="truncate">
+                      <span className="truncate text-gray-900">
                         <span className="font-semibold">{item.quantity}x</span> {item.item_name}
                       </span>
-                      <span className="shrink-0 font-medium text-muted-foreground">
+                      <span className="shrink-0 font-semibold text-gray-700">
                         ${Number(item.total_price).toFixed(2)}
                       </span>
                     </div>
@@ -247,7 +244,7 @@ export function OrdersList({
 
       {totalPages > 1 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-600">
             Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalOrders)} of{" "}
             {totalOrders} orders
           </p>

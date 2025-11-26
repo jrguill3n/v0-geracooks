@@ -214,62 +214,47 @@ export default function OrderPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-40">
-      <div className="bg-white">
-        <div className="max-w-2xl mx-auto px-6 py-8">
+      <div className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-2xl mx-auto px-6 py-6">
           <div className="flex flex-col items-center text-center">
-            <Image src="/gera-logo.png" alt="GERA COOKS" width={180} height={180} className="object-contain mb-4" />
-            <p className="text-sm font-semibold text-purple-600">Cel 631-578-0700</p>
+            <Image src="/gera-logo.png" alt="GERA COOKS" width={160} height={160} className="object-contain mb-3" />
+            <p className="text-sm font-semibold text-gray-700">631-578-0700</p>
           </div>
         </div>
       </div>
 
       {/* Customer Info Form */}
-      <div className="max-w-2xl mx-auto px-6 py-8">
-        <div className="bg-white border-2 border-purple-300 rounded-lg shadow-lg p-6 mb-8">
-          <h2 className="font-display text-2xl font-bold mb-5 text-gray-800">Your Information</h2>
+      <div className="max-w-2xl mx-auto px-6 py-6">
+        <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 mb-6">
+          <h2 className="text-xl font-bold mb-4 text-gray-900">Your Information</h2>
           <div>
-            <label className="block text-sm font-semibold mb-2 text-gray-800">Name</label>
+            <label className="block text-sm font-semibold mb-2 text-gray-700">Name</label>
             <Input
               type="text"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
               placeholder="Enter your name"
-              className="w-full bg-white border-2 border-gray-300 focus:border-purple-400 focus:ring-2 focus:ring-purple-200"
+              className="w-full bg-white border border-gray-300 focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
             />
           </div>
         </div>
 
         {Object.entries(menuItems).map(([category, items]) => (
-          <div key={category} className="mb-8">
-            <div className="bg-white border-2 border-gray-200 rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-              {/* Different gradient for each category */}
-              <div
-                className={`p-6 border-b-2 ${
-                  category === "POLLO"
-                    ? "bg-gradient-to-r from-orange-300 to-pink-400 border-pink-300"
-                    : category === "RES"
-                      ? "bg-gradient-to-r from-blue-400 to-blue-500 border-blue-400"
-                      : category === "PAVO"
-                        ? "bg-gradient-to-r from-teal-400 to-cyan-500 border-cyan-400"
-                        : category === "CERDO"
-                          ? "bg-gradient-to-r from-purple-400 to-purple-500 border-purple-400"
-                          : category === "VEGANO"
-                            ? "bg-gradient-to-r from-green-400 to-teal-500 border-teal-400"
-                            : "bg-gradient-to-r from-pink-400 to-rose-500 border-rose-400"
-                }`}
-              >
-                <h2 className="font-display text-2xl font-bold text-white">{category}</h2>
+          <div key={category} className="mb-6">
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+              <div className="bg-gradient-to-r from-teal-50 to-blue-50 border-b border-gray-200 p-4">
+                <h2 className="text-lg font-bold text-gray-900">{category}</h2>
               </div>
-              <div className="p-6">
-                <div className="space-y-3">
+              <div className="p-4">
+                <div className="space-y-1">
                   {items.map((item) => (
                     <div
                       key={item.name}
-                      className="flex items-center justify-between py-3 hover:bg-purple-50 px-3 -mx-3 rounded-md transition-colors border-b border-gray-100 last:border-0"
+                      className="flex items-center justify-between py-3 hover:bg-gray-50 px-3 -mx-3 rounded-md transition-colors"
                     >
                       <div className="flex-1">
-                        <p className="text-gray-800 font-semibold">{item.name}</p>
-                        <p className="text-sm font-medium text-purple-600">${item.price}</p>
+                        <p className="text-gray-900 font-medium">{item.name}</p>
+                        <p className="text-base font-bold text-teal-600">${item.price}</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <Button
@@ -277,16 +262,16 @@ export default function OrderPage() {
                           variant="outline"
                           onClick={() => updateQuantity(item.name, -1)}
                           disabled={!orderItems[item.name]}
-                          className="h-8 w-8 p-0 border-2 border-purple-300 hover:bg-purple-50 hover:border-purple-400"
+                          className="h-9 w-9 p-0 bg-teal-500 text-white border-teal-600 hover:bg-teal-600 disabled:opacity-30 disabled:bg-gray-200"
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
-                        <span className="w-8 text-center font-bold text-gray-800">{orderItems[item.name] || 0}</span>
+                        <span className="w-8 text-center font-bold text-gray-900">{orderItems[item.name] || 0}</span>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => updateQuantity(item.name, 1)}
-                          className="h-8 w-8 p-0 border-2 border-purple-300 hover:bg-purple-50 hover:border-purple-400"
+                          className="h-9 w-9 p-0 bg-teal-500 text-white border-teal-600 hover:bg-teal-600"
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
@@ -298,24 +283,27 @@ export default function OrderPage() {
             </div>
           </div>
         ))}
+
+        <div className="text-center py-4">
+          <p className="text-sm text-gray-600 italic">
+            Nuestros empaques son de 1 libra y sirven aproximadamente 2 porciones.
+          </p>
+        </div>
       </div>
 
       {getTotalItems() > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700 border-t-2 border-purple-700 p-4 z-[100] shadow-2xl">
+        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-teal-500 to-teal-600 border-t border-teal-700 p-4 z-[100] shadow-lg">
           <div className="max-w-2xl mx-auto">
-            <p className="text-xs text-white/80 text-center mb-2">
-              Nuestros empaques son de 1 libra y sirven aproximadamente 2 porciones.
-            </p>
             <div className="flex items-center justify-between mb-3">
               <div>
                 <p className="text-sm font-semibold text-white/90">Total Items: {getTotalItems()}</p>
-                <p className="text-2xl font-display font-bold text-white">Total: ${getTotalPrice()}</p>
+                <p className="text-2xl font-bold text-white">${getTotalPrice()}</p>
               </div>
               <div className="flex gap-3">
                 <Button
                   onClick={(e) => handleSubmit(e, "whatsapp")}
                   size="lg"
-                  className="bg-teal-400 text-white font-bold text-base px-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all hover:bg-teal-500"
+                  className="bg-white text-teal-600 font-bold hover:bg-gray-100 shadow-md"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? "..." : "WhatsApp"}
@@ -323,7 +311,8 @@ export default function OrderPage() {
                 <Button
                   onClick={(e) => handleSubmit(e, "sms")}
                   size="lg"
-                  className="bg-white text-purple-700 font-bold text-base px-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all hover:bg-purple-50"
+                  variant="outline"
+                  className="border-2 border-white text-white font-bold hover:bg-teal-700 shadow-md"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? "..." : "SMS"}

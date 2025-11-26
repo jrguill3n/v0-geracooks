@@ -98,21 +98,19 @@ export default async function AdminPage({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="border-b-2 border-purple-300 bg-gradient-to-r from-purple-100 via-purple-50 to-purple-100 shadow-md">
-        <div className="max-w-7xl mx-auto px-4 py-5 sm:px-6">
+      <div className="border-b border-teal-700 bg-gradient-to-r from-teal-500 to-teal-600 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
-              <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-purple-700 tracking-tight">
-                GERA COOKS Admin
-              </h1>
-              <p className="text-sm mt-1 font-medium text-purple-600">Order Management Dashboard</p>
+              <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">GERA COOKS Admin</h1>
+              <p className="text-sm mt-1 font-medium text-white/90">Order Management Dashboard</p>
             </div>
             <form action={logoutAction}>
               <Button
                 variant="outline"
                 type="submit"
                 size="sm"
-                className="font-semibold border-purple-400 hover:bg-purple-50 bg-transparent text-purple-700"
+                className="font-semibold border-white/30 hover:bg-white/10 text-white bg-transparent"
               >
                 Logout
               </Button>
@@ -123,71 +121,59 @@ export default async function AdminPage({
 
       <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          {/* Total Orders - Blue Gradient */}
-          <Card className="p-5 border-0 shadow-lg hover:shadow-xl transition-all bg-gradient-to-br from-blue-400 to-blue-500 text-white overflow-hidden relative">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-sm font-semibold text-white/90 mb-1">Total Orders</p>
-                  <p className="text-4xl font-display font-bold text-white">{totalOrders || 0}</p>
-                </div>
-                <div className="p-3 bg-white/20 rounded-lg backdrop-blur-sm">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                </div>
+          <Card className="p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-blue-50 to-cyan-50">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-gray-600 mb-1">Total Orders</p>
+                <p className="text-3xl font-bold text-gray-900">{totalOrders || 0}</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
               </div>
             </div>
           </Card>
 
-          {/* Today's Orders - Coral/Pink Gradient */}
-          <Card className="p-5 border-0 shadow-lg hover:shadow-xl transition-all bg-gradient-to-br from-orange-300 via-coral-400 to-pink-400 text-white overflow-hidden relative">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-sm font-semibold text-white/90 mb-1">Today's Orders</p>
-                  <p className="text-4xl font-display font-bold text-white">{todayOrders}</p>
-                </div>
-                <div className="p-3 bg-white/20 rounded-lg backdrop-blur-sm">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
+          <Card className="p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-orange-50 to-pink-50">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-gray-600 mb-1">Today's Orders</p>
+                <p className="text-3xl font-bold text-gray-900">{todayOrders}</p>
+              </div>
+              <div className="p-3 bg-orange-100 rounded-lg">
+                <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
               </div>
             </div>
           </Card>
 
-          {/* Total Revenue - Turquoise Gradient */}
-          <Card className="p-5 border-0 shadow-lg hover:shadow-xl transition-all bg-gradient-to-br from-teal-400 to-cyan-500 text-white overflow-hidden relative">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-sm font-semibold text-white/90 mb-1">Total Revenue</p>
-                  <p className="text-4xl font-display font-bold text-white">${totalRevenue.toFixed(2)}</p>
-                </div>
-                <div className="p-3 bg-white/20 rounded-lg backdrop-blur-sm">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
+          <Card className="p-6 border border-teal-200 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-teal-50 to-emerald-50">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-teal-700 mb-1">Total Revenue</p>
+                <p className="text-3xl font-bold text-teal-600">${totalRevenue.toFixed(2)}</p>
+              </div>
+              <div className="p-3 bg-teal-100 rounded-lg">
+                <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
               </div>
             </div>
           </Card>
