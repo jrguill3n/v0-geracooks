@@ -6,6 +6,7 @@ import { formatDistanceToNow } from "date-fns"
 import { redirect } from "next/navigation"
 import { checkAuth } from "@/lib/auth"
 import { logoutAction } from "./actions"
+import { StatusSelect } from "./status-select"
 
 interface Order {
   id: string
@@ -67,9 +68,7 @@ export default async function AdminPage() {
     switch (status) {
       case "pending":
         return "bg-yellow-100 text-yellow-800"
-      case "confirmed":
-        return "bg-blue-100 text-blue-800"
-      case "completed":
+      case "delivered":
         return "bg-green-100 text-green-800"
       case "cancelled":
         return "bg-red-100 text-red-800"
@@ -145,6 +144,9 @@ export default async function AdminPage() {
                       <p className="text-xs text-muted-foreground mt-1">
                         {formatDistanceToNow(new Date(order.created_at), { addSuffix: true })}
                       </p>
+                      <div className="mt-3">
+                        <StatusSelect orderId={order.id} currentStatus={order.status} />
+                      </div>
                     </div>
                     <div className="mt-4 md:mt-0 text-right">
                       <p className="text-2xl font-serif text-foreground">${Number(order.total_price).toFixed(2)}</p>
