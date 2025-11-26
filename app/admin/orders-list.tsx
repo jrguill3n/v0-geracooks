@@ -102,11 +102,11 @@ export function OrdersList({
       case "pending":
         return "bg-amber-100 text-amber-800 border-amber-400 border-2 font-semibold"
       case "packed":
-        return "bg-teal-100 text-teal-800 border-teal-400 border-2 font-semibold"
+        return "bg-cyan-100 text-cyan-800 border-cyan-400 border-2 font-semibold"
       case "delivered":
         return "bg-emerald-100 text-emerald-800 border-emerald-400 border-2 font-semibold"
       case "cancelled":
-        return "bg-rose-100 text-rose-800 border-rose-400 border-2 font-semibold"
+        return "bg-pink-100 text-pink-800 border-pink-400 border-2 font-semibold"
       default:
         return "bg-gray-100 text-gray-800 border-gray-400 border-2 font-semibold"
     }
@@ -217,7 +217,7 @@ export function OrdersList({
                   {items.map((item: OrderItem) => (
                     <div
                       key={item.id}
-                      className="flex items-center justify-between text-sm gap-3 py-2 px-3 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-md border border-emerald-200"
+                      className="flex items-center justify-between text-sm gap-3 py-2 px-3 bg-gradient-to-r from-purple-50 to-purple-100 rounded-md border border-purple-200"
                     >
                       <span className="truncate">
                         <span className="font-semibold">{item.quantity}x</span> {item.item_name}

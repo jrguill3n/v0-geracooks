@@ -211,13 +211,12 @@ export default function OrderPage() {
   }
 
   return (
-    <div className="min-h-screen bg-cream pb-40">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-green-50 via-emerald-50 to-teal-50 border-b-2 border-emerald-200 shadow-md">
+    <div className="min-h-screen bg-gray-50 pb-40">
+      <div className="bg-gradient-to-r from-purple-100 via-purple-50 to-purple-100 border-b-2 border-purple-200 shadow-md">
         <div className="max-w-2xl mx-auto px-6 py-6">
           <div className="text-center">
             <h1 className="font-sans text-4xl font-black mb-3 text-black tracking-wider uppercase">GERA COOKS</h1>
-            <p className="text-sm font-semibold text-emerald-700 mb-3">Cel 631-578-0700</p>
+            <p className="text-sm font-semibold text-purple-700 mb-3">Cel 631-578-0700</p>
             <p className="text-xs text-muted-foreground">
               Nuestros empaques son de 1 libra y sirven aproximadamente 2 porciones.
             </p>
@@ -227,7 +226,7 @@ export default function OrderPage() {
 
       {/* Customer Info Form */}
       <div className="max-w-2xl mx-auto px-6 py-8">
-        <div className="bg-white border-2 border-emerald-300 rounded-lg shadow-lg p-6 mb-8">
+        <div className="bg-white border-2 border-purple-300 rounded-lg shadow-lg p-6 mb-8">
           <h2 className="font-display text-2xl font-bold mb-5 text-gray-800">Your Information</h2>
           <div>
             <label className="block text-sm font-semibold mb-2 text-gray-800">Name</label>
@@ -236,28 +235,42 @@ export default function OrderPage() {
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
               placeholder="Enter your name"
-              className="w-full bg-white border-2 border-gray-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200"
+              className="w-full bg-white border-2 border-gray-300 focus:border-purple-400 focus:ring-2 focus:ring-purple-200"
             />
           </div>
         </div>
 
-        {/* Menu Items */}
         {Object.entries(menuItems).map(([category, items]) => (
           <div key={category} className="mb-8">
             <div className="bg-white border-2 border-gray-200 rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-              <div className="bg-gradient-to-r from-emerald-100 via-teal-100 to-green-100 p-6 border-b-2 border-emerald-200">
-                <h2 className="font-display text-2xl font-bold text-gray-800">{category}</h2>
+              {/* Different gradient for each category */}
+              <div
+                className={`p-6 border-b-2 ${
+                  category === "POLLO"
+                    ? "bg-gradient-to-r from-orange-300 to-pink-400 border-pink-300"
+                    : category === "RES"
+                      ? "bg-gradient-to-r from-blue-400 to-blue-500 border-blue-400"
+                      : category === "PAVO"
+                        ? "bg-gradient-to-r from-teal-400 to-cyan-500 border-cyan-400"
+                        : category === "CERDO"
+                          ? "bg-gradient-to-r from-purple-400 to-purple-500 border-purple-400"
+                          : category === "VEGANO"
+                            ? "bg-gradient-to-r from-green-400 to-teal-500 border-teal-400"
+                            : "bg-gradient-to-r from-pink-400 to-rose-500 border-rose-400"
+                }`}
+              >
+                <h2 className="font-display text-2xl font-bold text-white">{category}</h2>
               </div>
               <div className="p-6">
                 <div className="space-y-3">
                   {items.map((item) => (
                     <div
                       key={item.name}
-                      className="flex items-center justify-between py-3 hover:bg-emerald-50 px-3 -mx-3 rounded-md transition-colors border-b border-gray-100 last:border-0"
+                      className="flex items-center justify-between py-3 hover:bg-purple-50 px-3 -mx-3 rounded-md transition-colors border-b border-gray-100 last:border-0"
                     >
                       <div className="flex-1">
                         <p className="text-gray-800 font-semibold">{item.name}</p>
-                        <p className="text-sm font-medium text-emerald-600">${item.price}</p>
+                        <p className="text-sm font-medium text-purple-600">${item.price}</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <Button
@@ -265,7 +278,7 @@ export default function OrderPage() {
                           variant="outline"
                           onClick={() => updateQuantity(item.name, -1)}
                           disabled={!orderItems[item.name]}
-                          className="h-8 w-8 p-0 border-2 border-emerald-300 hover:bg-emerald-50 hover:border-emerald-400"
+                          className="h-8 w-8 p-0 border-2 border-purple-300 hover:bg-purple-50 hover:border-purple-400"
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
@@ -274,7 +287,7 @@ export default function OrderPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => updateQuantity(item.name, 1)}
-                          className="h-8 w-8 p-0 border-2 border-emerald-300 hover:bg-emerald-50 hover:border-emerald-400"
+                          className="h-8 w-8 p-0 border-2 border-purple-300 hover:bg-purple-50 hover:border-purple-400"
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
@@ -288,9 +301,8 @@ export default function OrderPage() {
         ))}
       </div>
 
-      {/* Fixed Bottom Bar */}
       {getTotalItems() > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-orange-400 via-coral-400 to-pink-400 border-t-2 border-orange-500 p-4 z-[100] shadow-2xl">
+        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700 border-t-2 border-purple-700 p-4 z-[100] shadow-2xl">
           <div className="max-w-2xl mx-auto">
             <div className="flex items-center justify-between mb-3">
               <div>
@@ -301,7 +313,7 @@ export default function OrderPage() {
                 <Button
                   onClick={(e) => handleSubmit(e, "whatsapp")}
                   size="lg"
-                  className="bg-green-500 text-white font-bold text-base px-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all hover:bg-green-600"
+                  className="bg-teal-400 text-white font-bold text-base px-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all hover:bg-teal-500"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? "..." : "WhatsApp"}
@@ -309,7 +321,7 @@ export default function OrderPage() {
                 <Button
                   onClick={(e) => handleSubmit(e, "sms")}
                   size="lg"
-                  className="bg-white text-orange-700 font-bold text-base px-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all hover:bg-orange-50"
+                  className="bg-white text-purple-700 font-bold text-base px-6 shadow-lg hover:shadow-xl hover:scale-105 transition-all hover:bg-purple-50"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? "..." : "SMS"}

@@ -10,19 +10,21 @@
   --card-foreground: oklch(0.15 0.02 280);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.15 0.02 280);
-  --primary: oklch(0.72 0.14 45); /* Peachy coral */
+
+  /* Updated primary colors to match Purple dashboard template */
+  --primary: oklch(0.68 0.24 285); /* Purple #A05AFF */
   --primary-foreground: oklch(0.98 0.005 85);
   --secondary: oklch(0.94 0.02 85);
   --secondary-foreground: oklch(0.2 0.02 280);
   --muted: oklch(0.96 0.01 75);
   --muted-foreground: oklch(0.45 0.02 280);
-  --accent: oklch(0.92 0.02 65); /* Soft warm beige */
-  --accent-foreground: oklch(0.2 0.02 280);
+  --accent: oklch(0.78 0.15 180); /* Turquoise #1BCFB4 */
+  --accent-foreground: oklch(0.98 0.005 180);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.85 0.015 75);
   --input: oklch(0.91 0.01 75);
-  --ring: oklch(0.72 0.14 45);
+  --ring: oklch(0.68 0.24 285);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -37,6 +39,13 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* Added Purple dashboard template color variables */
+  --purple-primary: oklch(0.68 0.24 285); /* #A05AFF */
+  --turquoise-primary: oklch(0.78 0.15 180); /* #1BCFB4 */
+  --coral-pink: oklch(0.78 0.12 10); /* #FE9496 */
+  --light-blue: oklch(0.75 0.12 220); /* #4BCBEB */
+  --purple-accent: oklch(0.65 0.22 290); /* #9E58FF */
 
   --cream: oklch(0.97 0.015 65); /* Warm beige cream */
   --elegant: oklch(0.72 0.02 280);
