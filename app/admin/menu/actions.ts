@@ -7,7 +7,9 @@ export async function addSection(formData: FormData) {
   try {
     const supabase = await createClient()
     const name = formData.get("name") as string
-    const display_order = Number.parseInt(formData.get("display_order") as string)
+
+    const { count } = await supabase.from("menu_sections").select("*", { count: "exact", head: true })
+    const display_order = (count || 0) + 1
 
     const { error } = await supabase.from("menu_sections").insert({
       name,
@@ -17,6 +19,7 @@ export async function addSection(formData: FormData) {
     if (error) throw error
 
     revalidatePath("/admin/menu")
+    revalidatePath("/")
     return { success: true }
   } catch (error) {
     console.error("Error adding section:", error)
@@ -65,7 +68,12 @@ export async function addItem(formData: FormData) {
     const section_id = formData.get("section_id") as string
     const name = formData.get("name") as string
     const price = Number.parseFloat(formData.get("price") as string)
-    const display_order = Number.parseInt(formData.get("display_order") as string)
+
+    const { count } = await supabase
+      .from("menu_items")
+      .select("*", { count: "exact", head: true })
+      .eq("section_id", section_id)
+    const display_order = (count || 0) + 1
 
     const { error } = await supabase.from("menu_items").insert({
       section_id,
@@ -77,6 +85,7 @@ export async function addItem(formData: FormData) {
     if (error) throw error
 
     revalidatePath("/admin/menu")
+    revalidatePath("/")
     return { success: true }
   } catch (error) {
     console.error("Error adding item:", error)
