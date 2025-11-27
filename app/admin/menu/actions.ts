@@ -119,3 +119,47 @@ export async function deleteItem(itemId: string) {
     return { success: false, error: "Failed to delete item" }
   }
 }
+
+export async function reorderSections(updates: Array<{ id: string; display_order: number }>) {
+  try {
+    const supabase = await createClient()
+
+    for (const update of updates) {
+      const { error } = await supabase
+        .from("menu_sections")
+        .update({ display_order: update.display_order })
+        .eq("id", update.id)
+
+      if (error) throw error
+    }
+
+    revalidatePath("/admin/menu")
+    revalidatePath("/")
+    return { success: true }
+  } catch (error) {
+    console.error("Error reordering sections:", error)
+    return { success: false, error: "Failed to reorder sections" }
+  }
+}
+
+export async function reorderItems(updates: Array<{ id: string; display_order: number }>) {
+  try {
+    const supabase = await createClient()
+
+    for (const update of updates) {
+      const { error } = await supabase
+        .from("menu_items")
+        .update({ display_order: update.display_order })
+        .eq("id", update.id)
+
+      if (error) throw error
+    }
+
+    revalidatePath("/admin/menu")
+    revalidatePath("/")
+    return { success: true }
+  } catch (error) {
+    console.error("Error reordering items:", error)
+    return { success: false, error: "Failed to reorder items" }
+  }
+}

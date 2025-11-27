@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -13,9 +15,36 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { addSection, updateSection, deleteSection, addItem, updateItem, deleteItem } from "./actions"
+import {
+  addSection,
+  updateSection,
+  deleteSection,
+  addItem,
+  updateItem,
+  deleteItem,
+  reorderSections,
+  reorderItems,
+} from "./actions"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core"
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+import { GripVertical } from "lucide-react"
 
 interface MenuSection {
   id: string
@@ -31,13 +60,118 @@ interface MenuItem {
   display_order: number
 }
 
-export function MenuManager({ sections, items }: { sections: MenuSection[]; items: MenuItem[] }) {
+function SortableSection({
+  section,
+  children,
+  onEdit,
+  onDelete,
+}: { section: MenuSection; children: React.ReactNode; onEdit: () => void; onDelete: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  return (
+    <Card ref={setNodeRef} style={style} className="p-6 border-2 border-gray-200">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+            <GripVertical className="h-5 w-5 text-gray-400" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900">{section.name}</h3>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onEdit}
+            className="text-teal-600 border-teal-300 hover:bg-teal-50 bg-transparent"
+          >
+            Edit
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onDelete}
+            className="text-red-600 border-red-300 hover:bg-red-50 bg-transparent"
+          >
+            Delete
+          </Button>
+        </div>
+      </div>
+      {children}
+    </Card>
+  )
+}
+
+function SortableItem({ item, onEdit, onDelete }: { item: MenuItem; onEdit: () => void; onDelete: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+    >
+      <div className="flex items-center gap-2 flex-1">
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+          <GripVertical className="h-4 w-4 text-gray-400" />
+        </div>
+        <div className="flex-1">
+          <p className="font-semibold text-gray-900">{item.name}</p>
+          <p className="text-sm text-teal-400 font-bold">${Number(item.price).toFixed(2)}</p>
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onEdit}
+          className="text-teal-600 border-teal-300 hover:bg-teal-50 bg-transparent"
+        >
+          Edit
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onDelete}
+          className="text-red-600 border-red-300 hover:bg-red-50 bg-transparent"
+        >
+          Delete
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+export function MenuManager({
+  sections: initialSections,
+  items: initialItems,
+}: { sections: MenuSection[]; items: MenuItem[] }) {
   const router = useRouter()
+  const [sections, setSections] = useState(initialSections)
+  const [items, setItems] = useState(initialItems)
   const [isAddingSectionOpen, setIsAddingSectionOpen] = useState(false)
   const [isAddingItemOpen, setIsAddingItemOpen] = useState(false)
   const [editingSection, setEditingSection] = useState<MenuSection | null>(null)
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null)
   const [selectedSectionForItem, setSelectedSectionForItem] = useState<string>("")
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  )
 
   const itemsBySection = items.reduce(
     (acc, item) => {
@@ -47,6 +181,60 @@ export function MenuManager({ sections, items }: { sections: MenuSection[]; item
     },
     {} as Record<string, MenuItem[]>,
   )
+
+  const handleSectionDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (over && active.id !== over.id) {
+      const oldIndex = sections.findIndex((s) => s.id === active.id)
+      const newIndex = sections.findIndex((s) => s.id === over.id)
+
+      const newSections = arrayMove(sections, oldIndex, newIndex)
+      setSections(newSections)
+
+      // Update display_order in database
+      const updates = newSections.map((section, index) => ({
+        id: section.id,
+        display_order: index + 1,
+      }))
+
+      const result = await reorderSections(updates)
+      if (!result.success) {
+        toast.error("Failed to save section order")
+        setSections(sections) // Revert on error
+      }
+    }
+  }
+
+  const handleItemDragEnd = async (sectionId: string, event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (over && active.id !== over.id) {
+      const sectionItems = itemsBySection[sectionId] || []
+      const oldIndex = sectionItems.findIndex((i) => i.id === active.id)
+      const newIndex = sectionItems.findIndex((i) => i.id === over.id)
+
+      const newItems = arrayMove(sectionItems, oldIndex, newIndex)
+
+      // Update local state
+      setItems((prevItems) => {
+        const otherItems = prevItems.filter((i) => i.section_id !== sectionId)
+        return [...otherItems, ...newItems]
+      })
+
+      // Update display_order in database
+      const updates = newItems.map((item, index) => ({
+        id: item.id,
+        display_order: index + 1,
+      }))
+
+      const result = await reorderItems(updates)
+      if (!result.success) {
+        toast.error("Failed to save item order")
+        setItems(initialItems) // Revert on error
+      }
+    }
+  }
 
   const handleAddSection = async (formData: FormData) => {
     const result = await addSection(formData)
@@ -134,16 +322,6 @@ export function MenuManager({ sections, items }: { sections: MenuSection[]; item
                 <Label htmlFor="section-name">Section Name</Label>
                 <Input id="section-name" name="name" placeholder="e.g., PESCADO" required />
               </div>
-              <div>
-                <Label htmlFor="section-order">Display Order</Label>
-                <Input
-                  id="section-order"
-                  name="display_order"
-                  type="number"
-                  defaultValue={sections.length + 1}
-                  required
-                />
-              </div>
               <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600">
                 Add Section
               </Button>
@@ -152,114 +330,85 @@ export function MenuManager({ sections, items }: { sections: MenuSection[]; item
         </Dialog>
       </div>
 
-      {/* Sections and Items */}
-      <div className="space-y-6">
-        {sections.map((section) => (
-          <Card key={section.id} className="p-6 border-2 border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gray-900">{section.name}</h3>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setEditingSection(section)}
-                  className="text-teal-600 border-teal-300 hover:bg-teal-50"
-                >
-                  Edit
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleDeleteSection(section.id)}
-                  className="text-red-600 border-red-300 hover:bg-red-50"
-                >
-                  Delete
-                </Button>
-                <Dialog
-                  open={isAddingItemOpen && selectedSectionForItem === section.id}
-                  onOpenChange={(open) => {
-                    setIsAddingItemOpen(open)
-                    if (open) setSelectedSectionForItem(section.id)
-                    else setSelectedSectionForItem("")
-                  }}
-                >
-                  <DialogTrigger asChild>
-                    <Button size="sm" className="bg-teal-500 hover:bg-teal-600 text-white">
-                      Add Item
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="border-2 border-teal-300">
-                    <DialogHeader>
-                      <DialogTitle>Add Item to {section.name}</DialogTitle>
-                    </DialogHeader>
-                    <form action={handleAddItem} className="space-y-4">
-                      <input type="hidden" name="section_id" value={section.id} />
-                      <div>
-                        <Label htmlFor="item-name">Item Name</Label>
-                        <Input id="item-name" name="name" placeholder="e.g., Grilled Salmon" required />
-                      </div>
-                      <div>
-                        <Label htmlFor="item-price">Price ($)</Label>
-                        <Input id="item-price" name="price" type="number" step="0.01" placeholder="12.99" required />
-                      </div>
-                      <div>
-                        <Label htmlFor="item-order">Display Order</Label>
-                        <Input
-                          id="item-order"
-                          name="display_order"
-                          type="number"
-                          defaultValue={(itemsBySection[section.id]?.length || 0) + 1}
-                          required
-                        />
-                      </div>
-                      <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600">
+      {/* Sections and Items with Drag and Drop */}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
+        <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-6">
+            {sections.map((section) => (
+              <SortableSection
+                key={section.id}
+                section={section}
+                onEdit={() => setEditingSection(section)}
+                onDelete={() => handleDeleteSection(section.id)}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm text-gray-600">Drag sections to reorder</p>
+                  <Dialog
+                    open={isAddingItemOpen && selectedSectionForItem === section.id}
+                    onOpenChange={(open) => {
+                      setIsAddingItemOpen(open)
+                      if (open) setSelectedSectionForItem(section.id)
+                      else setSelectedSectionForItem("")
+                    }}
+                  >
+                    <DialogTrigger asChild>
+                      <Button size="sm" className="bg-teal-500 hover:bg-teal-600 text-white">
                         Add Item
                       </Button>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </div>
+                    </DialogTrigger>
+                    <DialogContent className="border-2 border-teal-300">
+                      <DialogHeader>
+                        <DialogTitle>Add Item to {section.name}</DialogTitle>
+                      </DialogHeader>
+                      <form action={handleAddItem} className="space-y-4">
+                        <input type="hidden" name="section_id" value={section.id} />
+                        <div>
+                          <Label htmlFor="item-name">Item Name</Label>
+                          <Input id="item-name" name="name" placeholder="e.g., Grilled Salmon" required />
+                        </div>
+                        <div>
+                          <Label htmlFor="item-price">Price ($)</Label>
+                          <Input id="item-price" name="price" type="number" step="0.01" placeholder="12.99" required />
+                        </div>
+                        <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600">
+                          Add Item
+                        </Button>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
 
-            {/* Items List */}
-            <div className="space-y-2">
-              {itemsBySection[section.id]?.length ? (
-                itemsBySection[section.id].map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                {/* Items List with Drag and Drop */}
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={(event) => handleItemDragEnd(section.id, event)}
+                >
+                  <SortableContext
+                    items={(itemsBySection[section.id] || []).map((i) => i.id)}
+                    strategy={verticalListSortingStrategy}
                   >
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900">{item.name}</p>
-                      <p className="text-sm text-teal-400 font-bold">${Number(item.price).toFixed(2)}</p>
+                    <div className="space-y-2">
+                      {itemsBySection[section.id]?.length ? (
+                        itemsBySection[section.id].map((item) => (
+                          <SortableItem
+                            key={item.id}
+                            item={item}
+                            onEdit={() => setEditingItem(item)}
+                            onDelete={() => handleDeleteItem(item.id)}
+                          />
+                        ))
+                      ) : (
+                        <p className="text-gray-500 text-sm italic">No items in this section</p>
+                      )}
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setEditingItem(item)}
-                        className="text-teal-600 border-teal-300 hover:bg-teal-50"
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteItem(item.id)}
-                        className="text-red-600 border-red-300 hover:bg-red-50"
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-gray-500 text-sm italic">No items in this section</p>
-              )}
-            </div>
-          </Card>
-        ))}
-      </div>
+                  </SortableContext>
+                </DndContext>
+              </SortableSection>
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
 
       {/* Edit Section Dialog */}
       <Dialog open={!!editingSection} onOpenChange={() => setEditingSection(null)}>
@@ -272,16 +421,6 @@ export function MenuManager({ sections, items }: { sections: MenuSection[]; item
             <div>
               <Label htmlFor="edit-section-name">Section Name</Label>
               <Input id="edit-section-name" name="name" defaultValue={editingSection?.name} required />
-            </div>
-            <div>
-              <Label htmlFor="edit-section-order">Display Order</Label>
-              <Input
-                id="edit-section-order"
-                name="display_order"
-                type="number"
-                defaultValue={editingSection?.display_order}
-                required
-              />
             </div>
             <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600">
               Update Section
@@ -310,16 +449,6 @@ export function MenuManager({ sections, items }: { sections: MenuSection[]; item
                 type="number"
                 step="0.01"
                 defaultValue={editingItem?.price}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-item-order">Display Order</Label>
-              <Input
-                id="edit-item-order"
-                name="display_order"
-                type="number"
-                defaultValue={editingItem?.display_order}
                 required
               />
             </div>
