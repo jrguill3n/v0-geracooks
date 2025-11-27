@@ -5,6 +5,7 @@ import { redirect } from "next/navigation"
 import { checkAuth } from "@/lib/auth"
 import { logoutAction } from "./actions"
 import { OrdersList } from "./orders-list"
+import Link from "next/link"
 
 interface Order {
   id: string
@@ -105,16 +106,27 @@ export default async function AdminPage({
               <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">GERA COOKS Admin</h1>
               <p className="text-sm mt-1 font-medium text-white/90">Order Management Dashboard</p>
             </div>
-            <form action={logoutAction}>
-              <Button
-                variant="outline"
-                type="submit"
-                size="sm"
-                className="font-semibold border-white/30 hover:bg-white/10 text-white bg-transparent"
-              >
-                Logout
-              </Button>
-            </form>
+            <div className="flex gap-2">
+              <Link href="/admin/menu">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="font-semibold border-white/30 hover:bg-white/10 text-white bg-transparent"
+                >
+                  Manage Menu
+                </Button>
+              </Link>
+              <form action={logoutAction}>
+                <Button
+                  variant="outline"
+                  type="submit"
+                  size="sm"
+                  className="font-semibold border-white/30 hover:bg-white/10 text-white bg-transparent"
+                >
+                  Logout
+                </Button>
+              </form>
+            </div>
           </div>
         </div>
       </div>
@@ -152,7 +164,7 @@ export default async function AdminPage({
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
               </div>
@@ -171,7 +183,7 @@ export default async function AdminPage({
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
               </div>
