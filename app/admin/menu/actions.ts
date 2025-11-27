@@ -5,25 +5,45 @@ import { revalidatePath } from "next/cache"
 
 export async function addSection(formData: FormData) {
   try {
+    console.log("[v0] addSection called")
     const supabase = await createClient()
     const name = formData.get("name") as string
 
-    const { count } = await supabase.from("menu_sections").select("*", { count: "exact", head: true })
+    console.log("[v0] Section name:", name)
+
+    const { count, error: countError } = await supabase
+      .from("menu_sections")
+      .select("*", { count: "exact", head: true })
+
+    if (countError) {
+      console.error("[v0] Error getting count:", countError)
+      throw countError
+    }
+
     const display_order = (count || 0) + 1
+    console.log("[v0] Calculated display_order:", display_order)
 
-    const { error } = await supabase.from("menu_sections").insert({
-      name,
-      display_order,
-    })
+    const { data, error } = await supabase
+      .from("menu_sections")
+      .insert({
+        name,
+        display_order,
+      })
+      .select()
 
-    if (error) throw error
+    console.log("[v0] Insert result - data:", data, "error:", error)
+
+    if (error) {
+      console.error("[v0] Insert error details:", JSON.stringify(error, null, 2))
+      throw error
+    }
 
     revalidatePath("/admin/menu")
     revalidatePath("/")
     return { success: true }
   } catch (error) {
-    console.error("Error adding section:", error)
-    return { success: false, error: "Failed to add section" }
+    console.error("[v0] Error adding section:", error)
+    return { success: false, error: error instanceof Error ? error.message : "Failed to add section" }
   }
 }
 
@@ -64,32 +84,50 @@ export async function deleteSection(sectionId: string) {
 
 export async function addItem(formData: FormData) {
   try {
+    console.log("[v0] addItem called")
     const supabase = await createClient()
     const section_id = formData.get("section_id") as string
     const name = formData.get("name") as string
     const price = Number.parseFloat(formData.get("price") as string)
 
-    const { count } = await supabase
+    console.log("[v0] Item data:", { section_id, name, price })
+
+    const { count, error: countError } = await supabase
       .from("menu_items")
       .select("*", { count: "exact", head: true })
       .eq("section_id", section_id)
+
+    if (countError) {
+      console.error("[v0] Error getting item count:", countError)
+      throw countError
+    }
+
     const display_order = (count || 0) + 1
+    console.log("[v0] Calculated item display_order:", display_order)
 
-    const { error } = await supabase.from("menu_items").insert({
-      section_id,
-      name,
-      price,
-      display_order,
-    })
+    const { data, error } = await supabase
+      .from("menu_items")
+      .insert({
+        section_id,
+        name,
+        price,
+        display_order,
+      })
+      .select()
 
-    if (error) throw error
+    console.log("[v0] Item insert result - data:", data, "error:", error)
+
+    if (error) {
+      console.error("[v0] Item insert error details:", JSON.stringify(error, null, 2))
+      throw error
+    }
 
     revalidatePath("/admin/menu")
     revalidatePath("/")
     return { success: true }
   } catch (error) {
-    console.error("Error adding item:", error)
-    return { success: false, error: "Failed to add item" }
+    console.error("[v0] Error adding item:", error)
+    return { success: false, error: error instanceof Error ? error.message : "Failed to add item" }
   }
 }
 

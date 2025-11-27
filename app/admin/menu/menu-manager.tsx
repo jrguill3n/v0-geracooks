@@ -237,7 +237,12 @@ export function MenuManager({
   }
 
   const handleAddSection = async (formData: FormData) => {
+    console.log("[v0] Adding section with data:", Object.fromEntries(formData))
+
     const result = await addSection(formData)
+
+    console.log("[v0] Add section result:", result)
+
     if (result.success) {
       toast.success("Section added successfully")
       setIsAddingSectionOpen(false)
