@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -234,6 +233,14 @@ export function MenuManager({
     }
   }
 
+  useEffect(() => {
+    setSections(initialSections)
+  }, [initialSections])
+
+  useEffect(() => {
+    setItems(initialItems)
+  }, [initialItems])
+
   const handleAddSection = async (formData: FormData) => {
     setIsSubmitting(true)
     console.log("[v0] Adding section with data:", Object.fromEntries(formData))
@@ -261,6 +268,11 @@ export function MenuManager({
 
   const handleUpdateSection = async (formData: FormData) => {
     setIsSubmitting(true)
+    const id = formData.get("id") as string
+    const name = formData.get("name") as string
+
+    setSections(sections.map((s) => (s.id === id ? { ...s, name } : s)))
+
     const result = await updateSection(formData)
     if (result.success) {
       toast.success("Section updated successfully!", {
@@ -269,8 +281,8 @@ export function MenuManager({
       })
       await new Promise((resolve) => setTimeout(resolve, 500))
       setEditingSection(null)
-      router.refresh()
     } else {
+      setSections(initialSections)
       toast.error("Failed to update section", {
         description: result.error || "An error occurred",
         duration: 4000,
@@ -281,6 +293,10 @@ export function MenuManager({
 
   const handleDeleteSection = async (sectionId: string) => {
     if (!confirm("Are you sure? This will delete all items in this section.")) return
+    const previousSections = sections
+    setSections(sections.filter((s) => s.id !== sectionId))
+    setItems(items.filter((i) => i.section_id !== sectionId))
+
     const loadingToast = toast.loading("Deleting section...")
     const result = await deleteSection(sectionId)
     toast.dismiss(loadingToast)
@@ -289,8 +305,9 @@ export function MenuManager({
       toast.success("Section deleted successfully!", {
         duration: 3000,
       })
-      router.refresh()
     } else {
+      setSections(previousSections)
+      setItems(initialItems)
       toast.error("Failed to delete section", {
         description: result.error || "An error occurred",
         duration: 4000,
@@ -321,6 +338,12 @@ export function MenuManager({
 
   const handleUpdateItem = async (formData: FormData) => {
     setIsSubmitting(true)
+    const id = formData.get("id") as string
+    const name = formData.get("name") as string
+    const price = Number.parseFloat(formData.get("price") as string)
+
+    setItems(items.map((item) => (item.id === id ? { ...item, name, price } : item)))
+
     const result = await updateItem(formData)
     if (result.success) {
       toast.success("Item updated successfully!", {
@@ -329,8 +352,8 @@ export function MenuManager({
       })
       await new Promise((resolve) => setTimeout(resolve, 500))
       setEditingItem(null)
-      router.refresh()
     } else {
+      setItems(initialItems)
       toast.error("Failed to update item", {
         description: result.error || "An error occurred",
         duration: 4000,
@@ -341,6 +364,10 @@ export function MenuManager({
 
   const handleDeleteItem = async (itemId: string) => {
     if (!confirm("Are you sure you want to delete this item?")) return
+
+    const previousItems = items
+    setItems(items.filter((i) => i.id !== itemId))
+
     const loadingToast = toast.loading("Deleting item...")
     const result = await deleteItem(itemId)
     toast.dismiss(loadingToast)
@@ -349,8 +376,8 @@ export function MenuManager({
       toast.success("Item deleted successfully!", {
         duration: 3000,
       })
-      router.refresh()
     } else {
+      setItems(previousItems)
       toast.error("Failed to delete item", {
         description: result.error || "An error occurred",
         duration: 4000,
