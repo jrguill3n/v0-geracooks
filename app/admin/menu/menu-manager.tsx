@@ -165,6 +165,7 @@ export function MenuManager({
   const [editingSection, setEditingSection] = useState<MenuSection | null>(null)
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null)
   const [selectedSectionForItem, setSelectedSectionForItem] = useState<string>("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -192,7 +193,6 @@ export function MenuManager({
       const newSections = arrayMove(sections, oldIndex, newIndex)
       setSections(newSections)
 
-      // Update display_order in database
       const updates = newSections.map((section, index) => ({
         id: section.id,
         display_order: index + 1,
@@ -201,7 +201,7 @@ export function MenuManager({
       const result = await reorderSections(updates)
       if (!result.success) {
         toast.error("Failed to save section order")
-        setSections(sections) // Revert on error
+        setSections(sections)
       }
     }
   }
@@ -216,13 +216,11 @@ export function MenuManager({
 
       const newItems = arrayMove(sectionItems, oldIndex, newIndex)
 
-      // Update local state
       setItems((prevItems) => {
         const otherItems = prevItems.filter((i) => i.section_id !== sectionId)
         return [...otherItems, ...newItems]
       })
 
-      // Update display_order in database
       const updates = newItems.map((item, index) => ({
         id: item.id,
         display_order: index + 1,
@@ -231,12 +229,13 @@ export function MenuManager({
       const result = await reorderItems(updates)
       if (!result.success) {
         toast.error("Failed to save item order")
-        setItems(initialItems) // Revert on error
+        setItems(initialItems)
       }
     }
   }
 
   const handleAddSection = async (formData: FormData) => {
+    setIsSubmitting(true)
     console.log("[v0] Adding section with data:", Object.fromEntries(formData))
 
     const result = await addSection(formData)
@@ -244,73 +243,123 @@ export function MenuManager({
     console.log("[v0] Add section result:", result)
 
     if (result.success) {
-      toast.success("Section added successfully")
+      toast.success("Section added successfully!", {
+        description: "The new section has been created.",
+        duration: 3000,
+      })
+      await new Promise((resolve) => setTimeout(resolve, 500))
       setIsAddingSectionOpen(false)
       router.refresh()
     } else {
-      toast.error(result.error || "Failed to add section")
+      toast.error("Failed to add section", {
+        description: result.error || "An error occurred",
+        duration: 4000,
+      })
     }
+    setIsSubmitting(false)
   }
 
   const handleUpdateSection = async (formData: FormData) => {
+    setIsSubmitting(true)
     const result = await updateSection(formData)
     if (result.success) {
-      toast.success("Section updated successfully")
+      toast.success("Section updated successfully!", {
+        description: "Changes have been saved.",
+        duration: 3000,
+      })
+      await new Promise((resolve) => setTimeout(resolve, 500))
       setEditingSection(null)
       router.refresh()
     } else {
-      toast.error(result.error || "Failed to update section")
+      toast.error("Failed to update section", {
+        description: result.error || "An error occurred",
+        duration: 4000,
+      })
     }
+    setIsSubmitting(false)
   }
 
   const handleDeleteSection = async (sectionId: string) => {
     if (!confirm("Are you sure? This will delete all items in this section.")) return
+    const loadingToast = toast.loading("Deleting section...")
     const result = await deleteSection(sectionId)
+    toast.dismiss(loadingToast)
+
     if (result.success) {
-      toast.success("Section deleted successfully")
+      toast.success("Section deleted successfully!", {
+        duration: 3000,
+      })
       router.refresh()
     } else {
-      toast.error(result.error || "Failed to delete section")
+      toast.error("Failed to delete section", {
+        description: result.error || "An error occurred",
+        duration: 4000,
+      })
     }
   }
 
   const handleAddItem = async (formData: FormData) => {
+    setIsSubmitting(true)
     const result = await addItem(formData)
     if (result.success) {
-      toast.success("Item added successfully")
+      toast.success("Item added successfully!", {
+        description: "The new item has been created.",
+        duration: 3000,
+      })
+      await new Promise((resolve) => setTimeout(resolve, 500))
       setIsAddingItemOpen(false)
       setSelectedSectionForItem("")
       router.refresh()
     } else {
-      toast.error(result.error || "Failed to add item")
+      toast.error("Failed to add item", {
+        description: result.error || "An error occurred",
+        duration: 4000,
+      })
     }
+    setIsSubmitting(false)
   }
 
   const handleUpdateItem = async (formData: FormData) => {
+    setIsSubmitting(true)
     const result = await updateItem(formData)
     if (result.success) {
-      toast.success("Item updated successfully")
+      toast.success("Item updated successfully!", {
+        description: "Changes have been saved.",
+        duration: 3000,
+      })
+      await new Promise((resolve) => setTimeout(resolve, 500))
       setEditingItem(null)
       router.refresh()
     } else {
-      toast.error(result.error || "Failed to update item")
+      toast.error("Failed to update item", {
+        description: result.error || "An error occurred",
+        duration: 4000,
+      })
     }
+    setIsSubmitting(false)
   }
 
   const handleDeleteItem = async (itemId: string) => {
     if (!confirm("Are you sure you want to delete this item?")) return
+    const loadingToast = toast.loading("Deleting item...")
     const result = await deleteItem(itemId)
+    toast.dismiss(loadingToast)
+
     if (result.success) {
-      toast.success("Item deleted successfully")
+      toast.success("Item deleted successfully!", {
+        duration: 3000,
+      })
       router.refresh()
     } else {
-      toast.error(result.error || "Failed to delete item")
+      toast.error("Failed to delete item", {
+        description: result.error || "An error occurred",
+        duration: 4000,
+      })
     }
   }
 
   return (
     <div className="space-y-6">
-      {/* Add Section Button */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Menu Sections</h2>
         <Dialog open={isAddingSectionOpen} onOpenChange={setIsAddingSectionOpen}>
@@ -325,17 +374,16 @@ export function MenuManager({
             <form action={handleAddSection} className="space-y-4">
               <div>
                 <Label htmlFor="section-name">Section Name</Label>
-                <Input id="section-name" name="name" placeholder="e.g., PESCADO" required />
+                <Input id="section-name" name="name" placeholder="e.g., PESCADO" required disabled={isSubmitting} />
               </div>
-              <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600">
-                Add Section
+              <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600" disabled={isSubmitting}>
+                {isSubmitting ? "Adding..." : "Add Section"}
               </Button>
             </form>
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* Sections and Items with Drag and Drop */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd}>
         <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-6">
@@ -351,6 +399,7 @@ export function MenuManager({
                   <Dialog
                     open={isAddingItemOpen && selectedSectionForItem === section.id}
                     onOpenChange={(open) => {
+                      if (isSubmitting) return
                       setIsAddingItemOpen(open)
                       if (open) setSelectedSectionForItem(section.id)
                       else setSelectedSectionForItem("")
@@ -369,21 +418,34 @@ export function MenuManager({
                         <input type="hidden" name="section_id" value={section.id} />
                         <div>
                           <Label htmlFor="item-name">Item Name</Label>
-                          <Input id="item-name" name="name" placeholder="e.g., Grilled Salmon" required />
+                          <Input
+                            id="item-name"
+                            name="name"
+                            placeholder="e.g., Grilled Salmon"
+                            required
+                            disabled={isSubmitting}
+                          />
                         </div>
                         <div>
                           <Label htmlFor="item-price">Price ($)</Label>
-                          <Input id="item-price" name="price" type="number" step="0.01" placeholder="12.99" required />
+                          <Input
+                            id="item-price"
+                            name="price"
+                            type="number"
+                            step="0.01"
+                            placeholder="12.99"
+                            required
+                            disabled={isSubmitting}
+                          />
                         </div>
-                        <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600">
-                          Add Item
+                        <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600" disabled={isSubmitting}>
+                          {isSubmitting ? "Adding..." : "Add Item"}
                         </Button>
                       </form>
                     </DialogContent>
                   </Dialog>
                 </div>
 
-                {/* Items List with Drag and Drop */}
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
@@ -415,8 +477,7 @@ export function MenuManager({
         </SortableContext>
       </DndContext>
 
-      {/* Edit Section Dialog */}
-      <Dialog open={!!editingSection} onOpenChange={() => setEditingSection(null)}>
+      <Dialog open={!!editingSection} onOpenChange={() => !isSubmitting && setEditingSection(null)}>
         <DialogContent className="border-2 border-teal-300">
           <DialogHeader>
             <DialogTitle>Edit Section</DialogTitle>
@@ -425,17 +486,22 @@ export function MenuManager({
             <input type="hidden" name="id" value={editingSection?.id} />
             <div>
               <Label htmlFor="edit-section-name">Section Name</Label>
-              <Input id="edit-section-name" name="name" defaultValue={editingSection?.name} required />
+              <Input
+                id="edit-section-name"
+                name="name"
+                defaultValue={editingSection?.name}
+                required
+                disabled={isSubmitting}
+              />
             </div>
-            <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600">
-              Update Section
+            <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600" disabled={isSubmitting}>
+              {isSubmitting ? "Updating..." : "Update Section"}
             </Button>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Item Dialog */}
-      <Dialog open={!!editingItem} onOpenChange={() => setEditingItem(null)}>
+      <Dialog open={!!editingItem} onOpenChange={() => !isSubmitting && setEditingItem(null)}>
         <DialogContent className="border-2 border-teal-300">
           <DialogHeader>
             <DialogTitle>Edit Item</DialogTitle>
@@ -444,7 +510,13 @@ export function MenuManager({
             <input type="hidden" name="id" value={editingItem?.id} />
             <div>
               <Label htmlFor="edit-item-name">Item Name</Label>
-              <Input id="edit-item-name" name="name" defaultValue={editingItem?.name} required />
+              <Input
+                id="edit-item-name"
+                name="name"
+                defaultValue={editingItem?.name}
+                required
+                disabled={isSubmitting}
+              />
             </div>
             <div>
               <Label htmlFor="edit-item-price">Price ($)</Label>
@@ -455,10 +527,11 @@ export function MenuManager({
                 step="0.01"
                 defaultValue={editingItem?.price}
                 required
+                disabled={isSubmitting}
               />
             </div>
-            <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600">
-              Update Item
+            <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600" disabled={isSubmitting}>
+              {isSubmitting ? "Updating..." : "Update Item"}
             </Button>
           </form>
         </DialogContent>

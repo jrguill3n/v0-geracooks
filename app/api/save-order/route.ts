@@ -54,14 +54,18 @@ export async function POST(request: Request) {
       const accountSid = process.env.TWILIO_ACCOUNT_SID
       const authToken = process.env.TWILIO_AUTH_TOKEN
       const twilioWhatsAppFrom = process.env.TWILIO_WHATSAPP_FROM
-      const twilioWhatsAppTo = "whatsapp:+16315780700"
+
+      const fromNumber = twilioWhatsAppFrom?.startsWith("whatsapp:")
+        ? twilioWhatsAppFrom
+        : `whatsapp:${twilioWhatsAppFrom}`
+      const toNumber = "whatsapp:+16315780700"
 
       console.log("[v0] Twilio Config Check:", {
         hasAccountSid: !!accountSid,
         hasAuthToken: !!authToken,
         hasWhatsAppFrom: !!twilioWhatsAppFrom,
-        whatsAppFrom: twilioWhatsAppFrom,
-        whatsAppTo: twilioWhatsAppTo,
+        whatsAppFrom: fromNumber,
+        whatsAppTo: toNumber,
       })
 
       if (!accountSid || !authToken || !twilioWhatsAppFrom) {
@@ -94,8 +98,8 @@ export async function POST(request: Request) {
             Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
           },
           body: new URLSearchParams({
-            From: twilioWhatsAppFrom,
-            To: twilioWhatsAppTo,
+            From: fromNumber,
+            To: toNumber,
             Body: message,
           }),
         })
