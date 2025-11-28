@@ -47,14 +47,30 @@ export async function POST(request: Request) {
       throw itemsError
     }
 
+    let whatsappSent = false
+    let whatsappError = null
+
     try {
       const accountSid = process.env.TWILIO_ACCOUNT_SID
       const authToken = process.env.TWILIO_AUTH_TOKEN
-      const twilioWhatsAppFrom = process.env.TWILIO_WHATSAPP_FROM // e.g., whatsapp:+14155238886
+      const twilioWhatsAppFrom = process.env.TWILIO_WHATSAPP_FROM
       const twilioWhatsAppTo = "whatsapp:+16315780700"
 
+      console.log("[v0] Twilio Config Check:", {
+        hasAccountSid: !!accountSid,
+        hasAuthToken: !!authToken,
+        hasWhatsAppFrom: !!twilioWhatsAppFrom,
+        whatsAppFrom: twilioWhatsAppFrom,
+        whatsAppTo: twilioWhatsAppTo,
+      })
+
       if (!accountSid || !authToken || !twilioWhatsAppFrom) {
-        console.error("[v0] Missing Twilio credentials")
+        const missingVars = []
+        if (!accountSid) missingVars.push("TWILIO_ACCOUNT_SID")
+        if (!authToken) missingVars.push("TWILIO_AUTH_TOKEN")
+        if (!twilioWhatsAppFrom) missingVars.push("TWILIO_WHATSAPP_FROM")
+        whatsappError = `Missing Twilio environment variables: ${missingVars.join(", ")}`
+        console.error("[v0]", whatsappError)
       } else {
         let message = `🔔 *New Order from GERA COOKS*\n\n`
         message += `👤 Customer: *${customerName}*\n`
@@ -69,6 +85,8 @@ export async function POST(request: Request) {
 
         message += `\n💰 *Total: $${totalPrice}*`
 
+        console.log("[v0] Sending WhatsApp message...")
+
         const twilioResponse = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
           method: "POST",
           headers: {
@@ -82,18 +100,29 @@ export async function POST(request: Request) {
           }),
         })
 
+        const responseData = await twilioResponse.json()
+        console.log("[v0] Twilio Response Status:", twilioResponse.status)
+        console.log("[v0] Twilio Response Data:", responseData)
+
         if (!twilioResponse.ok) {
-          const errorData = await twilioResponse.json()
-          console.error("[v0] Twilio API error:", errorData)
+          whatsappError = `Twilio API error (${twilioResponse.status}): ${responseData.message || JSON.stringify(responseData)}`
+          console.error("[v0]", whatsappError)
         } else {
-          console.log("[v0] WhatsApp notification sent successfully")
+          whatsappSent = true
+          console.log("[v0] WhatsApp notification sent successfully! Message SID:", responseData.sid)
         }
       }
     } catch (twilioError) {
+      whatsappError = twilioError instanceof Error ? twilioError.message : String(twilioError)
       console.error("[v0] Error sending WhatsApp notification:", twilioError)
     }
 
-    return NextResponse.json({ success: true, orderId: order.id })
+    return NextResponse.json({
+      success: true,
+      orderId: order.id,
+      whatsappSent,
+      whatsappError,
+    })
   } catch (error) {
     console.error("[v0] Error saving order:", error)
     return NextResponse.json(

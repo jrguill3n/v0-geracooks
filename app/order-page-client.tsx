@@ -15,10 +15,13 @@ interface OrderPageClientProps {
 
 export function OrderPageClient({ menuItems }: OrderPageClientProps) {
   const [customerName, setCustomerName] = useState("")
-  const [phone, setPhone] = useState("+1")
+  const [countryCode, setCountryCode] = useState("+1")
+  const [phoneNumber, setPhoneNumber] = useState("")
   const [orderItems, setOrderItems] = useState<Record<string, number>>({})
   const [orderSubmitted, setOrderSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [whatsappSent, setWhatsappSent] = useState(false)
+  const [whatsappError, setWhatsappError] = useState<string | null>(null)
 
   const updateQuantity = (itemName: string, change: number) => {
     setOrderItems((prev) => {
@@ -51,7 +54,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!customerName || !phone || phone === "+1" || getTotalItems() === 0) {
+    if (!customerName || !phoneNumber || getTotalItems() === 0) {
       alert("Please fill in your name, phone number, and select at least one item")
       return
     }
@@ -61,10 +64,12 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
     try {
       const orderData = {
         customerName,
-        phone,
+        phone: countryCode + phoneNumber,
         orderItems,
         totalPrice: getTotalPrice(),
       }
+
+      console.log("[v0] Submitting order:", orderData)
 
       const response = await fetch("/api/save-order", {
         method: "POST",
@@ -75,11 +80,14 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
       })
 
       const responseData = await response.json()
+      console.log("[v0] Order response:", responseData)
 
       if (!response.ok) {
         throw new Error(`Failed to save order: ${JSON.stringify(responseData)}`)
       }
 
+      setWhatsappSent(responseData.whatsappSent || false)
+      setWhatsappError(responseData.whatsappError || null)
       setOrderSubmitted(true)
     } catch (error) {
       console.error("[v0] Error submitting order:", error)
@@ -98,16 +106,29 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
               <ShoppingBag className="w-8 h-8 text-accent-foreground" />
             </div>
             <h1 className="font-serif text-3xl mb-4 text-foreground">Thank You!</h1>
-            <p className="text-foreground/80 leading-relaxed">
+            <p className="text-foreground/80 leading-relaxed mb-4">
               Thank you for submitting your order, we will get in contact for your delivery.
             </p>
+            {whatsappSent ? (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-green-800 font-medium">✓ WhatsApp notification sent successfully</p>
+              </div>
+            ) : (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-yellow-800 font-medium">⚠ WhatsApp notification not sent</p>
+                {whatsappError && <p className="text-xs text-yellow-700 mt-2 break-words">Error: {whatsappError}</p>}
+              </div>
+            )}
           </div>
           <Button
             onClick={() => {
               setOrderSubmitted(false)
               setCustomerName("")
-              setPhone("+1")
+              setCountryCode("+1")
+              setPhoneNumber("")
               setOrderItems({})
+              setWhatsappSent(false)
+              setWhatsappError(null)
             }}
             className="w-full bg-primary text-primary-foreground"
           >
@@ -146,14 +167,32 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
             </div>
             <div>
               <label className="block text-sm font-semibold mb-2 text-gray-700">Phone Number</label>
-              <Input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+1 (555) 123-4567"
-                className="w-full bg-white border border-gray-300 focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
-              />
-              <p className="text-xs text-gray-500 mt-1">US format with country code (+1)</p>
+              <div className="flex gap-2">
+                <select
+                  value={countryCode}
+                  onChange={(e) => setCountryCode(e.target.value)}
+                  className="w-32 px-3 py-2 bg-white border border-gray-300 rounded-md focus:border-teal-500 focus:ring-1 focus:ring-teal-500 font-medium text-gray-900"
+                >
+                  <option value="+1">🇺🇸 +1 (US)</option>
+                  <option value="+52">🇲🇽 +52 (MX)</option>
+                  <option value="+44">🇬🇧 +44 (UK)</option>
+                  <option value="+34">🇪🇸 +34 (ES)</option>
+                  <option value="+33">🇫🇷 +33 (FR)</option>
+                  <option value="+49">🇩🇪 +49 (DE)</option>
+                  <option value="+39">🇮🇹 +39 (IT)</option>
+                  <option value="+86">🇨🇳 +86 (CN)</option>
+                  <option value="+81">🇯🇵 +81 (JP)</option>
+                  <option value="+91">🇮🇳 +91 (IN)</option>
+                </select>
+                <Input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="(555) 123-4567"
+                  className="flex-1 bg-white border border-gray-300 focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Select country code and enter phone number</p>
             </div>
           </div>
         </div>
