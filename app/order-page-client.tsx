@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { Minus, Plus, ShoppingBag } from "lucide-react"
+import { PhoneInput } from "@/components/phone-input"
 
 interface OrderPageClientProps {
   menuItems: Record<string, Array<{ name: string; price: number }>>
@@ -174,78 +175,12 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
             </div>
             <div>
               <label className="block text-sm font-semibold mb-2 text-gray-700">Phone Number</label>
-              <div className="flex gap-2">
-                <select
-                  value={countryCode}
-                  onChange={(e) => setCountryCode(e.target.value)}
-                  className="w-36 px-3 py-2 bg-white border border-gray-300 rounded-md focus:border-teal-500 focus:ring-1 focus:ring-teal-500 font-medium text-gray-900"
-                >
-                  <option value="+1">+1 (US)</option>
-                  <option value="+52">+52 (Mexico)</option>
-                  <option value="+44">+44 (UK)</option>
-                  <option value="+61">+61 (Australia)</option>
-                  <option value="+43">+43 (Austria)</option>
-                  <option value="+32">+32 (Belgium)</option>
-                  <option value="+55">+55 (Brazil)</option>
-                  <option value="+1">+1 (Canada)</option>
-                  <option value="+56">+56 (Chile)</option>
-                  <option value="+86">+86 (China)</option>
-                  <option value="+57">+57 (Colombia)</option>
-                  <option value="+506">+506 (Costa Rica)</option>
-                  <option value="+45">+45 (Denmark)</option>
-                  <option value="+593">+593 (Ecuador)</option>
-                  <option value="+20">+20 (Egypt)</option>
-                  <option value="+503">+503 (El Salvador)</option>
-                  <option value="+358">+358 (Finland)</option>
-                  <option value="+33">+33 (France)</option>
-                  <option value="+49">+49 (Germany)</option>
-                  <option value="+30">+30 (Greece)</option>
-                  <option value="+502">+502 (Guatemala)</option>
-                  <option value="+504">+504 (Honduras)</option>
-                  <option value="+852">+852 (Hong Kong)</option>
-                  <option value="+91">+91 (India)</option>
-                  <option value="+62">+62 (Indonesia)</option>
-                  <option value="+353">+353 (Ireland)</option>
-                  <option value="+972">+972 (Israel)</option>
-                  <option value="+39">+39 (Italy)</option>
-                  <option value="+81">+81 (Japan)</option>
-                  <option value="+254">+254 (Kenya)</option>
-                  <option value="+60">+60 (Malaysia)</option>
-                  <option value="+31">+31 (Netherlands)</option>
-                  <option value="+64">+64 (New Zealand)</option>
-                  <option value="+505">+505 (Nicaragua)</option>
-                  <option value="+47">+47 (Norway)</option>
-                  <option value="+507">+507 (Panama)</option>
-                  <option value="+51">+51 (Peru)</option>
-                  <option value="+63">+63 (Philippines)</option>
-                  <option value="+48">+48 (Poland)</option>
-                  <option value="+351">+351 (Portugal)</option>
-                  <option value="+1">+1 (Puerto Rico)</option>
-                  <option value="+40">+40 (Romania)</option>
-                  <option value="+7">+7 (Russia)</option>
-                  <option value="+966">+966 (Saudi Arabia)</option>
-                  <option value="+65">+65 (Singapore)</option>
-                  <option value="+27">+27 (South Africa)</option>
-                  <option value="+82">+82 (South Korea)</option>
-                  <option value="+34">+34 (Spain)</option>
-                  <option value="+46">+46 (Sweden)</option>
-                  <option value="+41">+41 (Switzerland)</option>
-                  <option value="+886">+886 (Taiwan)</option>
-                  <option value="+66">+66 (Thailand)</option>
-                  <option value="+90">+90 (Turkey)</option>
-                  <option value="+971">+971 (UAE)</option>
-                  <option value="+598">+598 (Uruguay)</option>
-                  <option value="+58">+58 (Venezuela)</option>
-                  <option value="+84">+84 (Vietnam)</option>
-                </select>
-                <Input
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="(555) 123-4567"
-                  className="flex-1 bg-white border border-gray-300 focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
-                />
-              </div>
+              <PhoneInput
+                countryCode={countryCode}
+                phoneNumber={phoneNumber}
+                onCountryCodeChange={setCountryCode}
+                onPhoneNumberChange={setPhoneNumber}
+              />
               <p className="text-xs text-gray-500 mt-1">Select country code and enter phone number</p>
             </div>
           </div>

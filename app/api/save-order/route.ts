@@ -7,9 +7,43 @@ export async function POST(request: Request) {
 
     const supabase = await createClient()
 
+    let customerId: string
+
+    const { data: existingCustomer } = await supabase
+      .from("customers")
+      .select("id, name, nickname")
+      .eq("phone", phone)
+      .single()
+
+    if (existingCustomer) {
+      customerId = existingCustomer.id
+      // Update name if it changed
+      if (existingCustomer.name !== customerName) {
+        await supabase
+          .from("customers")
+          .update({ name: customerName, updated_at: new Date().toISOString() })
+          .eq("id", customerId)
+      }
+    } else {
+      // Create new customer
+      const { data: newCustomer, error: customerError } = await supabase
+        .from("customers")
+        .insert({ phone, name: customerName })
+        .select()
+        .single()
+
+      if (customerError) {
+        console.error("[v0] Error creating customer:", customerError)
+        throw customerError
+      }
+      customerId = newCustomer.id
+    }
+
+    // Create order linked to customer
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .insert({
+        customer_id: customerId,
         customer_name: customerName,
         phone: phone,
         total_price: totalPrice,

@@ -17,6 +17,9 @@ interface Order {
   total_price: number
   status: string
   created_at: string
+  customers?: {
+    nickname: string
+  }
 }
 
 interface OrderItem {
@@ -40,6 +43,7 @@ interface OrdersListProps {
   currentPage: number
   pageSize: number
   statusFilter: string
+  phoneFilter: string
 }
 
 function formatTimeAgo(date: Date): string {
@@ -66,12 +70,14 @@ export function OrdersList({
   currentPage,
   pageSize,
   statusFilter,
+  phoneFilter,
 }: OrdersListProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const totalPages = Math.ceil(totalOrders / pageSize)
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null)
   const [editingOrder, setEditingOrder] = useState<{ id: string; name: string; items: OrderItem[] } | null>(null)
+  const [phoneSearch, setPhoneSearch] = useState(phoneFilter)
 
   const goToPage = (page: number) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -97,10 +103,23 @@ export function OrdersList({
     router.push(`/admin?${params.toString()}`)
   }
 
+  const handlePhoneSearch = () => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (phoneSearch.trim()) {
+      params.set("phone", phoneSearch.trim())
+    } else {
+      params.delete("phone")
+    }
+    params.set("page", "1")
+    router.push(`/admin?${params.toString()}`)
+  }
+
   const clearFilters = () => {
     const params = new URLSearchParams(searchParams.toString())
     params.delete("status")
+    params.delete("phone")
     params.set("page", "1")
+    setPhoneSearch("")
     router.push(`/admin?${params.toString()}`)
   }
 
@@ -156,6 +175,21 @@ export function OrdersList({
           </div>
 
           <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-600 whitespace-nowrap">Search by phone:</label>
+            <input
+              type="text"
+              value={phoneSearch}
+              onChange={(e) => setPhoneSearch(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handlePhoneSearch()}
+              placeholder="Enter phone number"
+              className="h-9 px-3 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 w-[180px]"
+            />
+            <Button onClick={handlePhoneSearch} size="sm" className="h-9 bg-teal-500 hover:bg-teal-600 text-white">
+              Search
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-2">
             <label className="text-sm text-gray-600 whitespace-nowrap">Per page:</label>
             <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
               <SelectTrigger className="w-[100px] h-9 text-sm">
@@ -171,27 +205,60 @@ export function OrdersList({
           </div>
         </div>
 
-        {statusFilter && (
+        {(statusFilter || phoneFilter) && (
           <div className="flex items-center gap-2 flex-wrap mt-3">
             <span className="text-sm text-gray-600">Active filters:</span>
-            <Badge className={`gap-1.5 text-sm px-3 py-1 font-semibold ${getStatusColor(statusFilter)}`}>
-              Status: {statusFilter}
-              <button onClick={clearFilters} className="ml-1 hover:opacity-70">
-                ×
-              </button>
-            </Badge>
+            {statusFilter && (
+              <Badge className={`gap-1.5 text-sm px-3 py-1 font-semibold ${getStatusColor(statusFilter)}`}>
+                Status: {statusFilter}
+                <button
+                  onClick={() => {
+                    const params = new URLSearchParams(searchParams.toString())
+                    params.delete("status")
+                    params.set("page", "1")
+                    router.push(`/admin?${params.toString()}`)
+                  }}
+                  className="ml-1 hover:opacity-70"
+                >
+                  ×
+                </button>
+              </Badge>
+            )}
+            {phoneFilter && (
+              <Badge className="gap-1.5 text-sm px-3 py-1 font-semibold bg-teal-50 text-teal-700 border-teal-300">
+                Phone: {phoneFilter}
+                <button
+                  onClick={() => {
+                    const params = new URLSearchParams(searchParams.toString())
+                    params.delete("phone")
+                    params.set("page", "1")
+                    setPhoneSearch("")
+                    router.push(`/admin?${params.toString()}`)
+                  }}
+                  className="ml-1 hover:opacity-70"
+                >
+                  ×
+                </button>
+              </Badge>
+            )}
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="h-7 text-xs">
+              Clear All
+            </Button>
           </div>
         )}
       </Card>
 
       {orders.length === 0 ? (
         <Card className="p-8 text-center border border-gray-200 bg-white">
-          <p className="text-sm text-gray-600">{statusFilter ? "No orders match your filters" : "No orders yet"}</p>
+          <p className="text-sm text-gray-600">
+            {statusFilter || phoneFilter ? "No orders match your filters" : "No orders yet"}
+          </p>
         </Card>
       ) : (
-        orders.map((order: Order) => {
+        orders.map((order: any) => {
           const items = itemsByOrder[order.id] || []
           const isDeleting = deletingOrderId === order.id
+          const customerNickname = order.customers?.nickname
 
           return (
             <Card
@@ -203,7 +270,10 @@ export function OrdersList({
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4 gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-2 flex-wrap">
-                    <h3 className="text-xl font-bold text-gray-900">{order.customer_name}</h3>
+                    <h3 className="text-xl font-bold text-gray-900">
+                      {order.customer_name}
+                      {customerNickname && <span className="text-teal-600 ml-2">({customerNickname})</span>}
+                    </h3>
                     <Badge className={`text-xs px-2.5 py-1 border ${getStatusColor(order.status)}`}>
                       {order.status}
                     </Badge>

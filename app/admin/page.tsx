@@ -14,6 +14,10 @@ interface Order {
   total_price: number
   status: string
   created_at: string
+  customers: {
+    phone: string
+    nickname: string
+  }
 }
 
 interface OrderItem {
@@ -28,7 +32,7 @@ interface OrderItem {
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; pageSize?: string; status?: string }>
+  searchParams: Promise<{ page?: string; pageSize?: string; status?: string; phone?: string }>
 }) {
   const isAuthenticated = await checkAuth()
 
@@ -40,25 +44,34 @@ export default async function AdminPage({
   const currentPage = Number.parseInt(params.page || "1")
   const pageSize = Number.parseInt(params.pageSize || "20")
   const statusFilter = params.status || ""
+  const phoneFilter = params.phone || ""
 
   const supabase = await createClient()
 
-  let countQuery = supabase.from("orders").select("*", { count: "exact", head: true })
+  let countQuery = supabase.from("orders").select("*, customers!inner(phone, nickname)", { count: "exact", head: true })
 
   if (statusFilter) {
     countQuery = countQuery.eq("status", statusFilter)
+  }
+
+  if (phoneFilter) {
+    countQuery = countQuery.ilike("customers.phone", `%${phoneFilter}%`)
   }
 
   const { count: totalOrders } = await countQuery
 
   let ordersQuery = supabase
     .from("orders")
-    .select("*")
+    .select("*, customers(phone, nickname)")
     .order("created_at", { ascending: false })
     .range((currentPage - 1) * pageSize, currentPage * pageSize - 1)
 
   if (statusFilter) {
     ordersQuery = ordersQuery.eq("status", statusFilter)
+  }
+
+  if (phoneFilter) {
+    ordersQuery = ordersQuery.ilike("customers.phone", `%${phoneFilter}%`)
   }
 
   const { data: orders, error: ordersError } = await ordersQuery
@@ -75,7 +88,6 @@ export default async function AdminPage({
     console.error("Error fetching order items:", itemsError)
   }
 
-  // Group items by order_id
   const itemsByOrder = (allItems || []).reduce(
     (acc, item) => {
       if (!acc[item.order_id]) {
@@ -164,7 +176,7 @@ export default async function AdminPage({
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
               </div>
@@ -199,6 +211,7 @@ export default async function AdminPage({
           currentPage={currentPage}
           pageSize={pageSize}
           statusFilter={statusFilter}
+          phoneFilter={phoneFilter}
         />
       </div>
     </div>
