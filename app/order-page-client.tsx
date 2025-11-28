@@ -20,8 +20,9 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
   const [orderItems, setOrderItems] = useState<Record<string, number>>({})
   const [orderSubmitted, setOrderSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [whatsappSent, setWhatsappSent] = useState(false)
-  const [whatsappError, setWhatsappError] = useState<string | null>(null)
+  const [notificationSent, setNotificationSent] = useState(false)
+  const [notificationType, setNotificationType] = useState<string | null>(null)
+  const [notificationError, setNotificationError] = useState<string | null>(null)
 
   const updateQuantity = (itemName: string, change: number) => {
     setOrderItems((prev) => {
@@ -86,8 +87,9 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
         throw new Error(`Failed to save order: ${JSON.stringify(responseData)}`)
       }
 
-      setWhatsappSent(responseData.whatsappSent || false)
-      setWhatsappError(responseData.whatsappError || null)
+      setNotificationSent(responseData.notificationSent || false)
+      setNotificationType(responseData.notificationType || null)
+      setNotificationError(responseData.notificationError || null)
       setOrderSubmitted(true)
     } catch (error) {
       console.error("[v0] Error submitting order:", error)
@@ -109,14 +111,18 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
             <p className="text-foreground/80 leading-relaxed mb-4">
               Thank you for submitting your order, we will get in contact for your delivery.
             </p>
-            {whatsappSent ? (
+            {notificationSent ? (
               <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-                <p className="text-sm text-green-800 font-medium">✓ WhatsApp notification sent successfully</p>
+                <p className="text-sm text-green-800 font-medium">
+                  ✓ {notificationType} notification sent successfully
+                </p>
               </div>
             ) : (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                <p className="text-sm text-yellow-800 font-medium">⚠ WhatsApp notification not sent</p>
-                {whatsappError && <p className="text-xs text-yellow-700 mt-2 break-words">Error: {whatsappError}</p>}
+                <p className="text-sm text-yellow-800 font-medium">⚠ Notification not sent</p>
+                {notificationError && (
+                  <p className="text-xs text-yellow-700 mt-2 break-words">Error: {notificationError}</p>
+                )}
               </div>
             )}
           </div>
@@ -127,8 +133,9 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
               setCountryCode("+1")
               setPhoneNumber("")
               setOrderItems({})
-              setWhatsappSent(false)
-              setWhatsappError(null)
+              setNotificationSent(false)
+              setNotificationType(null)
+              setNotificationError(null)
             }}
             className="w-full bg-primary text-primary-foreground"
           >
