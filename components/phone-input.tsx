@@ -8,67 +8,68 @@ import { Button } from "@/components/ui/button"
 interface CountryCode {
   code: string
   country: string
+  countryCode: string // Added country code abbreviation field
   flag?: string
 }
 
 const countryCodes: CountryCode[] = [
-  { code: "+1", country: "United States" },
-  { code: "+52", country: "Mexico" },
-  { code: "+44", country: "United Kingdom" },
-  { code: "+61", country: "Australia" },
-  { code: "+43", country: "Austria" },
-  { code: "+32", country: "Belgium" },
-  { code: "+55", country: "Brazil" },
-  { code: "+1", country: "Canada" },
-  { code: "+56", country: "Chile" },
-  { code: "+86", country: "China" },
-  { code: "+57", country: "Colombia" },
-  { code: "+506", country: "Costa Rica" },
-  { code: "+45", country: "Denmark" },
-  { code: "+593", country: "Ecuador" },
-  { code: "+20", country: "Egypt" },
-  { code: "+503", country: "El Salvador" },
-  { code: "+358", country: "Finland" },
-  { code: "+33", country: "France" },
-  { code: "+49", country: "Germany" },
-  { code: "+30", country: "Greece" },
-  { code: "+502", country: "Guatemala" },
-  { code: "+504", country: "Honduras" },
-  { code: "+852", country: "Hong Kong" },
-  { code: "+91", country: "India" },
-  { code: "+62", country: "Indonesia" },
-  { code: "+353", country: "Ireland" },
-  { code: "+972", country: "Israel" },
-  { code: "+39", country: "Italy" },
-  { code: "+81", country: "Japan" },
-  { code: "+254", country: "Kenya" },
-  { code: "+60", country: "Malaysia" },
-  { code: "+31", country: "Netherlands" },
-  { code: "+64", country: "New Zealand" },
-  { code: "+505", country: "Nicaragua" },
-  { code: "+47", country: "Norway" },
-  { code: "+507", country: "Panama" },
-  { code: "+51", country: "Peru" },
-  { code: "+63", country: "Philippines" },
-  { code: "+48", country: "Poland" },
-  { code: "+351", country: "Portugal" },
-  { code: "+1", country: "Puerto Rico" },
-  { code: "+40", country: "Romania" },
-  { code: "+7", country: "Russia" },
-  { code: "+966", country: "Saudi Arabia" },
-  { code: "+65", country: "Singapore" },
-  { code: "+27", country: "South Africa" },
-  { code: "+82", country: "South Korea" },
-  { code: "+34", country: "Spain" },
-  { code: "+46", country: "Sweden" },
-  { code: "+41", country: "Switzerland" },
-  { code: "+886", country: "Taiwan" },
-  { code: "+66", country: "Thailand" },
-  { code: "+90", country: "Turkey" },
-  { code: "+971", country: "UAE" },
-  { code: "+598", country: "Uruguay" },
-  { code: "+58", country: "Venezuela" },
-  { code: "+84", country: "Vietnam" },
+  { code: "+1", country: "United States", countryCode: "US" },
+  { code: "+52", country: "Mexico", countryCode: "MX" },
+  { code: "+44", country: "United Kingdom", countryCode: "GB" },
+  { code: "+61", country: "Australia", countryCode: "AU" },
+  { code: "+43", country: "Austria", countryCode: "AT" },
+  { code: "+32", country: "Belgium", countryCode: "BE" },
+  { code: "+55", country: "Brazil", countryCode: "BR" },
+  { code: "+1", country: "Canada", countryCode: "CA" },
+  { code: "+56", country: "Chile", countryCode: "CL" },
+  { code: "+86", country: "China", countryCode: "CN" },
+  { code: "+57", country: "Colombia", countryCode: "CO" },
+  { code: "+506", country: "Costa Rica", countryCode: "CR" },
+  { code: "+45", country: "Denmark", countryCode: "DK" },
+  { code: "+593", country: "Ecuador", countryCode: "EC" },
+  { code: "+20", country: "Egypt", countryCode: "EG" },
+  { code: "+503", country: "El Salvador", countryCode: "SV" },
+  { code: "+358", country: "Finland", countryCode: "FI" },
+  { code: "+33", country: "France", countryCode: "FR" },
+  { code: "+49", country: "Germany", countryCode: "DE" },
+  { code: "+30", country: "Greece", countryCode: "GR" },
+  { code: "+502", country: "Guatemala", countryCode: "GT" },
+  { code: "+504", country: "Honduras", countryCode: "HN" },
+  { code: "+852", country: "Hong Kong", countryCode: "HK" },
+  { code: "+91", country: "India", countryCode: "IN" },
+  { code: "+62", country: "Indonesia", countryCode: "ID" },
+  { code: "+353", country: "Ireland", countryCode: "IE" },
+  { code: "+972", country: "Israel", countryCode: "IL" },
+  { code: "+39", country: "Italy", countryCode: "IT" },
+  { code: "+81", country: "Japan", countryCode: "JP" },
+  { code: "+254", country: "Kenya", countryCode: "KE" },
+  { code: "+60", country: "Malaysia", countryCode: "MY" },
+  { code: "+31", country: "Netherlands", countryCode: "NL" },
+  { code: "+64", country: "New Zealand", countryCode: "NZ" },
+  { code: "+505", country: "Nicaragua", countryCode: "NI" },
+  { code: "+47", country: "Norway", countryCode: "NO" },
+  { code: "+507", country: "Panama", countryCode: "PA" },
+  { code: "+51", country: "Peru", countryCode: "PE" },
+  { code: "+63", country: "Philippines", countryCode: "PH" },
+  { code: "+48", country: "Poland", countryCode: "PL" },
+  { code: "+351", country: "Portugal", countryCode: "PT" },
+  { code: "+1", country: "Puerto Rico", countryCode: "PR" },
+  { code: "+40", country: "Romania", countryCode: "RO" },
+  { code: "+7", country: "Russia", countryCode: "RU" },
+  { code: "+966", country: "Saudi Arabia", countryCode: "SA" },
+  { code: "+65", country: "Singapore", countryCode: "SG" },
+  { code: "+27", country: "South Africa", countryCode: "ZA" },
+  { code: "+82", country: "South Korea", countryCode: "KR" },
+  { code: "+34", country: "Spain", countryCode: "ES" },
+  { code: "+46", country: "Sweden", countryCode: "SE" },
+  { code: "+41", country: "Switzerland", countryCode: "CH" },
+  { code: "+886", country: "Taiwan", countryCode: "TW" },
+  { code: "+66", country: "Thailand", countryCode: "TH" },
+  { code: "+90", country: "Turkey", countryCode: "TR" },
+  { code: "+971", country: "UAE", countryCode: "AE" },
+  { code: "+598", country: "Uruguay", countryCode: "UY" },
+  { code: "+58", country: "Venezuela", countryCode: "VE" },
+  { code: "+84", country: "Vietnam", countryCode: "VN" },
 ]
 
 interface PhoneInputProps {
@@ -118,7 +119,7 @@ export function PhoneInput({ countryCode, phoneNumber, onCountryCodeChange, onPh
           variant="outline"
         >
           <span className="truncate">
-            {selectedCountry.code} ({selectedCountry.country.substring(0, 2)})
+            {selectedCountry.code} ({selectedCountry.countryCode})
           </span>
           <ChevronDown className="h-4 w-4 ml-1 flex-shrink-0" />
         </Button>
@@ -172,7 +173,7 @@ export function PhoneInput({ countryCode, phoneNumber, onCountryCodeChange, onPh
         type="tel"
         value={phoneNumber}
         onChange={(e) => onPhoneNumberChange(e.target.value)}
-        placeholder="(555) 123-4567"
+        placeholder="5551234567"
         className="flex-1 bg-white border border-gray-300 focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
       />
     </div>

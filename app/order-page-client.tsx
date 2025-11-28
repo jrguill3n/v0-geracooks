@@ -64,9 +64,11 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
     setIsSubmitting(true)
 
     try {
+      const cleanedPhoneNumber = phoneNumber.replace(/\D/g, "")
+
       const orderData = {
         customerName,
-        phone: countryCode + phoneNumber,
+        phone: countryCode + cleanedPhoneNumber,
         orderItems,
         totalPrice: getTotalPrice(),
       }
@@ -102,28 +104,26 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
 
   if (orderSubmitted) {
     return (
-      <div className="min-h-screen bg-cream flex items-center justify-center p-6">
-        <Card className="max-w-md w-full p-8 text-center bg-background border-elegant">
-          <div className="mb-6">
-            <div className="w-16 h-16 bg-accent rounded-full mx-auto flex items-center justify-center mb-4">
-              <ShoppingBag className="w-8 h-8 text-accent-foreground" />
+      <div className="min-h-screen bg-gradient-to-br from-cream via-white to-secondary flex items-center justify-center p-6">
+        <Card className="max-w-md w-full p-10 text-center bg-white border-2 border-primary/20 shadow-2xl rounded-2xl">
+          <div className="mb-8">
+            <div className="w-20 h-20 bg-primary/10 rounded-full mx-auto flex items-center justify-center mb-6">
+              <ShoppingBag className="w-10 h-10 text-primary" />
             </div>
-            <h1 className="font-serif text-3xl mb-4 text-foreground">Thank You!</h1>
-            <p className="text-foreground/80 leading-relaxed mb-4">
+            <h1 className="font-serif text-4xl mb-4 text-foreground font-bold tracking-tight">Thank You!</h1>
+            <p className="text-foreground/70 leading-relaxed text-lg mb-6">
               Thank you for submitting your order, we will get in contact for your delivery.
             </p>
             {notificationSent ? (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-                <p className="text-sm text-green-800 font-medium">
+              <div className="bg-primary/10 border-2 border-primary/30 rounded-xl p-4 mb-6">
+                <p className="text-sm text-primary font-semibold">
                   ✓ {notificationType} notification sent successfully
                 </p>
               </div>
             ) : (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                <p className="text-sm text-yellow-800 font-medium">⚠ Notification not sent</p>
-                {notificationError && (
-                  <p className="text-xs text-yellow-700 mt-2 break-words">Error: {notificationError}</p>
-                )}
+              <div className="bg-warning/10 border-2 border-warning/30 rounded-xl p-4 mb-6">
+                <p className="text-sm text-warning font-semibold">⚠ Notification not sent</p>
+                {notificationError && <p className="text-xs text-warning/80 mt-2 break-words">{notificationError}</p>}
               </div>
             )}
           </div>
@@ -138,7 +138,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
               setNotificationType(null)
               setNotificationError(null)
             }}
-            className="w-full bg-primary text-primary-foreground"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-6 text-lg rounded-xl shadow-lg"
           >
             Place Another Order
           </Button>
@@ -148,79 +148,79 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-40">
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-2xl mx-auto px-6 py-6">
+    <div className="min-h-screen bg-gradient-to-br from-cream via-white to-secondary pb-40">
+      <div className="bg-white border-b-2 border-primary/10 shadow-sm">
+        <div className="max-w-2xl mx-auto px-6 py-8">
           <div className="flex flex-col items-center text-center">
-            <Image src="/gera-logo.png" alt="GERA COOKS" width={160} height={160} className="object-contain mb-3" />
-            <p className="text-sm font-semibold text-gray-700">631-578-0700</p>
+            <Image src="/gera-logo.png" alt="GERA COOKS" width={180} height={180} className="object-contain mb-4" />
+            <p className="text-base font-bold text-primary tracking-wide">631-578-0700</p>
           </div>
         </div>
       </div>
 
-      {/* Customer Info Form */}
-      <div className="max-w-2xl mx-auto px-6 py-6">
-        <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-xl font-bold mb-4 text-gray-900">Your Information</h2>
-          <div className="space-y-4">
+      <div className="max-w-2xl mx-auto px-6 py-8">
+        <div className="bg-white border-2 border-primary/10 rounded-2xl shadow-lg p-8 mb-8">
+          <h2 className="font-serif text-2xl font-bold mb-6 text-foreground tracking-tight">Your Information</h2>
+          <div className="space-y-5">
             <div>
-              <label className="block text-sm font-semibold mb-2 text-gray-700">Name</label>
+              <label className="block text-sm font-bold mb-3 text-foreground/80 tracking-wide">Name</label>
               <Input
                 type="text"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 placeholder="Enter your name"
-                className="w-full bg-white border border-gray-300 focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+                className="w-full bg-white border-2 border-input focus:border-primary focus:ring-2 focus:ring-primary/20 h-12 rounded-xl text-base"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold mb-2 text-gray-700">Phone Number</label>
+              <label className="block text-sm font-bold mb-3 text-foreground/80 tracking-wide">Phone Number</label>
               <PhoneInput
                 countryCode={countryCode}
                 phoneNumber={phoneNumber}
                 onCountryCodeChange={setCountryCode}
                 onPhoneNumberChange={setPhoneNumber}
               />
-              <p className="text-xs text-gray-500 mt-1">Select country code and enter phone number</p>
             </div>
           </div>
         </div>
 
         {Object.entries(menuItems).map(([category, items]) => (
-          <div key={category} className="mb-6">
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-teal-100 to-blue-100 border-b border-gray-200 p-4">
-                <h2 className="text-lg font-bold text-gray-900">{category}</h2>
+          <div key={category} className="mb-8">
+            <div className="bg-white border-2 border-primary/10 rounded-2xl shadow-lg overflow-hidden">
+              <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border-b-2 border-primary/10 p-6">
+                <h2 className="font-serif text-2xl font-bold text-foreground tracking-tight">{category}</h2>
               </div>
-              <div className="p-4">
+              <div className="p-6">
                 <div className="space-y-1">
                   {items.map((item) => (
                     <div
                       key={item.name}
-                      className="flex items-center justify-between py-3 hover:bg-gray-50 px-3 -mx-3 rounded-md transition-colors"
+                      className="flex items-center justify-between py-4 hover:bg-primary/5 px-4 -mx-4 rounded-xl transition-all duration-200"
                     >
                       <div className="flex-1">
-                        <p className="text-gray-900 font-medium">{item.name}</p>
-                        <p className="text-base font-bold text-teal-400">${item.price}</p>
+                        <p className="text-foreground font-semibold text-lg">{item.name}</p>
+                        <p className="text-xl font-bold text-primary mt-1">${item.price}</p>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-4">
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => updateQuantity(item.name, -1)}
                           disabled={!orderItems[item.name]}
-                          className="h-9 w-9 p-0 bg-teal-300 text-white border-teal-400 hover:bg-teal-400 disabled:opacity-30 disabled:bg-gray-200"
+                          className="h-11 w-11 p-0 bg-primary/10 text-primary border-2 border-primary/20 hover:bg-primary/20 disabled:opacity-30 disabled:bg-muted rounded-xl font-bold"
                         >
-                          <Minus className="h-4 w-4" />
+                          <Minus className="h-5 w-5" />
                         </Button>
-                        <span className="w-8 text-center font-bold text-gray-900">{orderItems[item.name] || 0}</span>
+                        <span className="w-10 text-center font-bold text-foreground text-lg">
+                          {orderItems[item.name] || 0}
+                        </span>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => updateQuantity(item.name, 1)}
-                          className="h-9 w-9 p-0 bg-teal-300 text-white border-teal-400 hover:bg-teal-400"
+                          className="h-11 w-11 p-0 bg-primary text-primary-foreground border-2 border-primary hover:bg-primary/90 rounded-xl font-bold shadow-md"
                         >
-                          <Plus className="h-4 w-4" />
+                          <Plus className="h-5 w-5" />
                         </Button>
                       </div>
                     </div>
@@ -231,25 +231,29 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
           </div>
         ))}
 
-        <div className="text-center py-4">
-          <p className="text-sm text-gray-600 italic">
+        <div className="text-center py-6">
+          <p className="text-base text-foreground/60 italic font-medium">
             Nuestros empaques son de 1 libra y sirven aproximadamente 2 porciones.
           </p>
         </div>
       </div>
 
       {getTotalItems() > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-teal-500 to-teal-600 border-t border-teal-700 p-4 z-[100] shadow-lg">
+        <div className="fixed bottom-0 left-0 right-0 bg-primary border-t-2 border-primary/20 p-6 z-[100] shadow-2xl">
           <div className="max-w-2xl mx-auto">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-0">
               <div>
-                <p className="text-sm font-semibold text-white/90">Total Items: {getTotalItems()}</p>
-                <p className="text-2xl font-bold text-white">${getTotalPrice()}</p>
+                <p className="text-sm font-bold text-primary-foreground/90 tracking-wide mb-1">
+                  Total Items: {getTotalItems()}
+                </p>
+                <p className="font-serif text-4xl font-bold text-primary-foreground tracking-tight">
+                  ${getTotalPrice()}
+                </p>
               </div>
               <Button
                 onClick={handleSubmit}
                 size="lg"
-                className="bg-white text-teal-600 font-bold hover:bg-gray-100 shadow-md px-8"
+                className="bg-white text-primary font-bold hover:bg-primary-foreground/95 shadow-xl px-10 py-7 text-lg rounded-xl border-2 border-primary-foreground/10"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? "Submitting..." : "Submit Order"}

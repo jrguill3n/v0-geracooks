@@ -4,32 +4,41 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.99 0.01 75);
-  --foreground: oklch(0.15 0.02 280);
+  /* Bold elegant design system with refined colors and sophisticated palette */
+  --background: oklch(0.99 0.005 85);
+  --foreground: oklch(0.18 0.01 280);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.02 280);
+  --card-foreground: oklch(0.18 0.01 280);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.02 280);
+  --popover-foreground: oklch(0.18 0.01 280);
 
-  /* Clean, minimal primary color - teal/green for food freshness */
-  --primary: oklch(0.55 0.14 165); /* Fresh teal */
-  --primary-foreground: oklch(0.98 0.005 85);
-  --secondary: oklch(0.96 0.01 85);
-  --secondary-foreground: oklch(0.2 0.02 280);
-  --muted: oklch(0.97 0.01 75);
-  --muted-foreground: oklch(0.5 0.02 280);
-  --accent: oklch(0.96 0.01 75); /* Subtle gray accent */
-  --accent-foreground: oklch(0.2 0.02 280);
-  --destructive: oklch(0.55 0.2 25);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.92 0.01 75);
-  --input: oklch(0.96 0.01 75);
-  --ring: oklch(0.55 0.14 165);
+  /* Deep elegant forest green as primary - sophisticated and bold */
+  --primary: oklch(0.35 0.08 155);
+  --primary-foreground: oklch(0.99 0.005 85);
 
-  --radius: 0.5rem;
+  /* Warm cream accents for elegance */
+  --secondary: oklch(0.96 0.015 65);
+  --secondary-foreground: oklch(0.2 0.01 280);
 
-  --success: oklch(0.6 0.14 145); /* Green for success states */
-  --warning: oklch(0.7 0.16 45); /* Orange for warnings */
+  --muted: oklch(0.97 0.005 85);
+  --muted-foreground: oklch(0.48 0.01 280);
+
+  /* Soft blush accent for subtle warmth */
+  --accent: oklch(0.94 0.02 25);
+  --accent-foreground: oklch(0.22 0.01 280);
+
+  --destructive: oklch(0.52 0.18 25);
+  --destructive-foreground: oklch(0.99 0 0);
+
+  --border: oklch(0.9 0.01 85);
+  --input: oklch(0.97 0.005 85);
+  --ring: oklch(0.35 0.08 155);
+
+  --radius: 0.75rem;
+
+  --success: oklch(0.52 0.12 145);
+  --warning: oklch(0.68 0.14 45);
+
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -39,20 +48,18 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 
-  /* Added Purple dashboard template color variables */
-  --purple-primary: oklch(0.68 0.24 285); /* #A05AFF */
-  --turquoise-primary: oklch(0.78 0.15 180); /* #1BCFB4 */
-  --coral-pink: oklch(0.78 0.12 10); /* #FE9496 */
-  --light-blue: oklch(0.75 0.12 220); /* #4BCBEB */
-  --purple-accent: oklch(0.65 0.22 290); /* #9E58FF */
+  /* Elegant color palette */
+  --cream: oklch(0.97 0.015 65);
+  --forest-green: oklch(0.35 0.08 155);
+  --soft-blush: oklch(0.88 0.03 25);
+  --warm-beige: oklch(0.92 0.02 65);
+  --charcoal: oklch(0.22 0.01 280);
 
-  --cream: oklch(0.97 0.015 65); /* Warm beige cream */
-  --elegant: oklch(0.72 0.02 280);
-  /* Updated stats colors to match soft, natural palette */
-  --color-stats-sage: oklch(0.78 0.1 140); /* Soft sage green */
-  --color-stats-coral: oklch(0.78 0.12 45); /* Soft peachy coral */
-  --color-stats-mint: oklch(0.8 0.08 160); /* Soft mint */
-  --color-stats-peach: oklch(0.82 0.1 50); /* Light peach */
+  /* Sophisticated stat card colors */
+  --color-stats-sage: oklch(0.72 0.08 140);
+  --color-stats-terracotta: oklch(0.68 0.1 40);
+  --color-stats-mint: oklch(0.78 0.07 165);
+  --color-stats-blush: oklch(0.82 0.04 20);
 }
 
 .dark {
@@ -95,7 +102,7 @@
 
 @theme inline {
   --font-sans: "Inter", "Inter Fallback", system-ui, sans-serif;
-  --font-display: "Poppins", "Poppins Fallback", system-ui, sans-serif;
+  --font-serif: "Playfair Display", "Georgia", serif;
   --font-mono: "Geist Mono", "Geist Mono Fallback";
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -145,7 +152,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground font-sans antialiased;
   }
   h1,
   h2,
@@ -153,6 +160,19 @@
   h4,
   h5,
   h6 {
-    @apply font-display font-bold;
+    @apply font-serif font-bold tracking-tight;
+  }
+
+  /* Enhanced typography for elegance */
+  .text-display {
+    @apply font-serif text-5xl md:text-6xl font-bold tracking-tight;
+  }
+
+  .text-heading {
+    @apply font-serif text-3xl md:text-4xl font-bold tracking-tight;
+  }
+
+  .text-subheading {
+    @apply font-serif text-xl md:text-2xl font-semibold tracking-tight;
   }
 }
