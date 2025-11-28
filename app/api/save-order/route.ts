@@ -47,85 +47,112 @@ export async function POST(request: Request) {
       throw itemsError
     }
 
-    let whatsappSent = false
-    let whatsappError = null
+    let notificationSent = false
+    let notificationError = null
+    let notificationType = null
 
     try {
       const accountSid = process.env.TWILIO_ACCOUNT_SID
       const authToken = process.env.TWILIO_AUTH_TOKEN
       const twilioWhatsAppFrom = process.env.TWILIO_WHATSAPP_FROM
-
-      const fromNumber = twilioWhatsAppFrom?.startsWith("whatsapp:")
-        ? twilioWhatsAppFrom
-        : `whatsapp:${twilioWhatsAppFrom}`
-      const toNumber = "whatsapp:+16315780700"
-
-      console.log("[v0] Twilio Config Check:", {
-        hasAccountSid: !!accountSid,
-        hasAuthToken: !!authToken,
-        hasWhatsAppFrom: !!twilioWhatsAppFrom,
-        whatsAppFrom: fromNumber,
-        whatsAppTo: toNumber,
-      })
+      const twilioSmsFrom = process.env.TWILIO_SMS_FROM || twilioWhatsAppFrom // Use same number for SMS if not specified
 
       if (!accountSid || !authToken || !twilioWhatsAppFrom) {
         const missingVars = []
         if (!accountSid) missingVars.push("TWILIO_ACCOUNT_SID")
         if (!authToken) missingVars.push("TWILIO_AUTH_TOKEN")
         if (!twilioWhatsAppFrom) missingVars.push("TWILIO_WHATSAPP_FROM")
-        whatsappError = `Missing Twilio environment variables: ${missingVars.join(", ")}`
-        console.error("[v0]", whatsappError)
+        notificationError = `Missing Twilio environment variables: ${missingVars.join(", ")}`
+        console.error("[v0]", notificationError)
       } else {
-        let message = `🔔 *New Order from GERA COOKS*\n\n`
-        message += `👤 Customer: *${customerName}*\n`
-        message += `📞 Phone: *${phone}*\n`
-        message += `📋 Order #${order.id}\n\n`
-        message += `*Items:*\n`
+        let message = `🔔 New Order from GERA COOKS\n\n`
+        message += `Customer: ${customerName}\n`
+        message += `Phone: ${phone}\n`
+        message += `Order #${order.id}\n\n`
+        message += `Items:\n`
 
         Object.entries(orderItems).forEach(([itemName, quantity]) => {
           const unitPrice = priceMap.get(itemName) || 0
           message += `• ${quantity}x ${itemName} - $${unitPrice * (quantity as number)}\n`
         })
 
-        message += `\n💰 *Total: $${totalPrice}*`
+        message += `\nTotal: $${totalPrice}`
 
-        console.log("[v0] Sending WhatsApp message...")
+        // Try WhatsApp first
+        try {
+          console.log("[v0] Attempting WhatsApp notification...")
+          const fromNumber = twilioWhatsAppFrom?.startsWith("whatsapp:")
+            ? twilioWhatsAppFrom
+            : `whatsapp:${twilioWhatsAppFrom}`
+          const toNumber = "whatsapp:+16315780700"
 
-        const twilioResponse = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
-          },
-          body: new URLSearchParams({
-            From: fromNumber,
-            To: toNumber,
-            Body: message,
-          }),
-        })
+          const whatsappResponse = await fetch(
+            `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+                Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
+              },
+              body: new URLSearchParams({
+                From: fromNumber,
+                To: toNumber,
+                Body: message,
+              }),
+            },
+          )
 
-        const responseData = await twilioResponse.json()
-        console.log("[v0] Twilio Response Status:", twilioResponse.status)
-        console.log("[v0] Twilio Response Data:", responseData)
+          const whatsappData = await whatsappResponse.json()
 
-        if (!twilioResponse.ok) {
-          whatsappError = `Twilio API error (${twilioResponse.status}): ${responseData.message || JSON.stringify(responseData)}`
-          console.error("[v0]", whatsappError)
-        } else {
-          whatsappSent = true
-          console.log("[v0] WhatsApp notification sent successfully! Message SID:", responseData.sid)
+          if (whatsappResponse.ok) {
+            notificationSent = true
+            notificationType = "WhatsApp"
+            console.log("[v0] WhatsApp notification sent successfully! SID:", whatsappData.sid)
+          } else {
+            console.log("[v0] WhatsApp failed, trying SMS fallback...")
+            throw new Error(whatsappData.message || "WhatsApp failed")
+          }
+        } catch (whatsappError) {
+          // Fallback to SMS
+          console.log("[v0] WhatsApp error:", whatsappError)
+          console.log("[v0] Attempting SMS notification as fallback...")
+
+          const smsResponse = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+              Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
+            },
+            body: new URLSearchParams({
+              From: twilioSmsFrom!,
+              To: "+16315780700",
+              Body: message,
+            }),
+          })
+
+          const smsData = await smsResponse.json()
+
+          if (!smsResponse.ok) {
+            notificationError = `SMS API error (${smsResponse.status}): ${smsData.message || JSON.stringify(smsData)}`
+            console.error("[v0]", notificationError)
+          } else {
+            notificationSent = true
+            notificationType = "SMS"
+            console.log("[v0] SMS notification sent successfully! SID:", smsData.sid)
+          }
         }
       }
-    } catch (twilioError) {
-      whatsappError = twilioError instanceof Error ? twilioError.message : String(twilioError)
-      console.error("[v0] Error sending WhatsApp notification:", twilioError)
+    } catch (error) {
+      notificationError = error instanceof Error ? error.message : String(error)
+      console.error("[v0] Error sending notification:", error)
     }
 
     return NextResponse.json({
       success: true,
       orderId: order.id,
-      whatsappSent,
-      whatsappError,
+      notificationSent,
+      notificationType,
+      notificationError,
     })
   } catch (error) {
     console.error("[v0] Error saving order:", error)
