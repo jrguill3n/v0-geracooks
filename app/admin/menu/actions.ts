@@ -52,13 +52,13 @@ export async function updateSection(formData: FormData) {
     const supabase = await createClient()
     const id = formData.get("id") as string
     const name = formData.get("name") as string
-    const display_order = Number.parseInt(formData.get("display_order") as string)
 
-    const { error } = await supabase.from("menu_sections").update({ name, display_order }).eq("id", id)
+    const { error } = await supabase.from("menu_sections").update({ name }).eq("id", id)
 
     if (error) throw error
 
     revalidatePath("/admin/menu")
+    revalidatePath("/")
     return { success: true }
   } catch (error) {
     console.error("Error updating section:", error)
@@ -137,13 +137,13 @@ export async function updateItem(formData: FormData) {
     const id = formData.get("id") as string
     const name = formData.get("name") as string
     const price = Number.parseFloat(formData.get("price") as string)
-    const display_order = Number.parseInt(formData.get("display_order") as string)
 
-    const { error } = await supabase.from("menu_items").update({ name, price, display_order }).eq("id", id)
+    const { error } = await supabase.from("menu_items").update({ name, price }).eq("id", id)
 
     if (error) throw error
 
     revalidatePath("/admin/menu")
+    revalidatePath("/")
     return { success: true }
   } catch (error) {
     console.error("Error updating item:", error)
