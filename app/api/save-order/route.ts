@@ -57,13 +57,15 @@ export async function POST(request: Request) {
       throw orderError
     }
 
-    // Get menu items to calculate prices
-    const { data: menuItemsData } = await supabase.from("menu_items").select("*")
+    const { data: menuItemsData } = await supabase.from("menu_items").select("name, price, menu_sections(name)")
+
     const priceMap = new Map(menuItemsData?.map((item) => [item.name, Number(item.price)]) || [])
+    const sectionMap = new Map(menuItemsData?.map((item) => [item.name, item.menu_sections?.name || "Other"]) || [])
 
     const orderItemsData = Object.entries(orderItems).map(([itemName, quantity]) => {
       const unitPrice = priceMap.get(itemName) || 0
       const itemTotal = unitPrice * (quantity as number)
+      const section = sectionMap.get(itemName) || "Other"
 
       return {
         order_id: order.id,
@@ -71,6 +73,7 @@ export async function POST(request: Request) {
         quantity: quantity as number,
         unit_price: unitPrice,
         total_price: itemTotal,
+        section: section, // Store section with order item
       }
     })
 
@@ -89,7 +92,7 @@ export async function POST(request: Request) {
       const accountSid = process.env.TWILIO_ACCOUNT_SID
       const authToken = process.env.TWILIO_AUTH_TOKEN
       const twilioWhatsAppFrom = process.env.TWILIO_WHATSAPP_FROM
-      const twilioSmsFrom = process.env.TWILIO_SMS_FROM || twilioWhatsAppFrom // Use same number for SMS if not specified
+      const twilioSmsFrom = process.env.TWILIO_SMS_FROM || twilioWhatsAppFrom
 
       if (!accountSid || !authToken || !twilioWhatsAppFrom) {
         const missingVars = []
@@ -99,18 +102,33 @@ export async function POST(request: Request) {
         notificationError = `Missing Twilio environment variables: ${missingVars.join(", ")}`
         console.error("[v0]", notificationError)
       } else {
+        const itemsBySection: Record<string, Array<{ name: string; quantity: number; price: number }>> = {}
+
+        orderItemsData.forEach((item) => {
+          if (!itemsBySection[item.section]) {
+            itemsBySection[item.section] = []
+          }
+          itemsBySection[item.section].push({
+            name: item.item_name,
+            quantity: item.quantity,
+            price: item.total_price,
+          })
+        })
+
         let message = `🔔 New Order from GERA COOKS\n\n`
         message += `Customer: ${customerName}\n`
         message += `Phone: ${phone}\n`
         message += `Order #${order.id}\n\n`
-        message += `Items:\n`
 
-        Object.entries(orderItems).forEach(([itemName, quantity]) => {
-          const unitPrice = priceMap.get(itemName) || 0
-          message += `• ${quantity}x ${itemName} - $${unitPrice * (quantity as number)}\n`
+        Object.entries(itemsBySection).forEach(([section, items]) => {
+          message += `📋 ${section.toUpperCase()}\n`
+          items.forEach((item) => {
+            message += `  • ${item.quantity}x ${item.name} - $${item.price.toFixed(2)}\n`
+          })
+          message += `\n`
         })
 
-        message += `\nTotal: $${totalPrice}`
+        message += `Total: $${totalPrice}`
 
         // Try WhatsApp first
         try {

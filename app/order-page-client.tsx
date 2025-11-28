@@ -199,7 +199,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
                     >
                       <div className="flex-1">
                         <p className="text-foreground font-bold text-lg">{item.name}</p>
-                        <p className="text-xl font-bold text-muted-foreground mt-1">${item.price}</p>
+                        <p className="text-xl font-bold text-[color:var(--teal)] mt-1">${item.price}</p>
                       </div>
                       <div className="flex items-center gap-4">
                         <Button

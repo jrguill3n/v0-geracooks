@@ -28,6 +28,7 @@ interface OrderItem {
   quantity: number
   unit_price: number
   total_price: number
+  section?: string // Add section field
 }
 
 interface FilterTag {
@@ -260,6 +261,15 @@ export function OrdersList({
           const isDeleting = deletingOrderId === order.id
           const customerNickname = order.customers?.nickname
 
+          const itemsBySection: Record<string, OrderItem[]> = {}
+          items.forEach((item: OrderItem) => {
+            const section = item.section || "Other"
+            if (!itemsBySection[section]) {
+              itemsBySection[section] = []
+            }
+            itemsBySection[section].push(item)
+          })
+
           return (
             <Card
               key={order.id}
@@ -305,18 +315,25 @@ export function OrdersList({
 
               <div className="border-t border-gray-100 pt-4 mt-4">
                 <p className="text-sm font-semibold mb-3 text-gray-700">Order Items:</p>
-                <div className="space-y-2">
-                  {items.map((item: OrderItem) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between text-sm gap-3 py-2.5 px-3 bg-gray-50 rounded-md"
-                    >
-                      <span className="truncate text-gray-900">
-                        <span className="font-semibold">{item.quantity}x</span> {item.item_name}
-                      </span>
-                      <span className="shrink-0 font-semibold text-gray-700">
-                        ${Number(item.total_price).toFixed(2)}
-                      </span>
+                <div className="space-y-4">
+                  {Object.entries(itemsBySection).map(([section, sectionItems]) => (
+                    <div key={section}>
+                      <h4 className="text-xs font-bold text-primary uppercase mb-2 tracking-wide">{section}</h4>
+                      <div className="space-y-2">
+                        {sectionItems.map((item: OrderItem) => (
+                          <div
+                            key={item.id}
+                            className="flex items-center justify-between text-sm gap-3 py-2.5 px-3 bg-gray-50 rounded-md"
+                          >
+                            <span className="truncate text-gray-900">
+                              <span className="font-semibold">{item.quantity}x</span> {item.item_name}
+                            </span>
+                            <span className="shrink-0 font-semibold text-gray-700">
+                              ${Number(item.total_price).toFixed(2)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>

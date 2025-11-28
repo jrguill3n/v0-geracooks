@@ -27,6 +27,7 @@ interface OrderItem {
   quantity: number
   unit_price: number
   total_price: number
+  section: string
 }
 
 export default async function AdminPage({
@@ -82,7 +83,10 @@ export default async function AdminPage({
   }
 
   const orderIds = orders?.map((order) => order.id) || []
-  const { data: allItems, error: itemsError } = await supabase.from("order_items").select("*").in("order_id", orderIds)
+  const { data: allItems, error: itemsError } = await supabase
+    .from("order_items")
+    .select("*, section")
+    .in("order_id", orderIds)
 
   if (itemsError) {
     console.error("Error fetching order items:", itemsError)
