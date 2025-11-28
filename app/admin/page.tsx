@@ -110,24 +110,20 @@ export default async function AdminPage({
     }).length || 0
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cream via-white to-secondary">
-      <div className="border-b-2 border-primary/20 bg-primary shadow-lg">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-white to-secondary/30">
+      <div className="bg-gradient-to-r from-primary via-primary/95 to-primary/90 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h1 className="font-serif text-4xl sm:text-5xl font-bold text-primary-foreground tracking-tight">
-                GERA COOKS Admin
-              </h1>
-              <p className="text-base mt-2 font-semibold text-primary-foreground/90 tracking-wide">
-                Order Management Dashboard
-              </p>
+              <h1 className="text-4xl sm:text-5xl font-bold text-white tracking-tight">GERA COOKS Admin</h1>
+              <p className="text-base mt-2 font-semibold text-white/90 tracking-wide">Order Management Dashboard</p>
             </div>
             <div className="flex gap-3">
               <Link href="/admin/menu">
                 <Button
                   variant="outline"
                   size="lg"
-                  className="font-bold border-2 border-primary-foreground/20 hover:bg-primary-foreground/10 text-primary-foreground bg-transparent rounded-xl px-6"
+                  className="font-bold border-2 border-white/30 hover:bg-white/20 text-white bg-transparent rounded-2xl px-6"
                 >
                   Manage Menu
                 </Button>
@@ -136,7 +132,7 @@ export default async function AdminPage({
                 <Button
                   variant="outline"
                   size="lg"
-                  className="font-bold border-2 border-primary-foreground/20 hover:bg-primary-foreground/10 text-primary-foreground bg-transparent rounded-xl px-6"
+                  className="font-bold border-2 border-white/30 hover:bg-white/20 text-white bg-transparent rounded-2xl px-6"
                 >
                   Customers
                 </Button>
@@ -146,7 +142,7 @@ export default async function AdminPage({
                   variant="outline"
                   type="submit"
                   size="lg"
-                  className="font-bold border-2 border-primary-foreground/20 hover:bg-primary-foreground/10 text-primary-foreground bg-transparent rounded-xl px-6"
+                  className="font-bold border-2 border-white/30 hover:bg-white/20 text-white bg-transparent rounded-2xl px-6"
                 >
                   Logout
                 </Button>
@@ -158,11 +154,11 @@ export default async function AdminPage({
 
       <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-          <Card className="p-8 border-2 border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-secondary rounded-2xl">
+          <Card className="p-8 border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white rounded-3xl">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-bold text-foreground/60 mb-2 tracking-wide">Total Orders</p>
-                <p className="font-serif text-5xl font-bold text-foreground tracking-tight">{totalOrders || 0}</p>
+                <p className="text-5xl font-bold text-foreground tracking-tight">{totalOrders || 0}</p>
               </div>
               <div className="p-4 bg-primary/10 rounded-2xl">
                 <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -177,11 +173,11 @@ export default async function AdminPage({
             </div>
           </Card>
 
-          <Card className="p-8 border-2 border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-accent rounded-2xl">
+          <Card className="p-8 border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white rounded-3xl">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-bold text-foreground/60 mb-2 tracking-wide">Today's Orders</p>
-                <p className="font-serif text-5xl font-bold text-foreground tracking-tight">{todayOrders}</p>
+                <p className="text-5xl font-bold text-foreground tracking-tight">{todayOrders}</p>
               </div>
               <div className="p-4 bg-warning/10 rounded-2xl">
                 <svg className="w-8 h-8 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -196,11 +192,11 @@ export default async function AdminPage({
             </div>
           </Card>
 
-          <Card className="p-8 border-2 border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-success/10 rounded-2xl">
+          <Card className="p-8 border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white rounded-3xl">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-bold text-success/80 mb-2 tracking-wide">Total Revenue</p>
-                <p className="font-serif text-5xl font-bold text-success tracking-tight">${totalRevenue.toFixed(2)}</p>
+                <p className="text-5xl font-bold text-success tracking-tight">${totalRevenue.toFixed(2)}</p>
               </div>
               <div className="p-4 bg-success/10 rounded-2xl">
                 <svg className="w-8 h-8 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
