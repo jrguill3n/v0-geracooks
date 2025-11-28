@@ -15,6 +15,7 @@ interface OrderPageClientProps {
 
 export function OrderPageClient({ menuItems }: OrderPageClientProps) {
   const [customerName, setCustomerName] = useState("")
+  const [phone, setPhone] = useState("+1")
   const [orderItems, setOrderItems] = useState<Record<string, number>>({})
   const [orderSubmitted, setOrderSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -47,11 +48,11 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
     return total
   }
 
-  const handleSubmit = async (e: React.FormEvent, method: "whatsapp" | "sms") => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!customerName || getTotalItems() === 0) {
-      alert("Please fill in your name and select at least one item")
+    if (!customerName || !phone || phone === "+1" || getTotalItems() === 0) {
+      alert("Please fill in your name, phone number, and select at least one item")
       return
     }
 
@@ -60,6 +61,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
     try {
       const orderData = {
         customerName,
+        phone,
         orderItems,
         totalPrice: getTotalPrice(),
       }
@@ -76,32 +78,6 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
 
       if (!response.ok) {
         throw new Error(`Failed to save order: ${JSON.stringify(responseData)}`)
-      }
-
-      let message = `New Order from GERA COOKS\n\n`
-      message += `Customer: ${customerName}\n\n`
-      message += `Order:\n`
-
-      Object.entries(orderItems).forEach(([itemName, quantity]) => {
-        const item = Object.values(menuItems)
-          .flat()
-          .find((i) => i.name === itemName)
-        if (item) {
-          message += `• ${quantity}x ${itemName} - $${item.price * quantity}\n`
-        }
-      })
-
-      message += `\nTotal: $${getTotalPrice()}`
-
-      if (method === "whatsapp") {
-        const whatsappMessage = encodeURIComponent(message)
-        const phoneNumber = "16315780700"
-        const whatsappUrl = `https://api.whatsapp.com/send?phone=${phoneNumber}&text=${whatsappMessage}`
-        window.location.href = whatsappUrl
-      } else {
-        const smsMessage = encodeURIComponent(message)
-        const smsUrl = `sms:+16315780700${/iPhone|iPad|iPod/.test(navigator.userAgent) ? "&" : "?"}body=${smsMessage}`
-        window.location.href = smsUrl
       }
 
       setOrderSubmitted(true)
@@ -130,6 +106,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
             onClick={() => {
               setOrderSubmitted(false)
               setCustomerName("")
+              setPhone("+1")
               setOrderItems({})
             }}
             className="w-full bg-primary text-primary-foreground"
@@ -156,15 +133,28 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
       <div className="max-w-2xl mx-auto px-6 py-6">
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 mb-6">
           <h2 className="text-xl font-bold mb-4 text-gray-900">Your Information</h2>
-          <div>
-            <label className="block text-sm font-semibold mb-2 text-gray-700">Name</label>
-            <Input
-              type="text"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="Enter your name"
-              className="w-full bg-white border border-gray-300 focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
-            />
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold mb-2 text-gray-700">Name</label>
+              <Input
+                type="text"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="Enter your name"
+                className="w-full bg-white border border-gray-300 focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-2 text-gray-700">Phone Number</label>
+              <Input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+1 (555) 123-4567"
+                className="w-full bg-white border border-gray-300 focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+              />
+              <p className="text-xs text-gray-500 mt-1">US format with country code (+1)</p>
+            </div>
           </div>
         </div>
 
@@ -228,24 +218,14 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
                 <p className="text-sm font-semibold text-white/90">Total Items: {getTotalItems()}</p>
                 <p className="text-2xl font-bold text-white">${getTotalPrice()}</p>
               </div>
-              <div className="flex gap-3">
-                <Button
-                  onClick={(e) => handleSubmit(e, "whatsapp")}
-                  size="lg"
-                  className="bg-white text-teal-600 font-bold hover:bg-gray-100 shadow-md"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "..." : "WhatsApp"}
-                </Button>
-                <Button
-                  onClick={(e) => handleSubmit(e, "sms")}
-                  size="lg"
-                  className="bg-teal-700 text-white font-bold hover:bg-teal-800 border-2 border-white shadow-md"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "..." : "SMS"}
-                </Button>
-              </div>
+              <Button
+                onClick={handleSubmit}
+                size="lg"
+                className="bg-white text-teal-600 font-bold hover:bg-gray-100 shadow-md px-8"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Submitting..." : "Submit Order"}
+              </Button>
             </div>
           </div>
         </div>
