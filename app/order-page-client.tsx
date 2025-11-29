@@ -201,7 +201,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
                       <div className="flex-1">
                         <div className="flex items-center">
                           <p className="text-foreground font-bold text-lg">{item.name}</p>
-                          <InfoTooltip description={item.description || ""} />
+                          <InfoTooltip description={item.description || ""} itemName={item.name} price={item.price} />
                         </div>
                         <p className="text-xl font-bold text-[color:var(--teal)] mt-1">${item.price}</p>
                       </div>
