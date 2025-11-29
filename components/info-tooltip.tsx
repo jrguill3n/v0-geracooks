@@ -8,7 +8,7 @@ interface InfoTooltipProps {
 }
 
 export function InfoTooltip({ description }: InfoTooltipProps) {
-  if (!description) return null
+  const displayDescription = description || "No description available yet. Add one in the admin panel."
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -19,7 +19,7 @@ export function InfoTooltip({ description }: InfoTooltipProps) {
           </button>
         </TooltipTrigger>
         <TooltipContent className="max-w-xs bg-primary text-white border-0 shadow-lg rounded-xl p-3">
-          <p className="text-sm leading-relaxed">{description}</p>
+          <p className="text-sm leading-relaxed">{displayDescription}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
