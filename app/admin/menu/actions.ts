@@ -89,8 +89,9 @@ export async function addItem(formData: FormData) {
     const section_id = formData.get("section_id") as string
     const name = formData.get("name") as string
     const price = Number.parseFloat(formData.get("price") as string)
+    const description = formData.get("description") as string
 
-    console.log("[v0] Item data:", { section_id, name, price })
+    console.log("[v0] Item data:", { section_id, name, price, description })
 
     const { count, error: countError } = await supabase
       .from("menu_items")
@@ -111,6 +112,7 @@ export async function addItem(formData: FormData) {
         section_id,
         name,
         price,
+        description,
         display_order,
       })
       .select()
@@ -137,8 +139,9 @@ export async function updateItem(formData: FormData) {
     const id = formData.get("id") as string
     const name = formData.get("name") as string
     const price = Number.parseFloat(formData.get("price") as string)
+    const description = formData.get("description") as string
 
-    const { error } = await supabase.from("menu_items").update({ name, price }).eq("id", id)
+    const { error } = await supabase.from("menu_items").update({ name, price, description }).eq("id", id)
 
     if (error) throw error
 

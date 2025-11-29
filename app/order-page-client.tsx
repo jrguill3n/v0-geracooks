@@ -2,6 +2,7 @@
 
 import type React from "react"
 import Image from "next/image"
+import { InfoTooltip } from "@/components/info-tooltip"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -11,7 +12,7 @@ import { Minus, Plus, ShoppingBag } from "lucide-react"
 import { PhoneInput } from "@/components/phone-input"
 
 interface OrderPageClientProps {
-  menuItems: Record<string, Array<{ name: string; price: number }>>
+  menuItems: Record<string, Array<{ name: string; price: number; description?: string }>>
 }
 
 export function OrderPageClient({ menuItems }: OrderPageClientProps) {
@@ -198,7 +199,10 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
                       className="flex items-center justify-between py-4 hover:bg-primary/5 px-4 -mx-4 rounded-2xl transition-all duration-200"
                     >
                       <div className="flex-1">
-                        <p className="text-foreground font-bold text-lg">{item.name}</p>
+                        <div className="flex items-center">
+                          <p className="text-foreground font-bold text-lg">{item.name}</p>
+                          <InfoTooltip description={item.description || ""} />
+                        </div>
                         <p className="text-xl font-bold text-[color:var(--teal)] mt-1">${item.price}</p>
                       </div>
                       <div className="flex items-center gap-4">

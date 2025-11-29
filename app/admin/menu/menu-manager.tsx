@@ -57,6 +57,7 @@ interface MenuItem {
   name: string
   price: number
   display_order: number
+  description?: string
 }
 
 function SortableSection({
@@ -128,6 +129,7 @@ function SortableItem({ item, onEdit, onDelete }: { item: MenuItem; onEdit: () =
         <div className="flex-1">
           <p className="font-semibold text-gray-900">{item.name}</p>
           <p className="text-sm text-teal-400 font-bold">${Number(item.price).toFixed(2)}</p>
+          {item.description && <p className="text-xs text-gray-500 mt-1 line-clamp-1">{item.description}</p>}
         </div>
       </div>
       <div className="flex gap-2">
@@ -341,8 +343,9 @@ export function MenuManager({
     const id = formData.get("id") as string
     const name = formData.get("name") as string
     const price = Number.parseFloat(formData.get("price") as string)
+    const description = formData.get("description") as string
 
-    setItems(items.map((item) => (item.id === id ? { ...item, name, price } : item)))
+    setItems(items.map((item) => (item.id === id ? { ...item, name, price, description } : item)))
 
     const result = await updateItem(formData)
     if (result.success) {
@@ -437,9 +440,11 @@ export function MenuManager({
                         Add Item
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="border-2 border-teal-300">
+                    <DialogContent className="border-2 border-teal-300 max-w-md">
                       <DialogHeader>
-                        <DialogTitle>Add Item to {section.name}</DialogTitle>
+                        <DialogTitle>
+                          Add Item to {sections.find((s) => s.id === selectedSectionForItem)?.name}
+                        </DialogTitle>
                       </DialogHeader>
                       <form action={handleAddItem} className="space-y-4">
                         <input type="hidden" name="section_id" value={section.id} />
@@ -462,6 +467,16 @@ export function MenuManager({
                             step="0.01"
                             placeholder="12.99"
                             required
+                            disabled={isSubmitting}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="item-description">Description (optional)</Label>
+                          <textarea
+                            id="item-description"
+                            name="description"
+                            placeholder="A brief description of this dish..."
+                            className="w-full min-h-[80px] px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
                             disabled={isSubmitting}
                           />
                         </div>
@@ -529,7 +544,7 @@ export function MenuManager({
       </Dialog>
 
       <Dialog open={!!editingItem} onOpenChange={() => !isSubmitting && setEditingItem(null)}>
-        <DialogContent className="border-2 border-teal-300">
+        <DialogContent className="border-2 border-teal-300 max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Item</DialogTitle>
           </DialogHeader>
@@ -554,6 +569,17 @@ export function MenuManager({
                 step="0.01"
                 defaultValue={editingItem?.price}
                 required
+                disabled={isSubmitting}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-item-description">Description (optional)</Label>
+              <textarea
+                id="edit-item-description"
+                name="description"
+                defaultValue={editingItem?.description || ""}
+                placeholder="A brief description of this dish..."
+                className="w-full min-h-[80px] px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
                 disabled={isSubmitting}
               />
             </div>

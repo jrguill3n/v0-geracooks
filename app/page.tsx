@@ -12,8 +12,7 @@ export default async function OrderPage() {
 
   const { data: items } = await supabase.from("menu_items").select("*").order("display_order", { ascending: true })
 
-  // Transform data into the format expected by the client component
-  const menuItems: Record<string, Array<{ name: string; price: number }>> = {}
+  const menuItems: Record<string, Array<{ name: string; price: number; description?: string }>> = {}
 
   sections?.forEach((section) => {
     menuItems[section.name] =
@@ -22,6 +21,7 @@ export default async function OrderPage() {
         .map((item) => ({
           name: item.name,
           price: Number(item.price),
+          description: item.description || undefined,
         })) || []
   })
 
