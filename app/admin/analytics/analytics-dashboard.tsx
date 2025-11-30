@@ -74,6 +74,7 @@ const MONTH_NAMES = [
 export function AnalyticsDashboard() {
   const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchAnalytics()
@@ -82,10 +83,16 @@ export function AnalyticsDashboard() {
   const fetchAnalytics = async () => {
     try {
       const response = await fetch("/api/analytics")
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.details || "Failed to fetch analytics")
+      }
       const result = await response.json()
       setData(result)
+      setError(null)
     } catch (error) {
       console.error("[v0] Failed to fetch analytics:", error)
+      setError(error instanceof Error ? error.message : "Failed to load analytics")
     } finally {
       setLoading(false)
     }
@@ -99,24 +106,33 @@ export function AnalyticsDashboard() {
     )
   }
 
-  if (!data) {
+  if (error) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <div className="text-xl text-red-600">Failed to load analytics data</div>
+        <div className="text-sm text-gray-600">{error}</div>
+        <button onClick={fetchAnalytics} className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+          Retry
+        </button>
       </div>
     )
   }
 
-  // Calculate metrics
-  const totalRevenue = data.orders.reduce((sum, order) => sum + order.total, 0)
-  const totalOrders = data.orders.length
-  const totalCustomers = data.customers.length
+  if (!data) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-xl text-gray-600">No data available</div>
+      </div>
+    )
+  }
+
+  const totalRevenue = data.orders?.reduce((sum, order) => sum + (order.total || 0), 0) || 0
+  const totalOrders = data.orders?.length || 0
+  const totalCustomers = data.customers?.length || 0
   const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0
 
-  // Combine historical and current data for revenue trend
-  const revenueByMonth = [...data.historicalSales]
+  const revenueByMonth = [...(data.historicalSales || [])]
 
-  // Add current year data from orders
   const currentYearOrders = data.orders.filter((order) => {
     const orderDate = new Date(order.created_at)
     return orderDate.getFullYear() === 2025
@@ -128,7 +144,6 @@ export function AnalyticsDashboard() {
     currentMonthRevenue[month] = (currentMonthRevenue[month] || 0) + order.total
   })
 
-  // Update 2025 data with real orders
   Object.entries(currentMonthRevenue).forEach(([month, revenue]) => {
     const monthNum = Number.parseInt(month)
     const existingIndex = revenueByMonth.findIndex((r) => r.year === 2025 && r.month === monthNum)
@@ -139,14 +154,12 @@ export function AnalyticsDashboard() {
     }
   })
 
-  // Format revenue trend data for chart
   const revenueTrendData = revenueByMonth.map((item) => ({
     date: `${MONTH_NAMES[item.month - 1]} ${item.year}`,
     revenue: item.revenue,
     year: item.year,
   }))
 
-  // Top selling items
   const itemSales: { [key: string]: { count: number; revenue: number } } = {}
   data.orders.forEach((order) => {
     order.order_items.forEach((item) => {
@@ -168,7 +181,6 @@ export function AnalyticsDashboard() {
       revenue: data.revenue,
     }))
 
-  // Revenue by section
   const sectionRevenue: { [key: string]: number } = {}
   data.orders.forEach((order) => {
     order.order_items.forEach((item) => {
@@ -182,7 +194,6 @@ export function AnalyticsDashboard() {
     value,
   }))
 
-  // Top customers
   const topCustomers = data.customers
     .map((customer) => ({
       name: customer.name,
@@ -193,7 +204,6 @@ export function AnalyticsDashboard() {
     .sort((a, b) => b.totalSpent - a.totalSpent)
     .slice(0, 5)
 
-  // Orders by day of week
   const dayOfWeekOrders: { [key: string]: number } = {
     Sunday: 0,
     Monday: 0,
@@ -214,7 +224,6 @@ export function AnalyticsDashboard() {
     orders: count,
   }))
 
-  // Calculate year-over-year growth
   const get2024Total = revenueByMonth.filter((r) => r.year === 2024).reduce((sum, r) => sum + r.revenue, 0)
 
   const get2025Total = revenueByMonth.filter((r) => r.year === 2025).reduce((sum, r) => sum + r.revenue, 0)
@@ -229,7 +238,6 @@ export function AnalyticsDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
-      {/* Key Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -283,7 +291,6 @@ export function AnalyticsDashboard() {
         </Card>
       </div>
 
-      {/* Revenue Trend */}
       <Card>
         <CardHeader>
           <CardTitle>Revenue Trend</CardTitle>
@@ -319,7 +326,6 @@ export function AnalyticsDashboard() {
         </CardContent>
       </Card>
 
-      {/* Top Items and Section Revenue */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
@@ -388,7 +394,6 @@ export function AnalyticsDashboard() {
         </Card>
       </div>
 
-      {/* Orders by Day of Week */}
       <Card>
         <CardHeader>
           <CardTitle>Orders by Day of Week</CardTitle>
@@ -417,7 +422,6 @@ export function AnalyticsDashboard() {
         </CardContent>
       </Card>
 
-      {/* Top Customers */}
       <Card>
         <CardHeader>
           <CardTitle>Top Customers</CardTitle>

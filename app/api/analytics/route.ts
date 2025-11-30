@@ -22,16 +22,22 @@ export async function GET() {
       `)
       .order("created_at", { ascending: true })
 
-    if (ordersError) throw ordersError
+    if (ordersError) {
+      console.error("[v0] Orders query error:", ordersError)
+      throw ordersError
+    }
 
-    // Get historical sales data
+    // Get historical sales data (may not exist yet)
     const { data: historicalSales, error: historicalError } = await supabase
       .from("historical_sales")
       .select("*")
       .order("year", { ascending: true })
       .order("month", { ascending: true })
 
-    if (historicalError) throw historicalError
+    // Don't throw if historical_sales table doesn't exist yet
+    if (historicalError) {
+      console.error("[v0] Historical sales query error (table may not exist):", historicalError)
+    }
 
     // Get customer data
     const { data: customers, error: customersError } = await supabase.from("customers").select(`
@@ -41,7 +47,10 @@ export async function GET() {
         orders(id, total, created_at)
       `)
 
-    if (customersError) throw customersError
+    if (customersError) {
+      console.error("[v0] Customers query error:", customersError)
+      throw customersError
+    }
 
     return NextResponse.json({
       orders: orders || [],
@@ -50,6 +59,12 @@ export async function GET() {
     })
   } catch (error) {
     console.error("[v0] Analytics API error:", error)
-    return NextResponse.json({ error: "Failed to fetch analytics data" }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: "Failed to fetch analytics data",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    )
   }
 }
