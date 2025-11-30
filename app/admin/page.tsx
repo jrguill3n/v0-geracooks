@@ -1,11 +1,9 @@
 import { createClient } from "@/lib/supabase/server"
 import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { redirect } from "next/navigation"
 import { checkAuth } from "@/lib/auth"
-import { logoutAction } from "./actions"
 import { OrdersList } from "./orders-list"
-import Link from "next/link"
+import { AdminNav } from "@/components/admin-nav"
 
 interface Order {
   id: string
@@ -128,50 +126,11 @@ export default async function AdminPage({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-white to-secondary/30">
-      <div className="bg-gradient-to-r from-primary via-primary/95 to-primary/90 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-4xl sm:text-5xl font-bold text-white tracking-tight">GERA COOKS Admin</h1>
-              <p className="text-base mt-2 font-semibold text-white/90 tracking-wide">Order Management Dashboard</p>
-            </div>
-            <div className="flex gap-3">
-              <Link href="/admin/menu">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="font-bold border-2 border-white/30 hover:bg-white/20 text-white bg-transparent rounded-2xl px-6"
-                >
-                  Manage Menu
-                </Button>
-              </Link>
-              <Link href="/admin/customers">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="font-bold border-2 border-white/30 hover:bg-white/20 text-white bg-transparent rounded-2xl px-6"
-                >
-                  Customers
-                </Button>
-              </Link>
-              <form action={logoutAction}>
-                <Button
-                  variant="outline"
-                  type="submit"
-                  size="lg"
-                  className="font-bold border-2 border-white/30 hover:bg-white/20 text-white bg-transparent rounded-2xl px-6"
-                >
-                  Logout
-                </Button>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
+      <AdminNav title="GERA COOKS Admin" subtitle="Order Management Dashboard" />
 
       <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-          <Card className="p-8 border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white rounded-3xl">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <Card className="p-6 sm:p-8 border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white rounded-3xl">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-bold text-foreground/60 mb-2 tracking-wide">Total Orders</p>
@@ -190,7 +149,7 @@ export default async function AdminPage({
             </div>
           </Card>
 
-          <Card className="p-8 border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white rounded-3xl">
+          <Card className="p-6 sm:p-8 border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white rounded-3xl">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-bold text-foreground/60 mb-2 tracking-wide">Today's Orders</p>
@@ -209,7 +168,7 @@ export default async function AdminPage({
             </div>
           </Card>
 
-          <Card className="p-8 border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white rounded-3xl">
+          <Card className="p-6 sm:p-8 border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white rounded-3xl">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-bold text-success/80 mb-2 tracking-wide">Total Revenue</p>
