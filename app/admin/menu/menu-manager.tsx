@@ -23,6 +23,8 @@ import {
   deleteItem,
   reorderSections,
   reorderItems,
+  addExtra,
+  deleteExtra,
 } from "./actions"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -58,6 +60,14 @@ interface MenuItem {
   price: number
   display_order: number
   description?: string
+}
+
+interface MenuItemExtra {
+  id: string
+  menu_item_id: string
+  name: string
+  price: number
+  display_order: number
 }
 
 function SortableSection({
@@ -107,7 +117,17 @@ function SortableSection({
   )
 }
 
-function SortableItem({ item, onEdit, onDelete }: { item: MenuItem; onEdit: () => void; onDelete: () => void }) {
+function SortableItem({
+  item,
+  onEdit,
+  onDelete,
+  onManageExtras,
+}: {
+  item: MenuItem
+  onEdit: () => void
+  onDelete: () => void
+  onManageExtras: () => void
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
 
   const style = {
@@ -136,6 +156,14 @@ function SortableItem({ item, onEdit, onDelete }: { item: MenuItem; onEdit: () =
         <Button
           variant="outline"
           size="sm"
+          onClick={onManageExtras}
+          className="text-purple-600 border-purple-300 hover:bg-purple-50 bg-transparent"
+        >
+          Extras
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
           onClick={onEdit}
           className="text-teal-600 border-teal-300 hover:bg-teal-50 bg-transparent"
         >
@@ -157,14 +185,22 @@ function SortableItem({ item, onEdit, onDelete }: { item: MenuItem; onEdit: () =
 export function MenuManager({
   sections: initialSections,
   items: initialItems,
-}: { sections: MenuSection[]; items: MenuItem[] }) {
+  extras: initialExtras,
+}: {
+  sections: MenuSection[]
+  items: MenuItem[]
+  extras: MenuItemExtra[]
+}) {
   const router = useRouter()
   const [sections, setSections] = useState(initialSections)
   const [items, setItems] = useState(initialItems)
+  const [extras, setExtras] = useState(initialExtras)
   const [isAddingSectionOpen, setIsAddingSectionOpen] = useState(false)
   const [isAddingItemOpen, setIsAddingItemOpen] = useState(false)
   const [editingSection, setEditingSection] = useState<MenuSection | null>(null)
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null)
+  const [managingExtrasForItem, setManagingExtrasForItem] = useState<MenuItem | null>(null)
+  const [isAddingExtra, setIsAddingExtra] = useState(false)
   const [selectedSectionForItem, setSelectedSectionForItem] = useState<string>("")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -182,6 +218,15 @@ export function MenuManager({
       return acc
     },
     {} as Record<string, MenuItem[]>,
+  )
+
+  const extrasByItem = extras.reduce(
+    (acc, extra) => {
+      if (!acc[extra.menu_item_id]) acc[extra.menu_item_id] = []
+      acc[extra.menu_item_id].push(extra)
+      return acc
+    },
+    {} as Record<string, MenuItemExtra[]>,
   )
 
   const handleSectionDragEnd = async (event: DragEndEvent) => {
@@ -242,6 +287,10 @@ export function MenuManager({
   useEffect(() => {
     setItems(initialItems)
   }, [initialItems])
+
+  useEffect(() => {
+    setExtras(initialExtras)
+  }, [initialExtras])
 
   const handleAddSection = async (formData: FormData) => {
     setIsSubmitting(true)
@@ -388,6 +437,35 @@ export function MenuManager({
     }
   }
 
+  const handleAddExtra = async (formData: FormData) => {
+    setIsSubmitting(true)
+    const result = await addExtra(formData)
+    if (result.success) {
+      toast.success("Extra added successfully!")
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      setIsAddingExtra(false)
+      router.refresh()
+    } else {
+      toast.error("Failed to add extra", { description: result.error })
+    }
+    setIsSubmitting(false)
+  }
+
+  const handleDeleteExtra = async (extraId: string) => {
+    if (!confirm("Are you sure you want to delete this extra?")) return
+
+    const previousExtras = extras
+    setExtras(extras.filter((e) => e.id !== extraId))
+
+    const result = await deleteExtra(extraId)
+    if (result.success) {
+      toast.success("Extra deleted successfully!")
+    } else {
+      setExtras(previousExtras)
+      toast.error("Failed to delete extra")
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -418,106 +496,199 @@ export function MenuManager({
         <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-6">
             {sections.map((section) => (
-              <SortableSection
-                key={section.id}
-                section={section}
-                onEdit={() => setEditingSection(section)}
-                onDelete={() => handleDeleteSection(section.id)}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm text-gray-600">Drag sections to reorder</p>
-                  <Dialog
-                    open={isAddingItemOpen && selectedSectionForItem === section.id}
-                    onOpenChange={(open) => {
-                      if (isSubmitting) return
-                      setIsAddingItemOpen(open)
-                      if (open) setSelectedSectionForItem(section.id)
-                      else setSelectedSectionForItem("")
-                    }}
-                  >
-                    <DialogTrigger asChild>
-                      <Button size="sm" className="bg-teal-500 hover:bg-teal-600 text-white">
-                        Add Item
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="border-2 border-teal-300 max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>
-                          Add Item to {sections.find((s) => s.id === selectedSectionForItem)?.name}
-                        </DialogTitle>
-                      </DialogHeader>
-                      <form action={handleAddItem} className="space-y-4">
-                        <input type="hidden" name="section_id" value={section.id} />
-                        <div>
-                          <Label htmlFor="item-name">Item Name</Label>
-                          <Input
-                            id="item-name"
-                            name="name"
-                            placeholder="e.g., Grilled Salmon"
-                            required
-                            disabled={isSubmitting}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="item-price">Price ($)</Label>
-                          <Input
-                            id="item-price"
-                            name="price"
-                            type="number"
-                            step="0.01"
-                            placeholder="12.99"
-                            required
-                            disabled={isSubmitting}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="item-description">Description (optional)</Label>
-                          <textarea
-                            id="item-description"
-                            name="description"
-                            placeholder="A brief description of this dish..."
-                            className="w-full min-h-[80px] px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
-                            disabled={isSubmitting}
-                          />
-                        </div>
-                        <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600" disabled={isSubmitting}>
-                          {isSubmitting ? "Adding..." : "Add Item"}
-                        </Button>
-                      </form>
-                    </DialogContent>
-                  </Dialog>
+              <div key={section.id} className="bg-white rounded-xl shadow-md p-6 border-2 border-teal-200">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xl font-bold text-gray-900">{section.name}</h3>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditingSection(section)}
+                      className="text-teal-600 border-teal-300 hover:bg-teal-50 bg-transparent"
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDeleteSection(section.id)}
+                      className="text-red-600 border-red-300 hover:bg-red-50 bg-transparent"
+                    >
+                      Delete
+                    </Button>
+                  </div>
                 </div>
 
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
-                  onDragEnd={(event) => handleItemDragEnd(section.id, event)}
+                  onDragEnd={(e) => handleItemDragEnd(section.id, e)}
                 >
                   <SortableContext
                     items={(itemsBySection[section.id] || []).map((i) => i.id)}
                     strategy={verticalListSortingStrategy}
                   >
                     <div className="space-y-2">
-                      {itemsBySection[section.id]?.length ? (
-                        itemsBySection[section.id].map((item) => (
-                          <SortableItem
-                            key={item.id}
-                            item={item}
-                            onEdit={() => setEditingItem(item)}
-                            onDelete={() => handleDeleteItem(item.id)}
-                          />
-                        ))
-                      ) : (
-                        <p className="text-gray-500 text-sm italic">No items in this section</p>
-                      )}
+                      {(itemsBySection[section.id] || []).map((item) => (
+                        <SortableItem
+                          key={item.id}
+                          item={item}
+                          onEdit={() => setEditingItem(item)}
+                          onDelete={() => handleDeleteItem(item.id)}
+                          onManageExtras={() => setManagingExtrasForItem(item)}
+                        />
+                      ))}
                     </div>
                   </SortableContext>
                 </DndContext>
-              </SortableSection>
+
+                <Dialog
+                  open={isAddingItemOpen && selectedSectionForItem === section.id}
+                  onOpenChange={(open) => {
+                    if (isSubmitting) return
+                    setIsAddingItemOpen(open)
+                    if (open) setSelectedSectionForItem(section.id)
+                    else setSelectedSectionForItem("")
+                  }}
+                >
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="bg-teal-500 hover:bg-teal-600 text-white">
+                      Add Item
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="border-2 border-teal-300 max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>
+                        Add Item to {sections.find((s) => s.id === selectedSectionForItem)?.name}
+                      </DialogTitle>
+                    </DialogHeader>
+                    <form action={handleAddItem} className="space-y-4">
+                      <input type="hidden" name="section_id" value={section.id} />
+                      <div>
+                        <Label htmlFor="item-name">Item Name</Label>
+                        <Input
+                          id="item-name"
+                          name="name"
+                          placeholder="e.g., Grilled Salmon"
+                          required
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="item-price">Price ($)</Label>
+                        <Input
+                          id="item-price"
+                          name="price"
+                          type="number"
+                          step="0.01"
+                          placeholder="12.99"
+                          required
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="item-description">Description (optional)</Label>
+                        <textarea
+                          id="item-description"
+                          name="description"
+                          placeholder="A brief description of this dish..."
+                          className="w-full min-h-[80px] px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                      <Button type="submit" className="w-full bg-teal-500 hover:bg-teal-600" disabled={isSubmitting}>
+                        {isSubmitting ? "Adding..." : "Add Item"}
+                      </Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
             ))}
           </div>
         </SortableContext>
       </DndContext>
+
+      <Dialog open={!!managingExtrasForItem} onOpenChange={(open) => !open && setManagingExtrasForItem(null)}>
+        <DialogContent className="border-2 border-purple-300 max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Manage Extras for {managingExtrasForItem?.name}</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-600">Add optional extras that customers can select with this item</p>
+              <Button
+                size="sm"
+                onClick={() => setIsAddingExtra(true)}
+                className="bg-purple-500 hover:bg-purple-600 text-white"
+              >
+                Add Extra
+              </Button>
+            </div>
+
+            {managingExtrasForItem && extrasByItem[managingExtrasForItem.id]?.length > 0 ? (
+              <div className="space-y-2">
+                {extrasByItem[managingExtrasForItem.id].map((extra) => (
+                  <div key={extra.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                    <div>
+                      <p className="font-semibold">{extra.name}</p>
+                      <p className="text-sm text-teal-400 font-bold">+${Number(extra.price).toFixed(2)}</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDeleteExtra(extra.id)}
+                      className="text-red-600 border-red-300 hover:bg-red-50"
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-gray-400 py-8">No extras added yet</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isAddingExtra} onOpenChange={(open) => !open && setIsAddingExtra(false)}>
+        <DialogContent className="border-2 border-purple-300 max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Extra to {managingExtrasForItem?.name}</DialogTitle>
+          </DialogHeader>
+          <form action={handleAddExtra} className="space-y-4">
+            <input type="hidden" name="menu_item_id" value={managingExtrasForItem?.id} />
+            <div>
+              <Label htmlFor="extra-name">Extra Name</Label>
+              <Input
+                id="extra-name"
+                name="name"
+                placeholder="e.g., Spicy Rock Shrimp"
+                required
+                disabled={isSubmitting}
+              />
+            </div>
+            <div>
+              <Label htmlFor="extra-price">Extra Price ($)</Label>
+              <Input
+                id="extra-price"
+                name="price"
+                type="number"
+                step="0.01"
+                placeholder="25.00"
+                required
+                disabled={isSubmitting}
+              />
+            </div>
+            <Button type="submit" className="w-full bg-purple-500 hover:bg-purple-600" disabled={isSubmitting}>
+              {isSubmitting ? "Adding..." : "Add Extra"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!editingSection} onOpenChange={() => !isSubmitting && setEditingSection(null)}>
         <DialogContent className="border-2 border-teal-300">

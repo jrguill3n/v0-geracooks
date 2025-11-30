@@ -213,3 +213,52 @@ export async function reorderItems(updates: Array<{ id: string; display_order: n
     return { success: false, error: "Failed to reorder items" }
   }
 }
+
+export async function addExtra(formData: FormData) {
+  try {
+    const supabase = await createClient()
+    const menu_item_id = formData.get("menu_item_id") as string
+    const name = formData.get("name") as string
+    const price = Number.parseFloat(formData.get("price") as string)
+
+    const { count, error: countError } = await supabase
+      .from("menu_item_extras")
+      .select("*", { count: "exact", head: true })
+      .eq("menu_item_id", menu_item_id)
+
+    if (countError) throw countError
+
+    const display_order = (count || 0) + 1
+
+    const { error } = await supabase.from("menu_item_extras").insert({
+      menu_item_id,
+      name,
+      price,
+      display_order,
+    })
+
+    if (error) throw error
+
+    revalidatePath("/admin/menu")
+    revalidatePath("/")
+    return { success: true }
+  } catch (error) {
+    console.error("Error adding extra:", error)
+    return { success: false, error: error instanceof Error ? error.message : "Failed to add extra" }
+  }
+}
+
+export async function deleteExtra(extraId: string) {
+  try {
+    const supabase = await createClient()
+    const { error } = await supabase.from("menu_item_extras").delete().eq("id", extraId)
+    if (error) throw error
+
+    revalidatePath("/admin/menu")
+    revalidatePath("/")
+    return { success: true }
+  } catch (error) {
+    console.error("Error deleting extra:", error)
+    return { success: false, error: "Failed to delete extra" }
+  }
+}

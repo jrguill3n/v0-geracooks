@@ -19,6 +19,14 @@ interface MenuItem {
   display_order: number
 }
 
+interface MenuExtra {
+  id: string
+  item_id: string
+  name: string
+  price: number
+  display_order: number
+}
+
 export default async function MenuPage() {
   const isAuthenticated = await checkAuth()
 
@@ -38,8 +46,13 @@ export default async function MenuPage() {
     .select("*")
     .order("display_order", { ascending: true })
 
-  if (sectionsError || itemsError) {
-    console.error("Error fetching menu:", sectionsError || itemsError)
+  const { data: extras, error: extrasError } = await supabase
+    .from("menu_item_extras")
+    .select("*")
+    .order("display_order", { ascending: true })
+
+  if (sectionsError || itemsError || extrasError) {
+    console.error("Error fetching menu:", sectionsError || itemsError || extrasError)
     return <div className="p-8">Error loading menu</div>
   }
 
@@ -68,7 +81,7 @@ export default async function MenuPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6">
-        <MenuManager sections={sections || []} items={items || []} />
+        <MenuManager sections={sections || []} items={items || []} extras={extras || []} />
       </div>
     </div>
   )

@@ -57,23 +57,45 @@ export async function POST(request: Request) {
       throw orderError
     }
 
-    const { data: menuItemsData } = await supabase.from("menu_items").select("name, price, menu_sections(name)")
+    const { data: menuItemsData } = await supabase.from("menu_items").select("id, name, price, menu_sections(name)")
+
+    const { data: extrasData } = await supabase.from("menu_item_extras").select("*")
 
     const priceMap = new Map(menuItemsData?.map((item) => [item.name, Number(item.price)]) || [])
     const sectionMap = new Map(menuItemsData?.map((item) => [item.name, item.menu_sections?.name || "Other"]) || [])
+    const itemIdMap = new Map(menuItemsData?.map((item) => [item.name, item.id]) || [])
 
-    const orderItemsData = Object.entries(orderItems).map(([itemName, quantity]) => {
+    const orderItemsData = Object.entries(orderItems).map(([itemName, orderItem]) => {
+      const { quantity, extras } = orderItem as { quantity: number; extras: string[] }
       const unitPrice = priceMap.get(itemName) || 0
-      const itemTotal = unitPrice * (quantity as number)
       const section = sectionMap.get(itemName) || "Other"
+      const itemId = itemIdMap.get(itemName)
+
+      // Calculate extras price
+      let extrasPrice = 0
+      const selectedExtras: Array<{ name: string; price: number }> = []
+
+      if (extras && extras.length > 0 && itemId) {
+        extras.forEach((extraId) => {
+          const extra = extrasData?.find((e) => e.id === extraId && e.menu_item_id === itemId)
+          if (extra) {
+            extrasPrice += Number(extra.price)
+            selectedExtras.push({ name: extra.name, price: Number(extra.price) })
+          }
+        })
+      }
+
+      const totalUnitPrice = unitPrice + extrasPrice
+      const itemTotal = totalUnitPrice * quantity
 
       return {
         order_id: order.id,
         item_name: itemName,
-        quantity: quantity as number,
-        unit_price: unitPrice,
+        quantity,
+        unit_price: totalUnitPrice,
         total_price: itemTotal,
-        section: section, // Store section with order item
+        section,
+        extras: selectedExtras, // Store extras as JSONB
       }
     })
 
@@ -102,7 +124,10 @@ export async function POST(request: Request) {
         notificationError = `Missing Twilio environment variables: ${missingVars.join(", ")}`
         console.error("[v0]", notificationError)
       } else {
-        const itemsBySection: Record<string, Array<{ name: string; quantity: number; price: number }>> = {}
+        const itemsBySection: Record<
+          string,
+          Array<{ name: string; quantity: number; price: number; extras?: Array<{ name: string; price: number }> }>
+        > = {}
 
         orderItemsData.forEach((item) => {
           if (!itemsBySection[item.section]) {
@@ -112,6 +137,7 @@ export async function POST(request: Request) {
             name: item.item_name,
             quantity: item.quantity,
             price: item.total_price,
+            extras: item.extras,
           })
         })
 
@@ -123,7 +149,11 @@ export async function POST(request: Request) {
         Object.entries(itemsBySection).forEach(([section, items]) => {
           message += `📋 ${section.toUpperCase()}\n`
           items.forEach((item) => {
-            message += `  • ${item.quantity}x ${item.name} - $${item.price.toFixed(2)}\n`
+            message += `  • ${item.quantity}x ${item.name}`
+            if (item.extras && item.extras.length > 0) {
+              message += `\n    Extras: ${item.extras.map((e) => `${e.name} (+$${e.price})`).join(", ")}`
+            }
+            message += ` - $${item.price.toFixed(2)}\n`
           })
           message += `\n`
         })

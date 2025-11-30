@@ -3,6 +3,9 @@
 import type React from "react"
 import Image from "next/image"
 import { InfoTooltip } from "@/components/info-tooltip"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
 
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
@@ -11,20 +14,36 @@ import { Card } from "@/components/ui/card"
 import { Minus, Plus, ShoppingBag, ChevronDown, ChevronUp } from "lucide-react"
 import { PhoneInput } from "@/components/phone-input"
 
+interface MenuItem {
+  id: string
+  name: string
+  price: number
+  description?: string
+  extras?: Array<{ id: string; name: string; price: number }>
+}
+
 interface OrderPageClientProps {
-  menuItems: Record<string, Array<{ name: string; price: number; description?: string }>>
+  menuItems: Record<string, MenuItem[]>
+}
+
+interface OrderItem {
+  quantity: number
+  extras: string[] // Array of extra IDs
 }
 
 export function OrderPageClient({ menuItems }: OrderPageClientProps) {
   const [customerName, setCustomerName] = useState("")
   const [countryCode, setCountryCode] = useState("+1")
   const [phoneNumber, setPhoneNumber] = useState("")
-  const [orderItems, setOrderItems] = useState<Record<string, number>>({})
+  const [orderItems, setOrderItems] = useState<Record<string, OrderItem>>({})
   const [orderSubmitted, setOrderSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [notificationSent, setNotificationSent] = useState(false)
   const [notificationType, setNotificationType] = useState<string | null>(null)
   const [notificationError, setNotificationError] = useState<string | null>(null)
+
+  const [selectedItemForExtras, setSelectedItemForExtras] = useState<MenuItem | null>(null)
+  const [tempExtras, setTempExtras] = useState<string[]>([])
 
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
     const categories = Object.keys(menuItems)
@@ -50,29 +69,62 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
     }
   }
 
-  const updateQuantity = (itemName: string, change: number) => {
+  const handleAddItem = (item: MenuItem) => {
+    if (item.extras && item.extras.length > 0) {
+      setSelectedItemForExtras(item)
+      setTempExtras(orderItems[item.name]?.extras || [])
+    } else {
+      updateQuantity(item.name, 1)
+    }
+  }
+
+  const updateQuantity = (itemName: string, change: number, newExtras?: string[]) => {
     setOrderItems((prev) => {
-      const newQuantity = (prev[itemName] || 0) + change
+      const currentItem = prev[itemName]
+      const newQuantity = (currentItem?.quantity || 0) + change
+
       if (newQuantity <= 0) {
         const { [itemName]: _, ...rest } = prev
         return rest
       }
-      return { ...prev, [itemName]: newQuantity }
+
+      return {
+        ...prev,
+        [itemName]: {
+          quantity: newQuantity,
+          extras: newExtras !== undefined ? newExtras : currentItem?.extras || [],
+        },
+      }
     })
   }
 
+  const confirmExtras = () => {
+    if (selectedItemForExtras) {
+      updateQuantity(selectedItemForExtras.name, 1, tempExtras)
+      setSelectedItemForExtras(null)
+      setTempExtras([])
+    }
+  }
+
   const getTotalItems = () => {
-    return Object.values(orderItems).reduce((sum, qty) => sum + qty, 0)
+    return Object.values(orderItems).reduce((sum, item) => sum + item.quantity, 0)
   }
 
   const getTotalPrice = () => {
     let total = 0
-    Object.entries(orderItems).forEach(([itemName, quantity]) => {
+    Object.entries(orderItems).forEach(([itemName, orderItem]) => {
       const item = Object.values(menuItems)
         .flat()
         .find((i) => i.name === itemName)
       if (item) {
-        total += item.price * quantity
+        let itemPrice = item.price
+        orderItem.extras.forEach((extraId) => {
+          const extra = item.extras?.find((e) => e.id === extraId)
+          if (extra) {
+            itemPrice += extra.price
+          }
+        })
+        total += itemPrice * orderItem.quantity
       }
     })
     return total
@@ -175,7 +227,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-white to-secondary/30 pb-40">
       <div className="bg-white">
-        <div className="max-w-2xl mx-auto px-6 py-6">
+        <div className="max-w-2xl mx-auto px-6 py-2">
           <div className="flex flex-col items-center text-center">
             <Image src="/gera-logo.png" alt="GERA COOKS" width={220} height={220} className="object-contain" />
           </div>
@@ -266,6 +318,9 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
                             <InfoTooltip description={item.description || ""} itemName={item.name} price={item.price} />
                           </div>
                           <p className="text-lg font-bold text-[color:var(--teal)] mt-0.5">${item.price}</p>
+                          {item.extras && item.extras.length > 0 && (
+                            <p className="text-xs text-purple-600 font-semibold mt-1">+ Extras available</p>
+                          )}
                         </div>
                         <div className="flex items-center gap-3">
                           <Button
@@ -278,12 +333,12 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
                             <Minus className="h-4 w-4" />
                           </Button>
                           <span className="w-8 text-center font-bold text-foreground text-base">
-                            {orderItems[item.name] || 0}
+                            {orderItems[item.name]?.quantity || 0}
                           </span>
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => updateQuantity(item.name, 1)}
+                            onClick={() => handleAddItem(item)}
                             className="h-10 w-10 p-0 bg-primary text-white border-0 hover:bg-primary/90 rounded-full font-bold shadow-md"
                           >
                             <Plus className="h-4 w-4" />
@@ -302,6 +357,68 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
           <p className="text-sm text-foreground/60 italic font-medium">
             Nuestros empaques son de 1 libra y sirven aproximadamente 2 porciones.
           </p>
+        </div>
+
+        <div className="bg-white border-0 rounded-3xl shadow-lg p-6 mt-6">
+          <h2 className="text-xl font-bold mb-4 text-center text-foreground">Contact Us</h2>
+          <div className="space-y-3">
+            <a
+              href="tel:+16315780700"
+              className="flex items-center gap-3 p-3 rounded-2xl hover:bg-primary/5 transition-colors"
+            >
+              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                  />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-foreground/60 font-bold uppercase tracking-wide">Phone</p>
+                <p className="text-base font-bold text-primary">+1 631 578 0700</p>
+              </div>
+            </a>
+
+            <a
+              href="mailto:geraguillent@gmail.com"
+              className="flex items-center gap-3 p-3 rounded-2xl hover:bg-primary/5 transition-colors"
+            >
+              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-foreground/60 font-bold uppercase tracking-wide">Email</p>
+                <p className="text-base font-bold text-primary">geraguillent@gmail.com</p>
+              </div>
+            </a>
+
+            <a
+              href="https://instagram.com/gera.cooks"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 p-3 rounded-2xl hover:bg-primary/5 transition-colors"
+            >
+              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.057-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.668.07-4.948.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-foreground/60 font-bold uppercase tracking-wide">Instagram</p>
+                <p className="text-base font-bold text-primary">@gera.cooks</p>
+              </div>
+            </a>
+          </div>
         </div>
       </div>
 
@@ -325,6 +442,40 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
           </div>
         </div>
       )}
+
+      <Dialog open={!!selectedItemForExtras} onOpenChange={(open) => !open && setSelectedItemForExtras(null)}>
+        <DialogContent className="border-2 border-purple-300 max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Extras to {selectedItemForExtras?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">Select optional extras for this item:</p>
+            {selectedItemForExtras?.extras?.map((extra) => (
+              <div key={extra.id} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50">
+                <Checkbox
+                  id={extra.id}
+                  checked={tempExtras.includes(extra.id)}
+                  onCheckedChange={(checked) => {
+                    setTempExtras((prev) => (checked ? [...prev, extra.id] : prev.filter((id) => id !== extra.id)))
+                  }}
+                />
+                <Label htmlFor={extra.id} className="flex-1 cursor-pointer">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">{extra.name}</span>
+                    <span className="text-teal-400 font-bold">+${extra.price}</span>
+                  </div>
+                </Label>
+              </div>
+            ))}
+            <Button
+              onClick={confirmExtras}
+              className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-6 rounded-2xl"
+            >
+              Add to Order
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
