@@ -82,17 +82,27 @@ export function AnalyticsDashboard() {
 
   const fetchAnalytics = async () => {
     try {
+      console.log("[v0] Fetching analytics...")
       const response = await fetch("/api/analytics")
+
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.details || "Failed to fetch analytics")
+        const errorData = await response.json().catch(() => ({ details: "Unknown error" }))
+        console.error("[v0] Analytics fetch error:", errorData)
+        throw new Error(errorData.details || errorData.error || "Failed to fetch analytics")
       }
+
       const result = await response.json()
+      console.log("[v0] Analytics data received:", {
+        orders: result.orders?.length,
+        historicalSales: result.historicalSales?.length,
+        customers: result.customers?.length,
+      })
       setData(result)
       setError(null)
     } catch (error) {
       console.error("[v0] Failed to fetch analytics:", error)
-      setError(error instanceof Error ? error.message : "Failed to load analytics")
+      const errorMessage = error instanceof Error ? error.message : "Failed to load analytics"
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
