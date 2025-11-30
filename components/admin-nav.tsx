@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Menu, X, Home, UtensilsCrossed, Users, LogOut } from "lucide-react"
+import { Menu, X, Home, UtensilsCrossed, Users, LogOut, TrendingUp } from "lucide-react"
 import { logoutAction } from "@/app/admin/actions"
 
 interface AdminNavProps {
@@ -20,6 +20,7 @@ export function AdminNav({ title, subtitle }: AdminNavProps) {
     { href: "/admin", label: "Orders", icon: Home },
     { href: "/admin/menu", label: "Menu", icon: UtensilsCrossed },
     { href: "/admin/customers", label: "Customers", icon: Users },
+    { href: "/admin/analytics", label: "Analytics", icon: TrendingUp },
   ]
 
   return (
