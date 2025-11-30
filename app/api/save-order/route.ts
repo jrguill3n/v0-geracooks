@@ -109,6 +109,7 @@ export async function POST(request: Request) {
     let notificationSent = false
     let notificationError = null
     let notificationType = null
+    let twilioErrorDetails = null // Add more detailed error tracking
 
     try {
       const accountSid = process.env.TWILIO_ACCOUNT_SID
@@ -178,6 +179,7 @@ export async function POST(request: Request) {
 
           console.log("[v0] WhatsApp from:", fromNumber)
           console.log("[v0] WhatsApp to:", toNumber)
+          console.log("[v0] Message length:", message.length, "characters") // Log message length
           console.log("[v0] Message preview:", message.substring(0, 100) + "...")
 
           const whatsappResponse = await fetch(
@@ -200,6 +202,15 @@ export async function POST(request: Request) {
 
           console.log("[v0] WhatsApp response status:", whatsappResponse.status)
           console.log("[v0] WhatsApp response data:", JSON.stringify(whatsappData, null, 2))
+
+          if (!whatsappResponse.ok) {
+            twilioErrorDetails = {
+              status: whatsappResponse.status,
+              code: whatsappData.code,
+              message: whatsappData.message,
+              moreInfo: whatsappData.more_info,
+            }
+          }
 
           if (whatsappResponse.ok) {
             notificationSent = true
@@ -234,6 +245,12 @@ export async function POST(request: Request) {
           console.log("[v0] SMS response data:", JSON.stringify(smsData, null, 2))
 
           if (!smsResponse.ok) {
+            twilioErrorDetails = {
+              status: smsResponse.status,
+              code: smsData.code,
+              message: smsData.message,
+              moreInfo: smsData.more_info,
+            }
             notificationError = `SMS API error (${smsResponse.status}): ${smsData.message || JSON.stringify(smsData)}`
             console.error("[v0]", notificationError)
           } else {
@@ -254,6 +271,7 @@ export async function POST(request: Request) {
       notificationSent,
       notificationType,
       notificationError,
+      twilioErrorDetails, // Include detailed Twilio error for debugging
     })
   } catch (error) {
     console.error("[v0] Error saving order:", error)
