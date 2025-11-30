@@ -174,10 +174,10 @@ export function OrdersList({
 
   return (
     <div className="space-y-4">
-      <Card className="p-5 border border-gray-200 shadow-sm bg-white">
+      <Card className="p-4 sm:p-5 border border-gray-200 shadow-sm bg-white overflow-hidden">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
-          <h2 className="text-xl font-bold text-gray-900">Recent Orders</h2>
-          <div className="flex items-center gap-2 text-sm text-gray-600">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900">Recent Orders</h2>
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
             <span>
               Page {currentPage} of {totalPages}
             </span>
@@ -186,47 +186,58 @@ export function OrdersList({
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600 whitespace-nowrap">Filter by status:</label>
-            <Select value={statusFilter || "all"} onValueChange={handleStatusFilterChange}>
-              <SelectTrigger className="w-[140px] h-9 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Orders</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="packed">Packed</SelectItem>
-                <SelectItem value="delivered">Delivered</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
-            {statusFilter && (
-              <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 text-sm">
-                Clear
+        <div className="flex flex-col gap-3">
+          {/* Status filter row */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
+            <label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">Filter by status:</label>
+            <div className="flex items-center gap-2 flex-1">
+              <Select value={statusFilter || "all"} onValueChange={handleStatusFilterChange}>
+                <SelectTrigger className="w-full sm:w-[140px] h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Orders</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="packed">Packed</SelectItem>
+                  <SelectItem value="delivered">Delivered</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+              {statusFilter && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 text-xs sm:text-sm">
+                  Clear
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Phone search row */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
+            <label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">Search by phone:</label>
+            <div className="flex items-center gap-2 flex-1">
+              <input
+                type="text"
+                value={phoneSearch}
+                onChange={(e) => setPhoneSearch(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handlePhoneSearch()}
+                placeholder="Enter phone number"
+                className="h-9 px-3 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 flex-1 min-w-0"
+              />
+              <Button
+                onClick={handlePhoneSearch}
+                size="sm"
+                className="h-9 bg-teal-500 hover:bg-teal-600 text-white shrink-0"
+              >
+                Search
               </Button>
-            )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600 whitespace-nowrap">Search by phone:</label>
-            <input
-              type="text"
-              value={phoneSearch}
-              onChange={(e) => setPhoneSearch(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handlePhoneSearch()}
-              placeholder="Enter phone number"
-              className="h-9 px-3 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 w-[180px]"
-            />
-            <Button onClick={handlePhoneSearch} size="sm" className="h-9 bg-teal-500 hover:bg-teal-600 text-white">
-              Search
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600 whitespace-nowrap">Per page:</label>
+          {/* Per page selector row */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
+            <label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">Per page:</label>
             <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
-              <SelectTrigger className="w-[100px] h-9 text-sm">
+              <SelectTrigger className="w-full sm:w-[100px] h-9 text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -306,62 +317,69 @@ export function OrdersList({
           return (
             <Card
               key={order.id}
-              className={`p-5 border border-gray-200 hover:border-gray-300 hover:shadow-md bg-white transition-all duration-300 ${
+              className={`p-4 sm:p-5 border border-gray-200 hover:border-gray-300 hover:shadow-md bg-white transition-all duration-300 overflow-hidden ${
                 isDeleting ? "opacity-0 scale-95 -translate-x-4" : "opacity-100 scale-100 translate-x-0"
               }`}
             >
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4 gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-2 flex-wrap">
-                    <h3 className="text-xl font-bold text-gray-900">
-                      {order.customer_name}
-                      {customerNickname && <span className="text-teal-600 ml-2">({customerNickname})</span>}
-                    </h3>
-                    <Badge className={`text-xs px-2.5 py-1 border ${getStatusColor(order.status)}`}>
-                      {order.status}
-                    </Badge>
+              <div className="flex flex-col gap-3 mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 break-words">
+                        {order.customer_name}
+                        {customerNickname && <span className="text-teal-600 ml-2">({customerNickname})</span>}
+                      </h3>
+                      <Badge className={`text-xs px-2.5 py-1 border ${getStatusColor(order.status)}`}>
+                        {order.status}
+                      </Badge>
+                    </div>
+                    <p className="text-xs sm:text-sm text-gray-700 mb-1 break-all">
+                      📞 {order.customers?.phone || order.phone || "No phone"}
+                    </p>
+                    <p className="text-xs text-gray-500 mb-3">{formatTimeAgo(new Date(order.created_at))}</p>
                   </div>
-                  <p className="text-sm text-gray-700 mb-1">📞 {order.customers?.phone || order.phone || "No phone"}</p>
-                  <p className="text-xs text-gray-500 mb-3">{formatTimeAgo(new Date(order.created_at))}</p>
-                  <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    <StatusSelect orderId={order.id} currentStatus={order.status} />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        const whatsappLink = generateWhatsAppLink(order, items)
-                        window.open(whatsappLink, "_blank")
-                      }}
-                      className="h-9 border-green-300 text-green-600 hover:bg-green-50"
-                      disabled={!order.customers?.phone && !order.phone}
-                      title="Send order to customer via WhatsApp"
-                    >
-                      <MessageCircle className="h-4 w-4 mr-1" />
-                      Send
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setEditingOrder({ id: order.id, name: order.customer_name, items })}
-                      className="h-9 border-teal-300 text-teal-600 hover:bg-teal-50"
-                    >
-                      <Pencil className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
-                    <DeleteOrderButton
-                      orderId={order.id}
-                      customerName={order.customer_name}
-                      onDeleteStart={() => setDeletingOrderId(order.id)}
-                    />
+                  <div className="sm:text-right shrink-0">
+                    <p className="text-2xl sm:text-3xl font-bold text-gray-900">
+                      ${Number(order.total_price).toFixed(2)}
+                    </p>
                   </div>
                 </div>
-                <div className="sm:text-right shrink-0">
-                  <p className="text-3xl font-bold text-gray-900">${Number(order.total_price).toFixed(2)}</p>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <StatusSelect orderId={order.id} currentStatus={order.status} />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const whatsappLink = generateWhatsAppLink(order, items)
+                      window.open(whatsappLink, "_blank")
+                    }}
+                    className="h-9 text-xs sm:text-sm border-green-300 text-green-600 hover:bg-green-50"
+                    disabled={!order.customers?.phone && !order.phone}
+                    title="Send order to customer via WhatsApp"
+                  >
+                    <MessageCircle className="h-4 w-4 mr-1" />
+                    Send
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditingOrder({ id: order.id, name: order.customer_name, items })}
+                    className="h-9 text-xs sm:text-sm border-teal-300 text-teal-600 hover:bg-teal-50"
+                  >
+                    <Pencil className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
+                  <DeleteOrderButton
+                    orderId={order.id}
+                    customerName={order.customer_name}
+                    onDeleteStart={() => setDeletingOrderId(order.id)}
+                  />
                 </div>
               </div>
 
               <div className="border-t border-gray-100 pt-4 mt-4">
-                <p className="text-sm font-semibold mb-3 text-gray-700">Order Items:</p>
+                <p className="text-xs sm:text-sm font-semibold mb-3 text-gray-700">Order Items:</p>
                 <div className="space-y-4">
                   {Object.entries(itemsBySection).map(([section, sectionItems]) => (
                     <div key={section}>
@@ -370,9 +388,9 @@ export function OrdersList({
                         {sectionItems.map((item: OrderItem) => (
                           <div
                             key={item.id}
-                            className="flex items-center justify-between text-sm gap-3 py-2.5 px-3 bg-gray-50 rounded-md"
+                            className="flex items-center justify-between text-xs sm:text-sm gap-2 sm:gap-3 py-2 sm:py-2.5 px-2 sm:px-3 bg-gray-50 rounded-md"
                           >
-                            <span className="truncate text-gray-900">
+                            <span className="truncate text-gray-900 min-w-0">
                               <span className="font-semibold">{item.quantity}x</span> {item.item_name}
                             </span>
                             <span className="shrink-0 font-semibold text-gray-700">
