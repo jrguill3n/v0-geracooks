@@ -7,20 +7,15 @@ export async function GET() {
     const supabase = await createClient()
 
     console.log("[v0] Fetching orders data...")
-    // Get current orders data
     const { data: orders, error: ordersError } = await supabase
       .from("orders")
       .select(`
         id,
-        total,
+        total_price,
         created_at,
         status,
-        customer:customers(name, phone),
-        order_items(
-          quantity,
-          price_at_purchase,
-          menu_item:menu_items(name, section:menu_sections(name))
-        )
+        customer_name,
+        customer_id
       `)
       .order("created_at", { ascending: true })
 
@@ -36,6 +31,17 @@ export async function GET() {
       )
     }
     console.log("[v0] Orders fetched:", orders?.length || 0)
+
+    console.log("[v0] Fetching order items data...")
+    const { data: orderItems, error: orderItemsError } = await supabase
+      .from("order_items")
+      .select("*")
+      .order("created_at", { ascending: true })
+
+    if (orderItemsError) {
+      console.error("[v0] Order items query error:", JSON.stringify(orderItemsError, null, 2))
+    }
+    console.log("[v0] Order items fetched:", orderItems?.length || 0)
 
     console.log("[v0] Fetching historical sales data...")
     // Get historical sales data (may not exist yet)
@@ -53,13 +59,7 @@ export async function GET() {
     }
 
     console.log("[v0] Fetching customers data...")
-    // Get customer data
-    const { data: customers, error: customersError } = await supabase.from("customers").select(`
-        id,
-        name,
-        phone,
-        orders(id, total, created_at)
-      `)
+    const { data: customers, error: customersError } = await supabase.from("customers").select("*")
 
     if (customersError) {
       console.error("[v0] Customers query error:", JSON.stringify(customersError, null, 2))
@@ -77,6 +77,7 @@ export async function GET() {
     console.log("[v0] Analytics data fetched successfully")
     return NextResponse.json({
       orders: orders || [],
+      orderItems: orderItems || [],
       historicalSales: historicalSales || [],
       customers: customers || [],
     })
