@@ -25,9 +25,9 @@ self.addEventListener("push", (event) => {
     }
   }
 
-  const title = data.title || "New Order Received!"
+  const title = data.title || "New Order"
   const options = {
-    body: data.body || "A new order has been placed.",
+    body: data.body || "",
     icon: "/gera-logo.png",
     badge: "/gera-logo.png",
     vibrate: [200, 100, 200],
