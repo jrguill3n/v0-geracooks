@@ -1,6 +1,6 @@
 {
-  "name": "GERA COOKS Admin",
-  "short_name": "GERA Admin",
+  "name": "Gera Cooks",
+  "short_name": "Gera Cooks",
   "description": "Order management dashboard for GERA COOKS",
   "start_url": "/admin",
   "display": "standalone",
