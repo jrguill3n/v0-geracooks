@@ -175,22 +175,22 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-white to-secondary/30 pb-40">
       <div className="bg-white shadow-sm border-b-4 border-primary">
-        <div className="max-w-2xl mx-auto px-6 py-8">
+        <div className="max-w-2xl mx-auto px-6 py-4">
           <div className="flex flex-col items-center text-center">
-            <Image src="/gera-logo.png" alt="GERA COOKS" width={180} height={180} className="object-contain mb-4" />
-            <p className="text-base font-bold text-foreground tracking-wide">631-578-0700</p>
+            <Image src="/gera-logo.png" alt="GERA COOKS" width={140} height={140} className="object-contain mb-2" />
+            <p className="text-sm font-bold text-foreground tracking-wide">631-578-0700</p>
           </div>
         </div>
       </div>
 
       <div className="sticky top-0 z-50 bg-white shadow-md border-b border-primary/10">
-        <div className="max-w-2xl mx-auto px-4 py-4 overflow-x-auto">
+        <div className="max-w-2xl mx-auto px-4 py-3 overflow-x-auto">
           <div className="flex gap-2 min-w-max">
             {Object.keys(menuItems).map((category) => (
               <button
                 key={category}
                 onClick={() => scrollToSection(category)}
-                className="px-5 py-2.5 rounded-full bg-primary/10 text-primary font-bold text-sm hover:bg-primary hover:text-white transition-all duration-200 whitespace-nowrap shadow-sm"
+                className="px-4 py-2 rounded-full bg-primary/10 text-primary font-bold text-xs hover:bg-primary hover:text-white transition-all duration-200 whitespace-nowrap shadow-sm"
               >
                 {category}
               </button>
@@ -199,22 +199,22 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-6 py-8">
-        <div className="bg-white border-0 rounded-3xl shadow-lg p-8 mb-8">
-          <h2 className="text-2xl font-bold mb-6 text-foreground">Your Information</h2>
-          <div className="space-y-5">
+      <div className="max-w-2xl mx-auto px-6 py-4">
+        <div className="bg-white border-0 rounded-3xl shadow-lg p-6 mb-4">
+          <h2 className="text-xl font-bold mb-4 text-foreground">Your Information</h2>
+          <div className="space-y-4">
             <div>
-              <label className="block text-sm font-bold mb-3 text-foreground/70 tracking-wide">Name</label>
+              <label className="block text-xs font-bold mb-2 text-foreground/70 tracking-wide">Name</label>
               <Input
                 type="text"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 placeholder="Enter your name"
-                className="w-full bg-muted/50 border-0 focus:bg-white focus:ring-2 focus:ring-primary/20 h-14 rounded-2xl text-base shadow-sm"
+                className="w-full bg-muted/50 border-0 focus:bg-white focus:ring-2 focus:ring-primary/20 h-12 rounded-2xl text-sm shadow-sm"
               />
             </div>
             <div>
-              <label className="block text-sm font-bold mb-3 text-foreground/70 tracking-wide">Phone Number</label>
+              <label className="block text-xs font-bold mb-2 text-foreground/70 tracking-wide">Phone Number</label>
               <PhoneInput
                 countryCode={countryCode}
                 phoneNumber={phoneNumber}
@@ -228,7 +228,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
         {Object.entries(menuItems).map(([category, items]) => (
           <div
             key={category}
-            className="mb-6"
+            className="mb-4"
             ref={(el) => {
               sectionRefs.current[category] = el
             }}
@@ -236,16 +236,16 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
             <div className="bg-white border-0 rounded-3xl shadow-lg overflow-hidden">
               <button
                 onClick={() => toggleSection(category)}
-                className="w-full bg-gradient-to-r from-primary via-primary/95 to-primary/90 p-6 flex items-center justify-between hover:from-primary/95 hover:via-primary/90 hover:to-primary/85 transition-all duration-200"
+                className="w-full bg-gradient-to-r from-primary via-primary/95 to-primary/90 p-4 flex items-center justify-between hover:from-primary/95 hover:via-primary/90 hover:to-primary/85 transition-all duration-200"
               >
-                <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-bold text-white">{category}</h2>
-                  <span className="bg-white/20 text-white text-sm font-bold px-3 py-1 rounded-full">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-bold text-white">{category}</h2>
+                  <span className="bg-white/20 text-white text-xs font-bold px-2 py-0.5 rounded-full">
                     {items.length}
                   </span>
                 </div>
                 <div className="text-white">
-                  {expandedSections[category] ? <ChevronUp className="w-6 h-6" /> : <ChevronDown className="w-6 h-6" />}
+                  {expandedSections[category] ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                 </div>
               </button>
 
@@ -254,40 +254,40 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
                   expandedSections[category] ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"
                 }`}
               >
-                <div className="p-6">
-                  <div className="space-y-2">
+                <div className="p-4">
+                  <div className="space-y-1">
                     {items.map((item) => (
                       <div
                         key={item.name}
-                        className="flex items-center justify-between py-4 hover:bg-primary/5 px-4 -mx-4 rounded-2xl transition-all duration-200"
+                        className="flex items-center justify-between py-3 hover:bg-primary/5 px-3 -mx-3 rounded-2xl transition-all duration-200"
                       >
                         <div className="flex-1">
                           <div className="flex items-center">
-                            <p className="text-foreground font-bold text-lg">{item.name}</p>
+                            <p className="text-foreground font-bold text-base">{item.name}</p>
                             <InfoTooltip description={item.description || ""} itemName={item.name} price={item.price} />
                           </div>
-                          <p className="text-xl font-bold text-[color:var(--teal)] mt-1">${item.price}</p>
+                          <p className="text-lg font-bold text-[color:var(--teal)] mt-0.5">${item.price}</p>
                         </div>
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => updateQuantity(item.name, -1)}
                             disabled={!orderItems[item.name]}
-                            className="h-12 w-12 p-0 bg-primary/10 text-primary border-0 hover:bg-primary/20 disabled:opacity-30 disabled:bg-muted rounded-full font-bold shadow-sm"
+                            className="h-10 w-10 p-0 bg-primary/10 text-primary border-0 hover:bg-primary/20 disabled:opacity-30 disabled:bg-muted rounded-full font-bold shadow-sm"
                           >
-                            <Minus className="h-5 w-5" />
+                            <Minus className="h-4 w-4" />
                           </Button>
-                          <span className="w-10 text-center font-bold text-foreground text-lg">
+                          <span className="w-8 text-center font-bold text-foreground text-base">
                             {orderItems[item.name] || 0}
                           </span>
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => updateQuantity(item.name, 1)}
-                            className="h-12 w-12 p-0 bg-primary text-white border-0 hover:bg-primary/90 rounded-full font-bold shadow-md"
+                            className="h-10 w-10 p-0 bg-primary text-white border-0 hover:bg-primary/90 rounded-full font-bold shadow-md"
                           >
-                            <Plus className="h-5 w-5" />
+                            <Plus className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
@@ -299,8 +299,8 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
           </div>
         ))}
 
-        <div className="text-center py-6">
-          <p className="text-base text-foreground/60 italic font-medium">
+        <div className="text-center py-4">
+          <p className="text-sm text-foreground/60 italic font-medium">
             Nuestros empaques son de 1 libra y sirven aproximadamente 2 porciones.
           </p>
         </div>
