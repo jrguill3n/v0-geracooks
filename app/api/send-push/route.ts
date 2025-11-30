@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
     // Send push notification to all subscriptions
     const payload = JSON.stringify({
-      title: `New Order from ${customerName}`,
+      title: `New Order: ${customerName}`,
       body: "",
       url: "/admin",
       orderId,
