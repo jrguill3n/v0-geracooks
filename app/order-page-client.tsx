@@ -4,11 +4,11 @@ import type React from "react"
 import Image from "next/image"
 import { InfoTooltip } from "@/components/info-tooltip"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
-import { Minus, Plus, ShoppingBag } from "lucide-react"
+import { Minus, Plus, ShoppingBag, ChevronDown, ChevronUp } from "lucide-react"
 import { PhoneInput } from "@/components/phone-input"
 
 interface OrderPageClientProps {
@@ -25,6 +25,30 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
   const [notificationSent, setNotificationSent] = useState(false)
   const [notificationType, setNotificationType] = useState<string | null>(null)
   const [notificationError, setNotificationError] = useState<string | null>(null)
+
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
+    const categories = Object.keys(menuItems)
+    return { [categories[0]]: true }
+  })
+
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
+
+  const toggleSection = (category: string) => {
+    setExpandedSections((prev) => ({ ...prev, [category]: !prev[category] }))
+  }
+
+  const scrollToSection = (category: string) => {
+    const section = sectionRefs.current[category]
+    if (section) {
+      const offset = 200
+      const top = section.offsetTop - offset
+      window.scrollTo({ top, behavior: "smooth" })
+
+      if (!expandedSections[category]) {
+        setExpandedSections((prev) => ({ ...prev, [category]: true }))
+      }
+    }
+  }
 
   const updateQuantity = (itemName: string, change: number) => {
     setOrderItems((prev) => {
@@ -159,6 +183,22 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
         </div>
       </div>
 
+      <div className="sticky top-0 z-50 bg-white shadow-md border-b border-primary/10">
+        <div className="max-w-2xl mx-auto px-4 py-4 overflow-x-auto">
+          <div className="flex gap-2 min-w-max">
+            {Object.keys(menuItems).map((category) => (
+              <button
+                key={category}
+                onClick={() => scrollToSection(category)}
+                className="px-5 py-2.5 rounded-full bg-primary/10 text-primary font-bold text-sm hover:bg-primary hover:text-white transition-all duration-200 whitespace-nowrap shadow-sm"
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-2xl mx-auto px-6 py-8">
         <div className="bg-white border-0 rounded-3xl shadow-lg p-8 mb-8">
           <h2 className="text-2xl font-bold mb-6 text-foreground">Your Information</h2>
@@ -186,49 +226,73 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
         </div>
 
         {Object.entries(menuItems).map(([category, items]) => (
-          <div key={category} className="mb-8">
+          <div
+            key={category}
+            className="mb-6"
+            ref={(el) => {
+              sectionRefs.current[category] = el
+            }}
+          >
             <div className="bg-white border-0 rounded-3xl shadow-lg overflow-hidden">
-              <div className="bg-gradient-to-r from-primary via-primary/95 to-primary/90 p-6">
-                <h2 className="text-2xl font-bold text-white">{category}</h2>
-              </div>
-              <div className="p-6">
-                <div className="space-y-2">
-                  {items.map((item) => (
-                    <div
-                      key={item.name}
-                      className="flex items-center justify-between py-4 hover:bg-primary/5 px-4 -mx-4 rounded-2xl transition-all duration-200"
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center">
-                          <p className="text-foreground font-bold text-lg">{item.name}</p>
-                          <InfoTooltip description={item.description || ""} itemName={item.name} price={item.price} />
+              <button
+                onClick={() => toggleSection(category)}
+                className="w-full bg-gradient-to-r from-primary via-primary/95 to-primary/90 p-6 flex items-center justify-between hover:from-primary/95 hover:via-primary/90 hover:to-primary/85 transition-all duration-200"
+              >
+                <div className="flex items-center gap-3">
+                  <h2 className="text-2xl font-bold text-white">{category}</h2>
+                  <span className="bg-white/20 text-white text-sm font-bold px-3 py-1 rounded-full">
+                    {items.length}
+                  </span>
+                </div>
+                <div className="text-white">
+                  {expandedSections[category] ? <ChevronUp className="w-6 h-6" /> : <ChevronDown className="w-6 h-6" />}
+                </div>
+              </button>
+
+              <div
+                className={`transition-all duration-300 ease-in-out ${
+                  expandedSections[category] ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"
+                }`}
+              >
+                <div className="p-6">
+                  <div className="space-y-2">
+                    {items.map((item) => (
+                      <div
+                        key={item.name}
+                        className="flex items-center justify-between py-4 hover:bg-primary/5 px-4 -mx-4 rounded-2xl transition-all duration-200"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center">
+                            <p className="text-foreground font-bold text-lg">{item.name}</p>
+                            <InfoTooltip description={item.description || ""} itemName={item.name} price={item.price} />
+                          </div>
+                          <p className="text-xl font-bold text-[color:var(--teal)] mt-1">${item.price}</p>
                         </div>
-                        <p className="text-xl font-bold text-[color:var(--teal)] mt-1">${item.price}</p>
+                        <div className="flex items-center gap-4">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => updateQuantity(item.name, -1)}
+                            disabled={!orderItems[item.name]}
+                            className="h-12 w-12 p-0 bg-primary/10 text-primary border-0 hover:bg-primary/20 disabled:opacity-30 disabled:bg-muted rounded-full font-bold shadow-sm"
+                          >
+                            <Minus className="h-5 w-5" />
+                          </Button>
+                          <span className="w-10 text-center font-bold text-foreground text-lg">
+                            {orderItems[item.name] || 0}
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => updateQuantity(item.name, 1)}
+                            className="h-12 w-12 p-0 bg-primary text-white border-0 hover:bg-primary/90 rounded-full font-bold shadow-md"
+                          >
+                            <Plus className="h-5 w-5" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => updateQuantity(item.name, -1)}
-                          disabled={!orderItems[item.name]}
-                          className="h-12 w-12 p-0 bg-primary/10 text-primary border-0 hover:bg-primary/20 disabled:opacity-30 disabled:bg-muted rounded-full font-bold shadow-sm"
-                        >
-                          <Minus className="h-5 w-5" />
-                        </Button>
-                        <span className="w-10 text-center font-bold text-foreground text-lg">
-                          {orderItems[item.name] || 0}
-                        </span>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => updateQuantity(item.name, 1)}
-                          className="h-12 w-12 p-0 bg-primary text-white border-0 hover:bg-primary/90 rounded-full font-bold shadow-md"
-                        >
-                          <Plus className="h-5 w-5" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

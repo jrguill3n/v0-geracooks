@@ -18,6 +18,7 @@ interface Order {
   status: string
   created_at: string
   customers?: {
+    phone: string
     nickname: string
   }
 }
@@ -288,7 +289,7 @@ export function OrdersList({
                       {order.status}
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-700 mb-1">📞 {order.phone}</p>
+                  <p className="text-sm text-gray-700 mb-1">📞 {order.customers?.phone || order.phone || "No phone"}</p>
                   <p className="text-xs text-gray-500 mb-3">{formatTimeAgo(new Date(order.created_at))}</p>
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <StatusSelect orderId={order.id} currentStatus={order.status} />
