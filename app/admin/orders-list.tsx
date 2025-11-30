@@ -30,6 +30,7 @@ interface OrderItem {
   unit_price: number
   total_price: number
   section?: string // Add section field
+  extras?: Array<{ name: string; price: number }> // Add extras field to display selected extras
 }
 
 interface FilterTag {
@@ -159,6 +160,11 @@ export function OrdersList({
       message += `*${section.toUpperCase()}*\n`
       sectionItems.forEach((item: OrderItem) => {
         message += `• ${item.quantity}x ${item.item_name} - $${Number(item.total_price).toFixed(2)}\n`
+        if (item.extras && item.extras.length > 0) {
+          item.extras.forEach((extra) => {
+            message += `  + ${extra.name} - $${Number(extra.price).toFixed(2)}\n`
+          })
+        }
       })
       message += `\n`
     })
@@ -388,16 +394,31 @@ export function OrdersList({
                       </h4>
                       <div className="space-y-2">
                         {sectionItems.map((item: OrderItem) => (
-                          <div
-                            key={item.id}
-                            className="flex items-center justify-between text-base sm:text-lg gap-2 sm:gap-3 py-2.5 sm:py-3 px-3 sm:px-4 bg-gray-50 rounded-md"
-                          >
-                            <span className="truncate text-gray-900 min-w-0">
-                              <span className="font-semibold">{item.quantity}x</span> {item.item_name}
-                            </span>
-                            <span className="shrink-0 font-semibold text-gray-700">
-                              ${Number(item.total_price).toFixed(2)}
-                            </span>
+                          <div key={item.id} className="bg-gray-50 rounded-md">
+                            <div className="flex items-center justify-between text-base sm:text-lg gap-2 sm:gap-3 py-2.5 sm:py-3 px-3 sm:px-4">
+                              <span className="truncate text-gray-900 min-w-0">
+                                <span className="font-semibold">{item.quantity}x</span> {item.item_name}
+                              </span>
+                              <span className="shrink-0 font-semibold text-gray-700">
+                                ${Number(item.total_price).toFixed(2)}
+                              </span>
+                            </div>
+                            {item.extras && item.extras.length > 0 && (
+                              <div className="px-3 sm:px-4 pb-2.5 sm:pb-3 space-y-1">
+                                {item.extras.map((extra, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="flex items-center justify-between text-sm text-purple-700 pl-4"
+                                  >
+                                    <span className="flex items-center gap-1">
+                                      <span className="text-purple-400">+</span>
+                                      <span>{extra.name}</span>
+                                    </span>
+                                    <span className="font-medium">${Number(extra.price).toFixed(2)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>

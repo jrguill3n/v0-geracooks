@@ -86,14 +86,14 @@ export function AdminNav({ title, subtitle }: AdminNavProps) {
                   <Button
                     variant="outline"
                     size="lg"
-                    className={`w-full justify-start font-bold border-2 rounded-2xl px-6 ${
+                    className={`w-full justify-start font-bold border-2 rounded-xl px-5 py-6 text-base ${
                       isActive
-                        ? "bg-white text-primary border-white"
+                        ? "bg-white text-primary border-white shadow-md"
                         : "border-white/30 hover:bg-white/20 text-white bg-transparent"
                     }`}
                   >
-                    <Icon className="w-5 h-5 mr-3" />
-                    {item.label}
+                    <Icon className="w-5 h-5 mr-3 shrink-0" />
+                    <span>{item.label}</span>
                   </Button>
                 </Link>
               )
@@ -103,10 +103,10 @@ export function AdminNav({ title, subtitle }: AdminNavProps) {
                 variant="outline"
                 type="submit"
                 size="lg"
-                className="w-full justify-start font-bold border-2 border-white/30 hover:bg-white/20 text-white bg-transparent rounded-2xl px-6"
+                className="w-full justify-start font-bold border-2 border-white/30 hover:bg-white/20 text-white bg-transparent rounded-xl px-5 py-6 text-base"
               >
-                <LogOut className="w-5 h-5 mr-3" />
-                Logout
+                <LogOut className="w-5 h-5 mr-3 shrink-0" />
+                <span>Logout</span>
               </Button>
             </form>
           </div>
