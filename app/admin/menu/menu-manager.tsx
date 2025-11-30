@@ -678,10 +678,12 @@ export function MenuManager({
                 name="price"
                 type="number"
                 step="0.01"
-                placeholder="25.00"
+                min="0"
+                placeholder="0.00 for free options"
                 required
                 disabled={isSubmitting}
               />
+              <p className="text-xs text-gray-500 mt-1">Enter 0 for free options (like sauce choices)</p>
             </div>
             <Button type="submit" className="w-full bg-purple-500 hover:bg-purple-600" disabled={isSubmitting}>
               {isSubmitting ? "Adding..." : "Add Extra"}
