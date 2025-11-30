@@ -1,13 +1,18 @@
 "use client"
 
-import { useRef } from "react"
-import { useState } from "react"
 import type React from "react"
 import Image from "next/image"
 import { InfoTooltip } from "@/components/info-tooltip"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+
+import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
-import { ShoppingBag, ChevronDown, ChevronUp, Check } from "lucide-react"
+import { Minus, Plus, ShoppingBag, ChevronDown, ChevronUp } from "lucide-react"
+import { PhoneInput } from "@/components/phone-input"
 
 interface MenuItem {
   id: string
@@ -26,7 +31,7 @@ interface OrderItem {
   extras: string[] // Array of extra IDs
 }
 
-const OrderPageClient = ({ menuItems }: OrderPageClientProps) => {
+export function OrderPageClient({ menuItems }: OrderPageClientProps) {
   const [customerName, setCustomerName] = useState("")
   const [countryCode, setCountryCode] = useState("+1")
   const [phoneNumber, setPhoneNumber] = useState("")
@@ -37,8 +42,8 @@ const OrderPageClient = ({ menuItems }: OrderPageClientProps) => {
   const [notificationType, setNotificationType] = useState<string | null>(null)
   const [notificationError, setNotificationError] = useState<string | null>(null)
 
-  const [expandedItemExtras, setExpandedItemExtras] = useState<Record<string, boolean>>({})
-  const [selectedExtras, setSelectedExtras] = useState<Record<string, string[]>>({})
+  const [selectedItemForExtras, setSelectedItemForExtras] = useState<MenuItem | null>(null)
+  const [tempExtras, setTempExtras] = useState<string[]>([])
 
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
     const categories = Object.keys(menuItems)
@@ -64,9 +69,13 @@ const OrderPageClient = ({ menuItems }: OrderPageClientProps) => {
     }
   }
 
-  const handleAddItem = (itemName: string) => {
-    const extras = selectedExtras[itemName] || []
-    updateQuantity(itemName, 1, extras)
+  const handleAddItem = (item: MenuItem) => {
+    if (item.extras && item.extras.length > 0) {
+      setSelectedItemForExtras(item)
+      setTempExtras(orderItems[item.name]?.extras || [])
+    } else {
+      updateQuantity(item.name, 1)
+    }
   }
 
   const updateQuantity = (itemName: string, change: number, newExtras?: string[]) => {
@@ -76,10 +85,6 @@ const OrderPageClient = ({ menuItems }: OrderPageClientProps) => {
 
       if (newQuantity <= 0) {
         const { [itemName]: _, ...rest } = prev
-        setSelectedExtras((prevExtras) => {
-          const { [itemName]: _, ...restExtras } = prevExtras
-          return restExtras
-        })
         return rest
       }
 
@@ -93,16 +98,12 @@ const OrderPageClient = ({ menuItems }: OrderPageClientProps) => {
     })
   }
 
-  const toggleItemExtras = (itemName: string) => {
-    setExpandedItemExtras((prev) => ({ ...prev, [itemName]: !prev[itemName] }))
-  }
-
-  const toggleExtra = (itemName: string, extraId: string) => {
-    setSelectedExtras((prev) => {
-      const current = prev[itemName] || []
-      const updated = current.includes(extraId) ? current.filter((id) => id !== extraId) : [...current, extraId]
-      return { ...prev, [itemName]: updated }
-    })
+  const confirmExtras = () => {
+    if (selectedItemForExtras) {
+      updateQuantity(selectedItemForExtras.name, 1, tempExtras)
+      setSelectedItemForExtras(null)
+      setTempExtras([])
+    }
   }
 
   const getTotalItems = () => {
@@ -224,7 +225,7 @@ const OrderPageClient = ({ menuItems }: OrderPageClientProps) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-white to-secondary/30 pb-40">
       <div className="bg-white">
         <div className="max-w-2xl mx-auto px-6 py-2">
           <div className="flex flex-col items-center text-center">
@@ -249,153 +250,232 @@ const OrderPageClient = ({ menuItems }: OrderPageClientProps) => {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-3 pb-32 space-y-3">
-        {Object.entries(menuItems).map(([category, items]) => (
-          <div key={category} ref={(el) => (sectionRefs.current[category] = el)}>
-            <button
-              onClick={() => toggleSection(category)}
-              className="w-full flex items-center justify-between p-3 bg-white rounded-xl shadow-sm border-2 border-purple-100 hover:border-purple-300 transition-all mb-2"
-            >
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold text-gray-900">{category}</h2>
-                <span className="text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded-full font-semibold">
-                  {items.length}
-                </span>
-              </div>
-              {expandedSections[category] ? (
-                <ChevronUp className="h-5 w-5 text-purple-600" />
-              ) : (
-                <ChevronDown className="h-5 w-5 text-purple-600" />
-              )}
-            </button>
+      <div className="max-w-2xl mx-auto px-6 py-4">
+        <div className="bg-white border-0 rounded-3xl shadow-lg p-6 mb-4">
+          <h2 className="text-xl font-bold mb-4 text-foreground">Your Information</h2>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold mb-2 text-foreground/70 tracking-wide">Name</label>
+              <Input
+                type="text"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="Enter your name"
+                className="w-full bg-muted/50 border-0 focus:bg-white focus:ring-2 focus:ring-primary/20 h-12 rounded-2xl text-sm shadow-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold mb-2 text-foreground/70 tracking-wide">Phone Number</label>
+              <PhoneInput
+                countryCode={countryCode}
+                phoneNumber={phoneNumber}
+                onCountryCodeChange={setCountryCode}
+                onPhoneNumberChange={setPhoneNumber}
+              />
+            </div>
+          </div>
+        </div>
 
-            {expandedSections[category] && (
-              <div className="space-y-2">
-                {items.map((item) => (
-                  <div key={item.name} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div className="p-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-gray-900 text-base">{item.name}</h3>
-                            {item.description && (
-                              <InfoTooltip description={item.description} itemName={item.name} price={item.price} />
-                            )}
+        {Object.entries(menuItems).map(([category, items]) => (
+          <div
+            key={category}
+            className="mb-4"
+            ref={(el) => {
+              sectionRefs.current[category] = el
+            }}
+          >
+            <div className="bg-white border-0 rounded-3xl shadow-lg overflow-hidden">
+              <button
+                onClick={() => toggleSection(category)}
+                className="w-full bg-gradient-to-r from-primary via-primary/95 to-primary/90 p-4 flex items-center justify-between hover:from-primary/95 hover:via-primary/90 hover:to-primary/85 transition-all duration-200"
+              >
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-bold text-white">{category}</h2>
+                  <span className="bg-white/20 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                    {items.length}
+                  </span>
+                </div>
+                <div className="text-white">
+                  {expandedSections[category] ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                </div>
+              </button>
+
+              <div
+                className={`transition-all duration-300 ease-in-out ${
+                  expandedSections[category] ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"
+                }`}
+              >
+                <div className="p-4">
+                  <div className="space-y-1">
+                    {items.map((item) => (
+                      <div
+                        key={item.name}
+                        className="flex items-center justify-between py-3 hover:bg-primary/5 px-3 -mx-3 rounded-2xl transition-all duration-200"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center">
+                            <p className="text-foreground font-bold text-base">{item.name}</p>
+                            <InfoTooltip description={item.description || ""} itemName={item.name} price={item.price} />
                           </div>
-                          <p className="text-lg font-bold text-teal-400">${Number(item.price).toFixed(2)}</p>
+                          <p className="text-lg font-bold text-[color:var(--teal)] mt-0.5">${item.price}</p>
                           {item.extras && item.extras.length > 0 && (
-                            <button
-                              onClick={() => toggleItemExtras(item.name)}
-                              className="mt-2 text-xs text-purple-600 font-semibold flex items-center gap-1 hover:text-purple-700"
-                            >
-                              {expandedItemExtras[item.name] ? "Hide" : "Show"} options ({item.extras.length})
-                              {expandedItemExtras[item.name] ? (
-                                <ChevronUp className="h-3 w-3" />
-                              ) : (
-                                <ChevronDown className="h-3 w-3" />
-                              )}
-                            </button>
+                            <p className="text-xs text-purple-600 font-semibold mt-1">+ Extras available</p>
                           )}
                         </div>
-
-                        <div className="flex items-center gap-2">
-                          {orderItems[item.name] ? (
-                            <>
-                              <button
-                                onClick={() => updateQuantity(item.name, -1)}
-                                className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold hover:bg-purple-200 transition-colors"
-                              >
-                                −
-                              </button>
-                              <span className="w-8 text-center font-bold text-gray-900">
-                                {orderItems[item.name].quantity}
-                              </span>
-                              <button
-                                onClick={() => updateQuantity(item.name, 1, selectedExtras[item.name])}
-                                className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold hover:bg-purple-600 transition-colors"
-                              >
-                                +
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              onClick={() => handleAddItem(item.name)}
-                              className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center font-bold hover:bg-purple-600 transition-colors"
-                            >
-                              +
-                            </button>
-                          )}
+                        <div className="flex items-center gap-3">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => updateQuantity(item.name, -1)}
+                            disabled={!orderItems[item.name]}
+                            className="h-10 w-10 p-0 bg-primary/10 text-primary border-0 hover:bg-primary/20 disabled:opacity-30 disabled:bg-muted rounded-full font-bold shadow-sm"
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <span className="w-8 text-center font-bold text-foreground text-base">
+                            {orderItems[item.name]?.quantity || 0}
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleAddItem(item)}
+                            className="h-10 w-10 p-0 bg-primary text-white border-0 hover:bg-primary/90 rounded-full font-bold shadow-md"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
-
-                      {expandedItemExtras[item.name] && item.extras && item.extras.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
-                          {item.extras.map((extra) => {
-                            const isSelected = (selectedExtras[item.name] || []).includes(extra.id)
-                            const isFree = Number(extra.price) === 0
-
-                            return (
-                              <button
-                                key={extra.id}
-                                onClick={() => toggleExtra(item.name, extra.id)}
-                                className={`w-full flex items-center justify-between p-2 rounded-lg border-2 transition-all ${
-                                  isSelected
-                                    ? "border-purple-500 bg-purple-50"
-                                    : "border-gray-200 bg-white hover:border-purple-200"
-                                }`}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <div
-                                    className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                                      isSelected ? "border-purple-500 bg-purple-500" : "border-gray-300"
-                                    }`}
-                                  >
-                                    {isSelected && <Check className="h-3 w-3 text-white" />}
-                                  </div>
-                                  <span
-                                    className={`text-sm font-medium ${isSelected ? "text-purple-900" : "text-gray-700"}`}
-                                  >
-                                    {extra.name}
-                                  </span>
-                                </div>
-                                <span className={`text-sm font-bold ${isFree ? "text-gray-500" : "text-teal-400"}`}>
-                                  {isFree ? "Free" : `+$${Number(extra.price).toFixed(2)}`}
-                                </span>
-                              </button>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
+                    ))}
                   </div>
-                ))}
+                </div>
               </div>
-            )}
+            </div>
           </div>
         ))}
-      </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-primary p-6 z-[100] shadow-2xl">
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-bold text-white/90 tracking-wide mb-1">Total Items: {getTotalItems()}</p>
-              <p className="text-4xl font-bold text-white">${getTotalPrice()}</p>
-            </div>
-            <Button
-              onClick={handleSubmit}
-              size="lg"
-              className="bg-white text-primary font-bold hover:bg-white/95 shadow-xl px-10 py-7 text-lg rounded-2xl"
-              disabled={isSubmitting}
+        <div className="text-center py-4">
+          <p className="text-sm text-foreground/60 italic font-medium">
+            Nuestros empaques son de 1 libra y sirven aproximadamente 2 porciones.
+          </p>
+        </div>
+
+        <div className="bg-white border-0 rounded-3xl shadow-lg p-6 mt-6">
+          <h2 className="text-xl font-bold mb-4 text-center text-foreground">Contact Us</h2>
+          <div className="space-y-3">
+            <a
+              href="tel:+16315780700"
+              className="flex items-center gap-3 p-3 rounded-2xl hover:bg-primary/5 transition-colors"
             >
-              {isSubmitting ? "Submitting..." : "Submit Order"}
-            </Button>
+              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                  />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-foreground/60 font-bold uppercase tracking-wide">Phone</p>
+                <p className="text-base font-bold text-primary">+1 631 578 0700</p>
+              </div>
+            </a>
+
+            <a
+              href="mailto:geraguillent@gmail.com"
+              className="flex items-center gap-3 p-3 rounded-2xl hover:bg-primary/5 transition-colors"
+            >
+              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-foreground/60 font-bold uppercase tracking-wide">Email</p>
+                <p className="text-base font-bold text-primary">geraguillent@gmail.com</p>
+              </div>
+            </a>
+
+            <a
+              href="https://instagram.com/gera.cooks"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 p-3 rounded-2xl hover:bg-primary/5 transition-colors"
+            >
+              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.057-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.668.07-4.948.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-foreground/60 font-bold uppercase tracking-wide">Instagram</p>
+                <p className="text-base font-bold text-primary">@gera.cooks</p>
+              </div>
+            </a>
           </div>
         </div>
       </div>
+
+      {getTotalItems() > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-primary p-6 z-[100] shadow-2xl">
+          <div className="max-w-2xl mx-auto">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold text-white/90 tracking-wide mb-1">Total Items: {getTotalItems()}</p>
+                <p className="text-4xl font-bold text-white">${getTotalPrice()}</p>
+              </div>
+              <Button
+                onClick={handleSubmit}
+                size="lg"
+                className="bg-white text-primary font-bold hover:bg-white/95 shadow-xl px-10 py-7 text-lg rounded-2xl"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Submitting..." : "Submit Order"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Dialog open={!!selectedItemForExtras} onOpenChange={(open) => !open && setSelectedItemForExtras(null)}>
+        <DialogContent className="border-2 border-purple-300 max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Extras to {selectedItemForExtras?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">Select optional extras for this item:</p>
+            {selectedItemForExtras?.extras?.map((extra) => (
+              <div key={extra.id} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50">
+                <Checkbox
+                  id={extra.id}
+                  checked={tempExtras.includes(extra.id)}
+                  onCheckedChange={(checked) => {
+                    setTempExtras((prev) => (checked ? [...prev, extra.id] : prev.filter((id) => id !== extra.id)))
+                  }}
+                />
+                <Label htmlFor={extra.id} className="flex-1 cursor-pointer">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">{extra.name}</span>
+                    <span className="text-teal-400 font-bold">+${extra.price}</span>
+                  </div>
+                </Label>
+              </div>
+            ))}
+            <Button
+              onClick={confirmExtras}
+              className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-6 rounded-2xl"
+            >
+              Add to Order
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
-
-export { OrderPageClient }
-export default OrderPageClient
