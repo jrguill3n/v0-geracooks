@@ -4,14 +4,15 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 
+// VAPID public key - must match server
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ""
+
 export function PWAInstaller() {
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
-  const [lastOrderId, setLastOrderId] = useState<string | null>(null)
 
   useEffect(() => {
-    // Register service worker
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
         .register("/service-worker.js")
@@ -48,55 +49,6 @@ export function PWAInstaller() {
     }
   }, [])
 
-  // Poll for new orders
-  useEffect(() => {
-    if (!notificationsEnabled) return
-
-    const pollOrders = async () => {
-      try {
-        const response = await fetch("/api/check-new-orders", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ lastOrderId }),
-        })
-
-        const data = await response.json()
-
-        if (data.hasNewOrders && data.latestOrderId !== lastOrderId) {
-          // Show notification
-          if ("Notification" in window && Notification.permission === "granted") {
-            new Notification("New Order Received!", {
-              body: `Order from ${data.customerName}\nTotal: $${data.total}`,
-              icon: "/gera-logo.png",
-              badge: "/gera-logo.png",
-              vibrate: [200, 100, 200],
-              tag: "new-order",
-              requireInteraction: true,
-            })
-          }
-
-          setLastOrderId(data.latestOrderId)
-
-          // Play sound
-          try {
-            const audio = new Audio(
-              "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTcIGWi77eefTRAMUKfj8LZjHAY4ktfyy3ksBSR3x/DdkEAKFF606+uoVRQKRp/g8r5sIQUrgs7y2Yk3CBlou+3nn00QDFC",
-            )
-            audio.play().catch(() => {})
-          } catch (e) {}
-        }
-      } catch (error) {
-        console.error("[PWA] Error checking for new orders:", error)
-      }
-    }
-
-    // Poll every 10 seconds
-    const interval = setInterval(pollOrders, 10000)
-    pollOrders() // Initial check
-
-    return () => clearInterval(interval)
-  }, [notificationsEnabled, lastOrderId])
-
   const handleInstallClick = async () => {
     if (!deferredPrompt) return
 
@@ -117,22 +69,51 @@ export function PWAInstaller() {
       return
     }
 
-    const permission = await Notification.requestPermission()
-    setNotificationsEnabled(permission === "granted")
+    if (!("serviceWorker" in navigator)) {
+      alert("Service workers not supported")
+      return
+    }
 
-    if (permission === "granted") {
-      // Get the latest order ID to start tracking
-      try {
-        const response = await fetch("/api/check-new-orders", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
-        })
-        const data = await response.json()
-        setLastOrderId(data.latestOrderId)
-      } catch (error) {
-        console.error("[PWA] Error getting initial order:", error)
+    try {
+      const permission = await Notification.requestPermission()
+
+      if (permission !== "granted") {
+        alert("Notification permission denied")
+        return
       }
+
+      setNotificationsEnabled(true)
+
+      // Get service worker registration
+      const registration = await navigator.serviceWorker.ready
+
+      // Check if push is supported
+      if (!("pushManager" in registration)) {
+        alert("Push notifications not supported")
+        return
+      }
+
+      // Subscribe to push notifications
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      })
+
+      // Send subscription to server
+      const response = await fetch("/api/subscribe-push", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscription }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to save subscription")
+      }
+
+      console.log("[PWA] Push subscription successful")
+    } catch (error) {
+      console.error("[PWA] Error enabling notifications:", error)
+      alert("Failed to enable notifications. Please try again.")
     }
   }
 
@@ -183,8 +164,8 @@ export function PWAInstaller() {
               </svg>
             </div>
             <div className="flex-1">
-              <h3 className="font-bold text-foreground mb-1">Enable Notifications</h3>
-              <p className="text-sm text-foreground/60 mb-3">Get instant alerts when new orders are placed</p>
+              <h3 className="font-bold text-foreground mb-1">Enable Push Notifications</h3>
+              <p className="text-sm text-foreground/60 mb-3">Get instant alerts even when the app is closed</p>
               <Button onClick={handleEnableNotifications} size="sm" variant="default">
                 Enable Notifications
               </Button>
@@ -194,4 +175,16 @@ export function PWAInstaller() {
       )}
     </>
   )
+}
+
+// Helper function to convert VAPID key
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/")
+  const rawData = window.atob(base64)
+  const outputArray = new Uint8Array(rawData.length)
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i)
+  }
+  return outputArray
 }

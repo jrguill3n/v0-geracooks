@@ -37,19 +37,13 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
   const [phoneNumber, setPhoneNumber] = useState("")
   const [orderItems, setOrderItems] = useState<Record<string, OrderItem>>({})
   const [orderSubmitted, setOrderSubmitted] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [notificationSent, setNotificationSent] = useState(false)
-  const [notificationError, setNotificationError] = useState<string | null>(null)
-  const [twilioErrorDetails, setTwilioErrorDetails] = useState<any>(null)
-
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "submitting" | "success" | "error">("idle")
   const [selectedItemForExtras, setSelectedItemForExtras] = useState<MenuItem | null>(null)
   const [tempExtras, setTempExtras] = useState<string[]>([])
-
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
     const categories = Object.keys(menuItems)
     return { [categories[0]]: true }
   })
-
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
   const toggleSection = (category: string) => {
@@ -138,7 +132,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
       return
     }
 
-    setIsSubmitting(true)
+    setSubmitStatus("submitting")
 
     try {
       const cleanedPhoneNumber = phoneNumber.replace(/\D/g, "")
@@ -163,23 +157,16 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
       const responseData = await response.json()
       console.log("[v0] Order response:", responseData)
 
-      if (responseData.twilioErrorDetails) {
-        console.log("[v0] Twilio error details:", responseData.twilioErrorDetails)
-      }
-
       if (!response.ok) {
         throw new Error(`Failed to save order: ${JSON.stringify(responseData)}`)
       }
 
-      setNotificationSent(responseData.notificationSent || false)
-      setNotificationError(responseData.notificationError || null)
-      setTwilioErrorDetails(responseData.twilioErrorDetails || null)
       setOrderSubmitted(true)
+      setSubmitStatus("success")
     } catch (error) {
       console.error("[v0] Error submitting order:", error)
       alert(`There was an error saving your order: ${error}. Please try again.`)
-    } finally {
-      setIsSubmitting(false)
+      setSubmitStatus("error")
     }
   }
 
@@ -192,19 +179,11 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
               <ShoppingBag className="w-10 h-10 text-white" />
             </div>
             <h1 className="text-4xl mb-4 text-foreground font-bold">Thank You!</h1>
-            <p className="text-foreground/70 leading-relaxed text-lg mb-6">
-              Thank you for submitting your order, we will get in contact for your delivery.
-            </p>
-            {notificationSent ? (
-              <div className="bg-success/10 border-2 border-success/30 rounded-2xl p-4 mb-6">
-                <p className="text-sm text-success font-semibold">✓ SMS notification sent successfully</p>
-              </div>
-            ) : (
-              <div className="bg-warning/10 border-2 border-warning/30 rounded-2xl p-4 mb-6">
-                <p className="text-sm text-warning font-semibold">⚠ SMS notification not sent</p>
-                {notificationError && <p className="text-xs text-warning/80 mt-2 break-words">{notificationError}</p>}
-              </div>
-            )}
+            <div className="text-center space-y-4">
+              <p className="text-gray-600 text-base leading-relaxed">
+                Thank you for submitting your order, we will get in contact for your delivery.
+              </p>
+            </div>
           </div>
           <Button
             onClick={() => {
@@ -213,11 +192,9 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
               setCountryCode("+1")
               setPhoneNumber("")
               setOrderItems({})
-              setNotificationSent(false)
-              setNotificationError(null)
-              setTwilioErrorDetails(null)
+              setSubmitStatus("idle")
             }}
-            className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-6 text-lg rounded-2xl shadow-lg"
+            className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-6 rounded-2xl shadow-lg"
           >
             Place Another Order
           </Button>
@@ -436,9 +413,9 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
                 onClick={handleSubmit}
                 size="lg"
                 className="bg-white text-primary font-bold hover:bg-white/95 shadow-xl px-10 py-7 text-lg rounded-2xl"
-                disabled={isSubmitting}
+                disabled={submitStatus === "submitting"}
               >
-                {isSubmitting ? "Submitting..." : "Submit Order"}
+                {submitStatus === "submitting" ? "Submitting..." : "Submit Order"}
               </Button>
             </div>
           </div>

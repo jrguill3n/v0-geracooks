@@ -106,90 +106,24 @@ export async function POST(request: Request) {
       throw itemsError
     }
 
-    let notificationSent = false
-    let notificationError = null
-
     try {
-      const accountSid = process.env.TWILIO_ACCOUNT_SID
-      const authToken = process.env.TWILIO_AUTH_TOKEN
-      const twilioSmsFrom = process.env.TWILIO_SMS_FROM
-
-      if (!accountSid || !authToken || !twilioSmsFrom) {
-        const missingVars = []
-        if (!accountSid) missingVars.push("TWILIO_ACCOUNT_SID")
-        if (!authToken) missingVars.push("TWILIO_AUTH_TOKEN")
-        if (!twilioSmsFrom) missingVars.push("TWILIO_SMS_FROM")
-        notificationError = `Missing Twilio environment variables: ${missingVars.join(", ")}`
-        console.error("Error:", notificationError)
-      } else {
-        const itemsBySection: Record<
-          string,
-          Array<{ name: string; quantity: number; price: number; extras?: Array<{ name: string; price: number }> }>
-        > = {}
-
-        orderItemsData.forEach((item) => {
-          if (!itemsBySection[item.section]) {
-            itemsBySection[item.section] = []
-          }
-          itemsBySection[item.section].push({
-            name: item.item_name,
-            quantity: item.quantity,
-            price: item.total_price,
-            extras: item.extras,
-          })
-        })
-
-        let message = `New Order from GERA COOKS\n\n`
-        message += `Customer: ${customerName}\n`
-        message += `Phone: ${phone}\n`
-        message += `Order #${order.id}\n\n`
-
-        Object.entries(itemsBySection).forEach(([section, items]) => {
-          message += `${section.toUpperCase()}\n`
-          items.forEach((item) => {
-            message += `  ${item.quantity}x ${item.name}`
-            if (item.extras && item.extras.length > 0) {
-              message += `\n    Extras: ${item.extras.map((e) => `${e.name} (+$${e.price})`).join(", ")}`
-            }
-            message += ` - $${item.price.toFixed(2)}\n`
-          })
-          message += `\n`
-        })
-
-        message += `Total: $${totalPrice}`
-
-        const smsResponse = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
-          },
-          body: new URLSearchParams({
-            From: twilioSmsFrom,
-            To: "+16315780700",
-            Body: message,
-          }),
-        })
-
-        const smsData = await smsResponse.json()
-
-        if (!smsResponse.ok) {
-          notificationError = `SMS error: ${smsData.message || JSON.stringify(smsData)}`
-          console.error("SMS notification error:", notificationError)
-        } else {
-          notificationSent = true
-        }
-      }
-    } catch (error) {
-      notificationError = error instanceof Error ? error.message : String(error)
-      console.error("Error sending SMS notification:", error)
+      await fetch(`${request.headers.get("origin")}/api/send-push`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: order.id,
+          customerName,
+          total: totalPrice,
+        }),
+      })
+    } catch (pushError) {
+      console.error("[v0] Error sending push notification:", pushError)
+      // Don't fail the order if push fails
     }
 
     return NextResponse.json({
       success: true,
       orderId: order.id,
-      notificationSent,
-      notificationError,
     })
   } catch (error) {
     console.error("[v0] Error saving order:", error)
