@@ -21,18 +21,20 @@ import { DollarSign, ShoppingCart, Users, TrendingUp } from "lucide-react"
 
 interface Order {
   id: string
-  total: number
+  total_price: number
   created_at: string
   status: string
-  customer: { name: string; phone: string }
-  order_items: Array<{
-    quantity: number
-    price_at_purchase: number
-    menu_item: {
-      name: string
-      section: { name: string }
-    }
-  }>
+  customer_name: string
+  customer_id: string
+}
+
+interface OrderItem {
+  id: string
+  order_id: string
+  item_name: string
+  quantity: number
+  price_at_purchase: number
+  created_at: string
 }
 
 interface HistoricalSale {
@@ -45,11 +47,12 @@ interface Customer {
   id: string
   name: string
   phone: string
-  orders: Array<{ id: string; total: number; created_at: string }>
+  created_at: string
 }
 
 interface AnalyticsData {
   orders: Order[]
+  orderItems: OrderItem[]
   historicalSales: HistoricalSale[]
   customers: Customer[]
 }
@@ -136,14 +139,14 @@ export function AnalyticsDashboard() {
     )
   }
 
-  const totalRevenue = data.orders?.reduce((sum, order) => sum + (order.total || 0), 0) || 0
-  const totalOrders = data.orders?.length || 0
-  const totalCustomers = data.customers?.length || 0
+  const totalRevenue = (data.orders || []).reduce((sum, order) => sum + (order.total_price || 0), 0)
+  const totalOrders = (data.orders || []).length
+  const totalCustomers = (data.customers || []).length
   const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0
 
   const revenueByMonth = [...(data.historicalSales || [])]
 
-  const currentYearOrders = data.orders.filter((order) => {
+  const currentYearOrders = (data.orders || []).filter((order) => {
     const orderDate = new Date(order.created_at)
     return orderDate.getFullYear() === 2025
   })
@@ -151,7 +154,7 @@ export function AnalyticsDashboard() {
   const currentMonthRevenue: { [key: number]: number } = {}
   currentYearOrders.forEach((order) => {
     const month = new Date(order.created_at).getMonth() + 1
-    currentMonthRevenue[month] = (currentMonthRevenue[month] || 0) + order.total
+    currentMonthRevenue[month] = (currentMonthRevenue[month] || 0) + order.total_price
   })
 
   Object.entries(currentMonthRevenue).forEach(([month, revenue]) => {
@@ -171,15 +174,13 @@ export function AnalyticsDashboard() {
   }))
 
   const itemSales: { [key: string]: { count: number; revenue: number } } = {}
-  data.orders.forEach((order) => {
-    order.order_items.forEach((item) => {
-      const itemName = item.menu_item.name
-      if (!itemSales[itemName]) {
-        itemSales[itemName] = { count: 0, revenue: 0 }
-      }
-      itemSales[itemName].count += item.quantity
-      itemSales[itemName].revenue += item.quantity * item.price_at_purchase
-    })
+  ;(data.orderItems || []).forEach((item) => {
+    const itemName = item.item_name
+    if (!itemSales[itemName]) {
+      itemSales[itemName] = { count: 0, revenue: 0 }
+    }
+    itemSales[itemName].count += item.quantity
+    itemSales[itemName].revenue += item.quantity * item.price_at_purchase
   })
 
   const topItems = Object.entries(itemSales)
@@ -191,26 +192,27 @@ export function AnalyticsDashboard() {
       revenue: data.revenue,
     }))
 
-  const sectionRevenue: { [key: string]: number } = {}
-  data.orders.forEach((order) => {
-    order.order_items.forEach((item) => {
-      const sectionName = item.menu_item.section.name
-      sectionRevenue[sectionName] = (sectionRevenue[sectionName] || 0) + item.quantity * item.price_at_purchase
-    })
+  const sectionData: { name: string; value: number }[] = []
+
+  const customerSpending: { [key: string]: { name: string; phone: string; orderCount: number; totalSpent: number } } =
+    {}
+  ;(data.orders || []).forEach((order) => {
+    const customerId = order.customer_id
+    if (!customerSpending[customerId]) {
+      // Find customer details
+      const customer = (data.customers || []).find((c) => c.id === customerId)
+      customerSpending[customerId] = {
+        name: order.customer_name || customer?.name || "Unknown",
+        phone: customer?.phone || "",
+        orderCount: 0,
+        totalSpent: 0,
+      }
+    }
+    customerSpending[customerId].orderCount++
+    customerSpending[customerId].totalSpent += order.total_price
   })
 
-  const sectionData = Object.entries(sectionRevenue).map(([name, value]) => ({
-    name,
-    value,
-  }))
-
-  const topCustomers = data.customers
-    .map((customer) => ({
-      name: customer.name,
-      phone: customer.phone,
-      orderCount: customer.orders.length,
-      totalSpent: customer.orders.reduce((sum, order) => sum + order.total, 0),
-    }))
+  const topCustomers = Object.values(customerSpending)
     .sort((a, b) => b.totalSpent - a.totalSpent)
     .slice(0, 5)
 
@@ -223,8 +225,7 @@ export function AnalyticsDashboard() {
     Friday: 0,
     Saturday: 0,
   }
-
-  data.orders.forEach((order) => {
+  ;(data.orders || []).forEach((order) => {
     const dayName = new Date(order.created_at).toLocaleDateString("en-US", { weekday: "long" })
     dayOfWeekOrders[dayName]++
   })
@@ -343,65 +344,71 @@ export function AnalyticsDashboard() {
             <CardDescription>Best performers by quantity sold</CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer
-              config={{
-                count: {
-                  label: "Quantity",
-                  color: "hsl(var(--chart-2))",
-                },
-              }}
-              className="h-[300px]"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={topItems} layout="horizontal">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" fontSize={12} />
-                  <YAxis dataKey="name" type="category" width={100} fontSize={12} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="count" fill="var(--color-count)" name="Quantity" />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
+            {topItems.length > 0 ? (
+              <ChartContainer
+                config={{
+                  count: {
+                    label: "Quantity",
+                    color: "hsl(var(--chart-2))",
+                  },
+                }}
+                className="h-[300px]"
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={topItems} layout="horizontal">
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" fontSize={12} />
+                    <YAxis dataKey="name" type="category" width={100} fontSize={12} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="count" fill="var(--color-count)" name="Quantity" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-gray-500">No item data available</div>
+            )}
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Revenue by Section</CardTitle>
-            <CardDescription>Sales distribution across menu sections</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer
-              config={{
-                value: {
-                  label: "Revenue",
-                  color: "hsl(var(--chart-3))",
-                },
-              }}
-              className="h-[300px]"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={sectionData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={(entry) => `${entry.name}: $${entry.value.toFixed(0)}`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {sectionData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                </PieChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </CardContent>
-        </Card>
+        {sectionData.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Revenue by Section</CardTitle>
+              <CardDescription>Sales distribution across menu sections</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer
+                config={{
+                  value: {
+                    label: "Revenue",
+                    color: "hsl(var(--chart-3))",
+                  },
+                }}
+                className="h-[300px]"
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={sectionData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={(entry) => `${entry.name}: $${entry.value.toFixed(0)}`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {sectionData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <Card>
