@@ -379,16 +379,18 @@ export function OrdersList({
               </div>
 
               <div className="border-t border-gray-100 pt-4 mt-4">
-                <p className="text-xs sm:text-sm font-semibold mb-3 text-gray-700">Order Items:</p>
+                <p className="text-sm sm:text-base font-semibold mb-3 text-gray-700">Order Items:</p>
                 <div className="space-y-4">
                   {Object.entries(itemsBySection).map(([section, sectionItems]) => (
                     <div key={section}>
-                      <h4 className="text-xs font-bold text-primary uppercase mb-2 tracking-wide">{section}</h4>
+                      <h4 className="text-sm sm:text-base font-bold text-primary uppercase mb-2 tracking-wide">
+                        {section}
+                      </h4>
                       <div className="space-y-2">
                         {sectionItems.map((item: OrderItem) => (
                           <div
                             key={item.id}
-                            className="flex items-center justify-between text-xs sm:text-sm gap-2 sm:gap-3 py-2 sm:py-2.5 px-2 sm:px-3 bg-gray-50 rounded-md"
+                            className="flex items-center justify-between text-base sm:text-lg gap-2 sm:gap-3 py-2.5 sm:py-3 px-3 sm:px-4 bg-gray-50 rounded-md"
                           >
                             <span className="truncate text-gray-900 min-w-0">
                               <span className="font-semibold">{item.quantity}x</span> {item.item_name}
