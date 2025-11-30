@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -31,10 +31,20 @@ interface OrderItem {
   extras: string[] // Array of extra IDs
 }
 
+interface Customer {
+  name: string
+  country_code: string
+  phone_number: string
+}
+
 export function OrderPageClient({ menuItems }: OrderPageClientProps) {
   const [customerName, setCustomerName] = useState("")
   const [countryCode, setCountryCode] = useState("+1")
   const [phoneNumber, setPhoneNumber] = useState("")
+  const [customerSuggestions, setCustomerSuggestions] = useState<Customer[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1)
+  const suggestionTimeoutRef = useRef<NodeJS.Timeout>()
   const [orderItems, setOrderItems] = useState<Record<string, OrderItem>>({})
   const [orderSubmitted, setOrderSubmitted] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<"idle" | "submitting" | "success" | "error">("idle")
@@ -45,6 +55,66 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
     return { [categories[0]]: true }
   })
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
+
+  useEffect(() => {
+    if (customerName.length >= 2 || phoneNumber.length >= 3) {
+      if (suggestionTimeoutRef.current) {
+        clearTimeout(suggestionTimeoutRef.current)
+      }
+
+      suggestionTimeoutRef.current = setTimeout(async () => {
+        try {
+          const query = customerName || phoneNumber
+          const response = await fetch(`/api/customer-suggestions?query=${encodeURIComponent(query)}`)
+          const data = await response.json()
+
+          if (data.customers && data.customers.length > 0) {
+            setCustomerSuggestions(data.customers)
+            setShowSuggestions(true)
+          } else {
+            setCustomerSuggestions([])
+            setShowSuggestions(false)
+          }
+        } catch (error) {
+          console.error("[v0] Error fetching suggestions:", error)
+        }
+      }, 300)
+    } else {
+      setCustomerSuggestions([])
+      setShowSuggestions(false)
+    }
+
+    return () => {
+      if (suggestionTimeoutRef.current) {
+        clearTimeout(suggestionTimeoutRef.current)
+      }
+    }
+  }, [customerName, phoneNumber])
+
+  const selectSuggestion = (customer: Customer) => {
+    setCustomerName(customer.name)
+    setCountryCode(customer.country_code)
+    setPhoneNumber(customer.phone_number)
+    setShowSuggestions(false)
+    setCustomerSuggestions([])
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions || customerSuggestions.length === 0) return
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault()
+      setSelectedSuggestionIndex((prev) => (prev < customerSuggestions.length - 1 ? prev + 1 : 0))
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault()
+      setSelectedSuggestionIndex((prev) => (prev > 0 ? prev - 1 : customerSuggestions.length - 1))
+    } else if (e.key === "Enter" && selectedSuggestionIndex >= 0) {
+      e.preventDefault()
+      selectSuggestion(customerSuggestions[selectedSuggestionIndex])
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false)
+    }
+  }
 
   const toggleSection = (category: string) => {
     setExpandedSections((prev) => ({ ...prev, [category]: !prev[category] }))
@@ -237,11 +307,35 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
               <label className="block text-xs font-bold mb-2 text-foreground/70 tracking-wide">Name</label>
               <Input
                 type="text"
+                name="name"
+                autoComplete="name"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onFocus={() => customerSuggestions.length > 0 && setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                 placeholder="Enter your name"
                 className="w-full bg-muted/50 border-0 focus:bg-white focus:ring-2 focus:ring-primary/20 h-12 rounded-2xl text-sm shadow-sm"
               />
+              {showSuggestions && customerSuggestions.length > 0 && (
+                <div className="absolute z-50 w-full mt-2 bg-white border border-primary/20 rounded-2xl shadow-xl max-h-60 overflow-y-auto">
+                  {customerSuggestions.map((customer, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => selectSuggestion(customer)}
+                      className={`w-full text-left px-4 py-3 hover:bg-primary/5 transition-colors first:rounded-t-2xl last:rounded-b-2xl ${
+                        index === selectedSuggestionIndex ? "bg-primary/10" : ""
+                      }`}
+                    >
+                      <div className="font-bold text-foreground">{customer.name}</div>
+                      <div className="text-xs text-foreground/60 mt-0.5">
+                        {customer.country_code} {customer.phone_number}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-xs font-bold mb-2 text-foreground/70 tracking-wide">Phone Number</label>
@@ -389,7 +483,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
             >
               <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
                 <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.057-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.668.07-4.948.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
+                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.668-.072 4.948-.149 3.225-1.664 4.771-4.919 4.919-1.266.057-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.668.07-4.948.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
                 </svg>
               </div>
               <div className="flex-1">

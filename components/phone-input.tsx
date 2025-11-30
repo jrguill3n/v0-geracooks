@@ -171,6 +171,8 @@ export function PhoneInput({ countryCode, phoneNumber, onCountryCodeChange, onPh
       {/* Phone Number Input */}
       <Input
         type="tel"
+        name="tel"
+        autoComplete="tel"
         value={phoneNumber}
         onChange={(e) => onPhoneNumberChange(e.target.value)}
         placeholder="5551234567"
