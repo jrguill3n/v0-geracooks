@@ -57,7 +57,23 @@ interface AnalyticsData {
   customers: Customer[]
 }
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D"]
+const CHART_COLORS = {
+  purple: "#7c3aed", // vibrant purple
+  teal: "#14b8a6", // bright teal
+  pink: "#ec4899", // pink accent
+  orange: "#f97316", // orange accent
+  blue: "#3b82f6", // blue accent
+  green: "#10b981", // green accent
+}
+
+const PIE_COLORS = [
+  CHART_COLORS.purple,
+  CHART_COLORS.teal,
+  CHART_COLORS.pink,
+  CHART_COLORS.orange,
+  CHART_COLORS.blue,
+  CHART_COLORS.green,
+]
 
 const MONTH_NAMES = [
   "January",
@@ -167,11 +183,19 @@ export function AnalyticsDashboard() {
     }
   })
 
-  const revenueTrendData = revenueByMonth.map((item) => ({
-    date: `${MONTH_NAMES[item.month - 1]} ${item.year}`,
-    revenue: item.revenue,
-    year: item.year,
-  }))
+  const revenueTrendData = revenueByMonth
+    .sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year
+      return a.month - b.month
+    })
+    .map((item) => ({
+      date: `${MONTH_NAMES[item.month - 1].slice(0, 3)} ${item.year}`,
+      revenue: Number(item.revenue),
+      year: item.year,
+      fullDate: `${MONTH_NAMES[item.month - 1]} ${item.year}`,
+    }))
+
+  console.log("[v0] Revenue trend data:", revenueTrendData)
 
   const itemSales: { [key: string]: { count: number; revenue: number } } = {}
   ;(data.orderItems || []).forEach((item) => {
@@ -250,13 +274,13 @@ export function AnalyticsDashboard() {
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
+        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-purple-900">Total Revenue</CardTitle>
+            <DollarSign className="h-5 w-5 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-purple-900">
               $
               {(
                 totalRevenue +
@@ -264,72 +288,95 @@ export function AnalyticsDashboard() {
                 revenueByMonth.filter((r) => r.year === 2023).reduce((s, r) => s + r.revenue, 0)
               ).toFixed(2)}
             </div>
-            <p className="text-xs text-muted-foreground">All time</p>
+            <p className="text-xs text-purple-700">All time</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-teal-50 to-teal-100 border-teal-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-teal-900">Total Orders</CardTitle>
+            <ShoppingCart className="h-5 w-5 text-teal-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalOrders}</div>
-            <p className="text-xs text-muted-foreground">Since tracking started</p>
+            <div className="text-2xl font-bold text-teal-900">{totalOrders}</div>
+            <p className="text-xs text-teal-700">Since tracking started</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-pink-50 to-pink-100 border-pink-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-pink-900">Total Customers</CardTitle>
+            <Users className="h-5 w-5 text-pink-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalCustomers}</div>
-            <p className="text-xs text-muted-foreground">Unique customers</p>
+            <div className="text-2xl font-bold text-pink-900">{totalCustomers}</div>
+            <p className="text-xs text-pink-700">Unique customers</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">YoY Growth</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-orange-900">YoY Growth</CardTitle>
+            <TrendingUp className="h-5 w-5 text-orange-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{yoyGrowth}%</div>
-            <p className="text-xs text-muted-foreground">2025 vs 2024</p>
+            <div className="text-2xl font-bold text-orange-900">{yoyGrowth}%</div>
+            <p className="text-xs text-orange-700">2025 vs 2024</p>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Revenue Trend</CardTitle>
-          <CardDescription>Monthly revenue from 2023 to present</CardDescription>
+      <Card className="border-purple-200 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-purple-100 via-purple-50 to-teal-100 border-b border-purple-200">
+          <CardTitle className="text-2xl font-bold text-purple-900">Revenue Trend</CardTitle>
+          <CardDescription className="text-purple-700 text-base">Monthly revenue from 2023 to present</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <ChartContainer
             config={{
               revenue: {
-                label: "Revenue",
-                color: "hsl(var(--chart-1))",
+                label: "Revenue ($)",
+                color: CHART_COLORS.purple,
               },
             }}
-            className="h-[300px] sm:h-[400px]"
+            className="h-[350px] sm:h-[450px]"
           >
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={revenueTrendData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" angle={-45} textAnchor="end" height={80} fontSize={12} />
-                <YAxis fontSize={12} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Legend />
+              <LineChart data={revenueTrendData} margin={{ top: 5, right: 30, left: 20, bottom: 60 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e9d5ff" />
+                <XAxis
+                  dataKey="date"
+                  angle={-45}
+                  textAnchor="end"
+                  height={100}
+                  fontSize={11}
+                  stroke="#7c3aed"
+                  interval={0}
+                />
+                <YAxis
+                  fontSize={12}
+                  stroke="#7c3aed"
+                  label={{ value: "Revenue ($)", angle: -90, position: "insideLeft", style: { fill: "#7c3aed" } }}
+                />
+                <ChartTooltip
+                  content={<ChartTooltipContent />}
+                  labelFormatter={(value, payload) => {
+                    if (payload && payload[0]) {
+                      return payload[0].payload.fullDate
+                    }
+                    return value
+                  }}
+                  formatter={(value: number) => [`$${value.toFixed(2)}`, "Revenue"]}
+                />
+                <Legend wrapperStyle={{ paddingTop: "20px" }} />
                 <Line
                   type="monotone"
                   dataKey="revenue"
-                  stroke="var(--color-revenue)"
-                  strokeWidth={2}
+                  stroke={CHART_COLORS.purple}
+                  strokeWidth={3}
                   name="Revenue ($)"
+                  dot={{ fill: CHART_COLORS.purple, r: 5, strokeWidth: 2, stroke: "#fff" }}
+                  activeDot={{ r: 7, strokeWidth: 2 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -338,29 +385,29 @@ export function AnalyticsDashboard() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Top Selling Items</CardTitle>
-            <CardDescription>Best performers by quantity sold</CardDescription>
+        <Card className="border-teal-200">
+          <CardHeader className="bg-gradient-to-r from-teal-50 to-purple-50">
+            <CardTitle className="text-teal-900">Top Selling Items</CardTitle>
+            <CardDescription className="text-teal-700">Best performers by quantity sold</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {topItems.length > 0 ? (
               <ChartContainer
                 config={{
                   count: {
                     label: "Quantity",
-                    color: "hsl(var(--chart-2))",
+                    color: CHART_COLORS.teal,
                   },
                 }}
                 className="h-[300px]"
               >
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={topItems} layout="horizontal">
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" fontSize={12} />
-                    <YAxis dataKey="name" type="category" width={100} fontSize={12} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ccfbf1" />
+                    <XAxis type="number" fontSize={12} stroke="#14b8a6" />
+                    <YAxis dataKey="name" type="category" width={100} fontSize={12} stroke="#14b8a6" />
                     <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey="count" fill="var(--color-count)" name="Quantity" />
+                    <Bar dataKey="count" fill={CHART_COLORS.teal} name="Quantity" radius={[0, 8, 8, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartContainer>
@@ -371,17 +418,17 @@ export function AnalyticsDashboard() {
         </Card>
 
         {sectionData.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Revenue by Section</CardTitle>
-              <CardDescription>Sales distribution across menu sections</CardDescription>
+          <Card className="border-pink-200">
+            <CardHeader className="bg-gradient-to-r from-pink-50 to-orange-50">
+              <CardTitle className="text-pink-900">Revenue by Section</CardTitle>
+              <CardDescription className="text-pink-700">Sales distribution across menu sections</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <ChartContainer
                 config={{
                   value: {
                     label: "Revenue",
-                    color: "hsl(var(--chart-3))",
+                    color: CHART_COLORS.pink,
                   },
                 }}
                 className="h-[300px]"
@@ -399,7 +446,7 @@ export function AnalyticsDashboard() {
                       dataKey="value"
                     >
                       {sectionData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                       ))}
                     </Pie>
                     <ChartTooltip content={<ChartTooltipContent />} />
@@ -411,55 +458,58 @@ export function AnalyticsDashboard() {
         )}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Orders by Day of Week</CardTitle>
-          <CardDescription>Peak ordering days</CardDescription>
+      <Card className="border-purple-200">
+        <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
+          <CardTitle className="text-purple-900">Orders by Day of Week</CardTitle>
+          <CardDescription className="text-purple-700">Peak ordering days</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <ChartContainer
             config={{
               orders: {
                 label: "Orders",
-                color: "hsl(var(--chart-4))",
+                color: CHART_COLORS.pink,
               },
             }}
             className="h-[300px]"
           >
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={dayOfWeekData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" fontSize={12} />
-                <YAxis fontSize={12} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#fce7f3" />
+                <XAxis dataKey="day" fontSize={12} stroke="#ec4899" />
+                <YAxis fontSize={12} stroke="#ec4899" />
                 <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="orders" fill="var(--color-orders)" name="Orders" />
+                <Bar dataKey="orders" fill={CHART_COLORS.pink} name="Orders" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </ChartContainer>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Top Customers</CardTitle>
-          <CardDescription>Best customers by total spending</CardDescription>
+      <Card className="border-teal-200">
+        <CardHeader className="bg-gradient-to-r from-teal-50 to-purple-50">
+          <CardTitle className="text-teal-900">Top Customers</CardTitle>
+          <CardDescription className="text-teal-700">Best customers by total spending</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="space-y-4">
             {topCustomers.map((customer, index) => (
-              <div key={customer.phone} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div
+                key={customer.phone}
+                className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-teal-50 rounded-xl border border-purple-200"
+              >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-teal-500 text-white rounded-full flex items-center justify-center font-bold text-lg">
                     {index + 1}
                   </div>
                   <div>
-                    <div className="font-semibold text-base">{customer.name}</div>
-                    <div className="text-sm text-gray-600">{customer.phone}</div>
+                    <div className="font-semibold text-base text-purple-900">{customer.name}</div>
+                    <div className="text-sm text-teal-700">{customer.phone}</div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-bold text-lg">${customer.totalSpent.toFixed(2)}</div>
-                  <div className="text-sm text-gray-600">{customer.orderCount} orders</div>
+                  <div className="font-bold text-xl text-purple-900">${customer.totalSpent.toFixed(2)}</div>
+                  <div className="text-sm text-teal-700">{customer.orderCount} orders</div>
                 </div>
               </div>
             ))}
