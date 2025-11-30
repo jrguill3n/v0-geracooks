@@ -334,9 +334,10 @@ export function OrdersList({
                       }}
                       className="h-9 border-green-300 text-green-600 hover:bg-green-50"
                       disabled={!order.customers?.phone && !order.phone}
+                      title="Send order to customer via WhatsApp"
                     >
                       <MessageCircle className="h-4 w-4 mr-1" />
-                      Send to Customer
+                      Send
                     </Button>
                     <Button
                       size="sm"
