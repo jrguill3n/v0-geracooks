@@ -15,6 +15,7 @@ export const metadata: Metadata = {
   title: "GERA COOKS - Order Menu",
   description: "Order delicious homemade Mexican food from GERA COOKS",
   generator: "v0.app",
+  manifest: "/manifest.json",
   icons: {
     icon: [
       {
@@ -32,6 +33,11 @@ export const metadata: Metadata = {
     ],
     apple: "/apple-icon.png",
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "GERA COOKS Admin",
+  },
 }
 
 export default function RootLayout({
@@ -41,6 +47,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="GERA Admin" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="theme-color" content="#9333ea" />
+      </head>
       <body className={`${inter.variable} antialiased`}>
         {children}
         <Analytics />

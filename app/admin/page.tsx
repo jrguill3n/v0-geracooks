@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { checkAuth } from "@/lib/auth"
 import { OrdersList } from "./orders-list"
 import { AdminNav } from "@/components/admin-nav"
+import { PWAInstaller } from "@/components/pwa-installer"
 
 interface Order {
   id: string
@@ -129,6 +130,8 @@ export default async function AdminPage({
       <AdminNav title="GERA COOKS Admin" subtitle="Order Management Dashboard" />
 
       <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6">
+        <PWAInstaller />
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <Card className="p-6 sm:p-8 border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white rounded-3xl">
             <div className="flex items-center justify-between">

@@ -140,24 +140,26 @@ function SortableItem({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+      className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 gap-3"
     >
-      <div className="flex items-center gap-2 flex-1">
-        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing flex-shrink-0">
           <GripVertical className="h-4 w-4 text-gray-400" />
         </div>
-        <div className="flex-1">
-          <p className="font-semibold text-gray-900">{item.name}</p>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-gray-900 break-words">{item.name}</p>
           <p className="text-sm text-teal-400 font-bold">${Number(item.price).toFixed(2)}</p>
-          {item.description && <p className="text-xs text-gray-500 mt-1 line-clamp-1">{item.description}</p>}
+          {item.description && (
+            <p className="text-xs text-gray-500 mt-1 line-clamp-1 break-words">{item.description}</p>
+          )}
         </div>
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-1 sm:gap-2 flex-wrap sm:flex-nowrap">
         <Button
           variant="outline"
           size="sm"
           onClick={onManageExtras}
-          className="text-purple-600 border-purple-300 hover:bg-purple-50 bg-transparent"
+          className="text-purple-600 border-purple-300 hover:bg-purple-50 bg-transparent text-xs sm:text-sm px-2 sm:px-3"
         >
           Extras
         </Button>
@@ -165,7 +167,7 @@ function SortableItem({
           variant="outline"
           size="sm"
           onClick={onEdit}
-          className="text-teal-600 border-teal-300 hover:bg-teal-50 bg-transparent"
+          className="text-teal-600 border-teal-300 hover:bg-teal-50 bg-transparent text-xs sm:text-sm px-2 sm:px-3"
         >
           Edit
         </Button>
@@ -173,7 +175,7 @@ function SortableItem({
           variant="outline"
           size="sm"
           onClick={onDelete}
-          className="text-red-600 border-red-300 hover:bg-red-50 bg-transparent"
+          className="text-red-600 border-red-300 hover:bg-red-50 bg-transparent text-xs sm:text-sm px-2 sm:px-3"
         >
           Delete
         </Button>
@@ -468,11 +470,13 @@ export function MenuManager({
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Menu Sections</h2>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Menu Sections</h2>
         <Dialog open={isAddingSectionOpen} onOpenChange={setIsAddingSectionOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-teal-500 hover:bg-teal-600 text-white font-semibold">Add Section</Button>
+            <Button className="bg-teal-500 hover:bg-teal-600 text-white font-semibold w-full sm:w-auto">
+              Add Section
+            </Button>
           </DialogTrigger>
           <DialogContent className="border-2 border-teal-300">
             <DialogHeader>
@@ -496,17 +500,17 @@ export function MenuManager({
         <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-6">
             {sections.map((section) => (
-              <div key={section.id} className="bg-white rounded-xl shadow-md p-6 border-2 border-teal-200">
-                <div className="flex items-center justify-between mb-4">
+              <div key={section.id} className="bg-white rounded-xl shadow-md p-4 sm:p-6 border-2 border-teal-200">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-xl font-bold text-gray-900">{section.name}</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 break-words">{section.name}</h3>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setEditingSection(section)}
-                      className="text-teal-600 border-teal-300 hover:bg-teal-50 bg-transparent"
+                      className="text-teal-600 border-teal-300 hover:bg-teal-50 bg-transparent text-xs sm:text-sm flex-1 sm:flex-none"
                     >
                       Edit
                     </Button>
@@ -514,7 +518,7 @@ export function MenuManager({
                       variant="outline"
                       size="sm"
                       onClick={() => handleDeleteSection(section.id)}
-                      className="text-red-600 border-red-300 hover:bg-red-50 bg-transparent"
+                      className="text-red-600 border-red-300 hover:bg-red-50 bg-transparent text-xs sm:text-sm flex-1 sm:flex-none"
                     >
                       Delete
                     </Button>
@@ -554,13 +558,13 @@ export function MenuManager({
                   }}
                 >
                   <DialogTrigger asChild>
-                    <Button size="sm" className="bg-teal-500 hover:bg-teal-600 text-white">
+                    <Button size="sm" className="bg-teal-500 hover:bg-teal-600 text-white w-full sm:w-auto mt-3">
                       Add Item
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="border-2 border-teal-300 max-w-md">
+                  <DialogContent className="border-2 border-teal-300 max-w-md mx-4">
                     <DialogHeader>
-                      <DialogTitle>
+                      <DialogTitle className="break-words">
                         Add Item to {sections.find((s) => s.id === selectedSectionForItem)?.name}
                       </DialogTitle>
                     </DialogHeader>
@@ -611,18 +615,18 @@ export function MenuManager({
       </DndContext>
 
       <Dialog open={!!managingExtrasForItem} onOpenChange={(open) => !open && setManagingExtrasForItem(null)}>
-        <DialogContent className="border-2 border-purple-300 max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="border-2 border-purple-300 max-w-2xl max-h-[80vh] overflow-y-auto mx-4">
           <DialogHeader>
-            <DialogTitle>Manage Extras for {managingExtrasForItem?.name}</DialogTitle>
+            <DialogTitle className="break-words">Manage Extras for {managingExtrasForItem?.name}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <p className="text-sm text-gray-600">Add optional extras that customers can select with this item</p>
               <Button
                 size="sm"
                 onClick={() => setIsAddingExtra(true)}
-                className="bg-purple-500 hover:bg-purple-600 text-white"
+                className="bg-purple-500 hover:bg-purple-600 text-white w-full sm:w-auto"
               >
                 Add Extra
               </Button>
@@ -631,16 +635,21 @@ export function MenuManager({
             {managingExtrasForItem && extrasByItem[managingExtrasForItem.id]?.length > 0 ? (
               <div className="space-y-2">
                 {extrasByItem[managingExtrasForItem.id].map((extra) => (
-                  <div key={extra.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
-                    <div>
-                      <p className="font-semibold">{extra.name}</p>
-                      <p className="text-sm text-teal-400 font-bold">+${Number(extra.price).toFixed(2)}</p>
+                  <div
+                    key={extra.id}
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-gray-50 rounded-lg border gap-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-semibold break-words">{extra.name}</p>
+                      <p className="text-sm text-teal-400 font-bold">
+                        {extra.price > 0 ? `+$${Number(extra.price).toFixed(2)}` : "Free"}
+                      </p>
                     </div>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleDeleteExtra(extra.id)}
-                      className="text-red-600 border-red-300 hover:bg-red-50"
+                      className="text-red-600 border-red-300 hover:bg-red-50 w-full sm:w-auto"
                     >
                       Delete
                     </Button>
@@ -655,7 +664,7 @@ export function MenuManager({
       </Dialog>
 
       <Dialog open={isAddingExtra} onOpenChange={(open) => !open && setIsAddingExtra(false)}>
-        <DialogContent className="border-2 border-purple-300 max-w-md">
+        <DialogContent className="border-2 border-purple-300 max-w-md mx-4">
           <DialogHeader>
             <DialogTitle>Add Extra to {managingExtrasForItem?.name}</DialogTitle>
           </DialogHeader>
@@ -691,7 +700,7 @@ export function MenuManager({
       </Dialog>
 
       <Dialog open={!!editingSection} onOpenChange={() => !isSubmitting && setEditingSection(null)}>
-        <DialogContent className="border-2 border-teal-300">
+        <DialogContent className="border-2 border-teal-300 mx-4">
           <DialogHeader>
             <DialogTitle>Edit Section</DialogTitle>
           </DialogHeader>
@@ -715,7 +724,7 @@ export function MenuManager({
       </Dialog>
 
       <Dialog open={!!editingItem} onOpenChange={() => !isSubmitting && setEditingItem(null)}>
-        <DialogContent className="border-2 border-teal-300 max-w-md">
+        <DialogContent className="border-2 border-teal-300 max-w-md mx-4">
           <DialogHeader>
             <DialogTitle>Edit Item</DialogTitle>
           </DialogHeader>
