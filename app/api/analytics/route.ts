@@ -4,7 +4,7 @@ import { NextResponse } from "next/server"
 export async function GET() {
   try {
     console.log("[v0] Analytics API called")
-    const supabase = createServiceClient()
+    const supabase = await createServiceClient()
 
     console.log("[v0] Fetching orders data...")
     const { data: orders, error: ordersError } = await supabase
