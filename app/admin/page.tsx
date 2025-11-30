@@ -5,6 +5,7 @@ import { checkAuth } from "@/lib/auth"
 import { OrdersList } from "./orders-list"
 import { AdminNav } from "@/components/admin-nav"
 import { PWAInstaller } from "@/components/pwa-installer"
+import { PullToRefresh } from "@/components/pull-to-refresh"
 
 interface Order {
   id: string
@@ -127,6 +128,7 @@ export default async function AdminPage({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-white to-secondary/30">
+      <PullToRefresh />
       <AdminNav title="GERA COOKS Admin" subtitle="Order Management Dashboard" />
 
       <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6">
