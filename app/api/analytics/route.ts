@@ -1,10 +1,10 @@
-import { createClient } from "@/lib/supabase/server"
+import { createServiceClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 
 export async function GET() {
   try {
     console.log("[v0] Analytics API called")
-    const supabase = await createClient()
+    const supabase = createServiceClient()
 
     console.log("[v0] Fetching orders data...")
     const { data: orders, error: ordersError } = await supabase
@@ -47,7 +47,7 @@ export async function GET() {
     // Get historical sales data (may not exist yet)
     const { data: historicalSales, error: historicalError } = await supabase
       .from("historical_sales")
-      .select("*")
+      .select("year, month, revenue")
       .order("year", { ascending: true })
       .order("month", { ascending: true })
 
