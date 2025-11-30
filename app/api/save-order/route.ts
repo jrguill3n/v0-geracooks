@@ -116,6 +116,14 @@ export async function POST(request: Request) {
       const twilioWhatsAppFrom = process.env.TWILIO_WHATSAPP_FROM
       const twilioSmsFrom = process.env.TWILIO_SMS_FROM || twilioWhatsAppFrom
 
+      console.log("[v0] Twilio config check:", {
+        hasAccountSid: !!accountSid,
+        hasAuthToken: !!authToken,
+        hasWhatsAppFrom: !!twilioWhatsAppFrom,
+        whatsAppFromValue: twilioWhatsAppFrom,
+        hasSmsFrom: !!twilioSmsFrom,
+      })
+
       if (!accountSid || !authToken || !twilioWhatsAppFrom) {
         const missingVars = []
         if (!accountSid) missingVars.push("TWILIO_ACCOUNT_SID")
@@ -168,6 +176,10 @@ export async function POST(request: Request) {
             : `whatsapp:${twilioWhatsAppFrom}`
           const toNumber = "whatsapp:+16315780700"
 
+          console.log("[v0] WhatsApp from:", fromNumber)
+          console.log("[v0] WhatsApp to:", toNumber)
+          console.log("[v0] Message preview:", message.substring(0, 100) + "...")
+
           const whatsappResponse = await fetch(
             `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
             {
@@ -186,12 +198,16 @@ export async function POST(request: Request) {
 
           const whatsappData = await whatsappResponse.json()
 
+          console.log("[v0] WhatsApp response status:", whatsappResponse.status)
+          console.log("[v0] WhatsApp response data:", JSON.stringify(whatsappData, null, 2))
+
           if (whatsappResponse.ok) {
             notificationSent = true
             notificationType = "WhatsApp"
             console.log("[v0] WhatsApp notification sent successfully! SID:", whatsappData.sid)
           } else {
             console.log("[v0] WhatsApp failed, trying SMS fallback...")
+            notificationError = `WhatsApp failed: ${whatsappData.message || JSON.stringify(whatsappData)}`
             throw new Error(whatsappData.message || "WhatsApp failed")
           }
         } catch (whatsappError) {
@@ -213,6 +229,9 @@ export async function POST(request: Request) {
           })
 
           const smsData = await smsResponse.json()
+
+          console.log("[v0] SMS response status:", smsResponse.status)
+          console.log("[v0] SMS response data:", JSON.stringify(smsData, null, 2))
 
           if (!smsResponse.ok) {
             notificationError = `SMS API error (${smsResponse.status}): ${smsData.message || JSON.stringify(smsData)}`
