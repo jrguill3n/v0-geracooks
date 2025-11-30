@@ -85,7 +85,14 @@ export default async function AdminPage({
   const orderIds = orders?.map((order) => order.id) || []
   const { data: allItems, error: itemsError } = await supabase
     .from("order_items")
-    .select("*, section")
+    .select(`
+      *,
+      section,
+      menu_items!left(
+        name,
+        menu_sections!inner(name)
+      )
+    `)
     .in("order_id", orderIds)
 
   if (itemsError) {
@@ -97,7 +104,14 @@ export default async function AdminPage({
       if (!acc[item.order_id]) {
         acc[item.order_id] = []
       }
-      acc[item.order_id].push(item)
+
+      // Use stored section, or fallback to looking it up from menu_items
+      const section = item.section || item.menu_items?.menu_sections?.name || "OTHER"
+
+      acc[item.order_id].push({
+        ...item,
+        section,
+      })
       return acc
     },
     {} as Record<string, OrderItem[]>,
