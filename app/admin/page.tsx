@@ -83,21 +83,20 @@ export default async function AdminPage({
   }
 
   const orderIds = orders?.map((order) => order.id) || []
-  const { data: allItems, error: itemsError } = await supabase
-    .from("order_items")
-    .select(`
-      *,
-      section,
-      menu_items!left(
-        name,
-        menu_sections!inner(name)
-      )
-    `)
-    .in("order_id", orderIds)
+  const { data: allItems, error: itemsError } = await supabase.from("order_items").select("*").in("order_id", orderIds)
 
   if (itemsError) {
     console.error("Error fetching order items:", itemsError)
   }
+
+  const itemNames = [...new Set(allItems?.map((item) => item.item_name) || [])]
+  const { data: menuItemsWithSections } = await supabase
+    .from("menu_items")
+    .select("name, menu_sections(name)")
+    .in("name", itemNames)
+
+  // Create a map of item name to section name
+  const sectionMap = new Map(menuItemsWithSections?.map((item) => [item.name, item.menu_sections?.name]) || [])
 
   const itemsByOrder = (allItems || []).reduce(
     (acc, item) => {
@@ -105,8 +104,8 @@ export default async function AdminPage({
         acc[item.order_id] = []
       }
 
-      // Use stored section, or fallback to looking it up from menu_items
-      const section = item.section || item.menu_items?.menu_sections?.name || "OTHER"
+      // Use stored section, or fallback to looking it up from the map
+      const section = item.section || sectionMap.get(item.item_name) || "OTHER"
 
       acc[item.order_id].push({
         ...item,
