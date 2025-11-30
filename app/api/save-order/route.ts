@@ -108,30 +108,19 @@ export async function POST(request: Request) {
 
     let notificationSent = false
     let notificationError = null
-    let notificationType = null
-    let twilioErrorDetails = null // Add more detailed error tracking
 
     try {
       const accountSid = process.env.TWILIO_ACCOUNT_SID
       const authToken = process.env.TWILIO_AUTH_TOKEN
-      const twilioWhatsAppFrom = process.env.TWILIO_WHATSAPP_FROM
-      const twilioSmsFrom = process.env.TWILIO_SMS_FROM || twilioWhatsAppFrom
+      const twilioSmsFrom = process.env.TWILIO_SMS_FROM
 
-      console.log("[v0] Twilio config check:", {
-        hasAccountSid: !!accountSid,
-        hasAuthToken: !!authToken,
-        hasWhatsAppFrom: !!twilioWhatsAppFrom,
-        whatsAppFromValue: twilioWhatsAppFrom,
-        hasSmsFrom: !!twilioSmsFrom,
-      })
-
-      if (!accountSid || !authToken || !twilioWhatsAppFrom) {
+      if (!accountSid || !authToken || !twilioSmsFrom) {
         const missingVars = []
         if (!accountSid) missingVars.push("TWILIO_ACCOUNT_SID")
         if (!authToken) missingVars.push("TWILIO_AUTH_TOKEN")
-        if (!twilioWhatsAppFrom) missingVars.push("TWILIO_WHATSAPP_FROM")
+        if (!twilioSmsFrom) missingVars.push("TWILIO_SMS_FROM")
         notificationError = `Missing Twilio environment variables: ${missingVars.join(", ")}`
-        console.error("[v0]", notificationError)
+        console.error("Error:", notificationError)
       } else {
         const itemsBySection: Record<
           string,
@@ -150,15 +139,15 @@ export async function POST(request: Request) {
           })
         })
 
-        let message = `🔔 New Order from GERA COOKS\n\n`
+        let message = `New Order from GERA COOKS\n\n`
         message += `Customer: ${customerName}\n`
         message += `Phone: ${phone}\n`
         message += `Order #${order.id}\n\n`
 
         Object.entries(itemsBySection).forEach(([section, items]) => {
-          message += `📋 ${section.toUpperCase()}\n`
+          message += `${section.toUpperCase()}\n`
           items.forEach((item) => {
-            message += `  • ${item.quantity}x ${item.name}`
+            message += `  ${item.quantity}x ${item.name}`
             if (item.extras && item.extras.length > 0) {
               message += `\n    Extras: ${item.extras.map((e) => `${e.name} (+$${e.price})`).join(", ")}`
             }
@@ -169,109 +158,38 @@ export async function POST(request: Request) {
 
         message += `Total: $${totalPrice}`
 
-        // Try WhatsApp first
-        try {
-          console.log("[v0] Attempting WhatsApp notification...")
-          const fromNumber = twilioWhatsAppFrom?.startsWith("whatsapp:")
-            ? twilioWhatsAppFrom
-            : `whatsapp:${twilioWhatsAppFrom}`
-          const toNumber = "whatsapp:+16315780700"
+        const smsResponse = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
+          },
+          body: new URLSearchParams({
+            From: twilioSmsFrom,
+            To: "+16315780700",
+            Body: message,
+          }),
+        })
 
-          console.log("[v0] WhatsApp from:", fromNumber)
-          console.log("[v0] WhatsApp to:", toNumber)
-          console.log("[v0] Message length:", message.length, "characters") // Log message length
-          console.log("[v0] Message preview:", message.substring(0, 100) + "...")
+        const smsData = await smsResponse.json()
 
-          const whatsappResponse = await fetch(
-            `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-                Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
-              },
-              body: new URLSearchParams({
-                From: fromNumber,
-                To: toNumber,
-                Body: message,
-              }),
-            },
-          )
-
-          const whatsappData = await whatsappResponse.json()
-
-          console.log("[v0] WhatsApp response status:", whatsappResponse.status)
-          console.log("[v0] WhatsApp response data:", JSON.stringify(whatsappData, null, 2))
-
-          if (!whatsappResponse.ok) {
-            twilioErrorDetails = {
-              status: whatsappResponse.status,
-              code: whatsappData.code,
-              message: whatsappData.message,
-              moreInfo: whatsappData.more_info,
-            }
-          }
-
-          if (whatsappResponse.ok) {
-            notificationSent = true
-            notificationType = "WhatsApp"
-            console.log("[v0] WhatsApp notification sent successfully! SID:", whatsappData.sid)
-          } else {
-            console.log("[v0] WhatsApp failed, trying SMS fallback...")
-            notificationError = `WhatsApp failed: ${whatsappData.message || JSON.stringify(whatsappData)}`
-            throw new Error(whatsappData.message || "WhatsApp failed")
-          }
-        } catch (whatsappError) {
-          // Fallback to SMS
-          console.log("[v0] WhatsApp error:", whatsappError)
-          console.log("[v0] Attempting SMS notification as fallback...")
-
-          const smsResponse = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded",
-              Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
-            },
-            body: new URLSearchParams({
-              From: twilioSmsFrom!,
-              To: "+16315780700",
-              Body: message,
-            }),
-          })
-
-          const smsData = await smsResponse.json()
-
-          console.log("[v0] SMS response status:", smsResponse.status)
-          console.log("[v0] SMS response data:", JSON.stringify(smsData, null, 2))
-
-          if (!smsResponse.ok) {
-            twilioErrorDetails = {
-              status: smsResponse.status,
-              code: smsData.code,
-              message: smsData.message,
-              moreInfo: smsData.more_info,
-            }
-            notificationError = `SMS API error (${smsResponse.status}): ${smsData.message || JSON.stringify(smsData)}`
-            console.error("[v0]", notificationError)
-          } else {
-            notificationSent = true
-            notificationType = "SMS"
-            console.log("[v0] SMS notification sent successfully! SID:", smsData.sid)
-          }
+        if (!smsResponse.ok) {
+          notificationError = `SMS error: ${smsData.message || JSON.stringify(smsData)}`
+          console.error("SMS notification error:", notificationError)
+        } else {
+          notificationSent = true
         }
       }
     } catch (error) {
       notificationError = error instanceof Error ? error.message : String(error)
-      console.error("[v0] Error sending notification:", error)
+      console.error("Error sending SMS notification:", error)
     }
 
     return NextResponse.json({
       success: true,
       orderId: order.id,
       notificationSent,
-      notificationType,
       notificationError,
-      twilioErrorDetails, // Include detailed Twilio error for debugging
     })
   } catch (error) {
     console.error("[v0] Error saving order:", error)

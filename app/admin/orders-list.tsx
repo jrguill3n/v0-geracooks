@@ -8,7 +8,7 @@ import { StatusSelect } from "./status-select"
 import { DeleteOrderButton } from "./delete-order-button"
 import { EditOrderModal } from "./edit-order-modal"
 import { useState } from "react"
-import { Pencil } from "lucide-react"
+import { Pencil, MessageCircle } from "lucide-react"
 
 interface Order {
   id: string
@@ -138,6 +138,38 @@ export function OrdersList({
       default:
         return "bg-gray-50 text-gray-600 border-gray-200"
     }
+  }
+
+  const generateWhatsAppLink = (order: Order, items: OrderItem[]) => {
+    const itemsBySection: Record<string, OrderItem[]> = {}
+    items.forEach((item: OrderItem) => {
+      const section = item.section || "Other"
+      if (!itemsBySection[section]) {
+        itemsBySection[section] = []
+      }
+      itemsBySection[section].push(item)
+    })
+
+    let message = `Hello ${order.customer_name}! 👋\n\n`
+    message += `Here's your order confirmation:\n\n`
+    message += `📋 *Order Details*\n`
+    message += `─────────────────\n\n`
+
+    Object.entries(itemsBySection).forEach(([section, sectionItems]) => {
+      message += `*${section.toUpperCase()}*\n`
+      sectionItems.forEach((item: OrderItem) => {
+        message += `• ${item.quantity}x ${item.item_name} - $${Number(item.total_price).toFixed(2)}\n`
+      })
+      message += `\n`
+    })
+
+    message += `─────────────────\n`
+    message += `💰 *Total: $${Number(order.total_price).toFixed(2)}*\n\n`
+    message += `We'll contact you soon to confirm delivery details. Thank you for your order! 🙏`
+
+    const phone = (order.customers?.phone || order.phone || "").replace(/\D/g, "")
+    const encodedMessage = encodeURIComponent(message)
+    return `https://wa.me/${phone}?text=${encodedMessage}`
   }
 
   return (
@@ -293,6 +325,19 @@ export function OrdersList({
                   <p className="text-xs text-gray-500 mb-3">{formatTimeAgo(new Date(order.created_at))}</p>
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <StatusSelect orderId={order.id} currentStatus={order.status} />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const whatsappLink = generateWhatsAppLink(order, items)
+                        window.open(whatsappLink, "_blank")
+                      }}
+                      className="h-9 border-green-300 text-green-600 hover:bg-green-50"
+                      disabled={!order.customers?.phone && !order.phone}
+                    >
+                      <MessageCircle className="h-4 w-4 mr-1" />
+                      Send to Customer
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"

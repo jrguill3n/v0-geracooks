@@ -39,8 +39,8 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
   const [orderSubmitted, setOrderSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [notificationSent, setNotificationSent] = useState(false)
-  const [notificationType, setNotificationType] = useState<string | null>(null)
   const [notificationError, setNotificationError] = useState<string | null>(null)
+  const [twilioErrorDetails, setTwilioErrorDetails] = useState<any>(null)
 
   const [selectedItemForExtras, setSelectedItemForExtras] = useState<MenuItem | null>(null)
   const [tempExtras, setTempExtras] = useState<string[]>([])
@@ -163,13 +163,17 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
       const responseData = await response.json()
       console.log("[v0] Order response:", responseData)
 
+      if (responseData.twilioErrorDetails) {
+        console.log("[v0] Twilio error details:", responseData.twilioErrorDetails)
+      }
+
       if (!response.ok) {
         throw new Error(`Failed to save order: ${JSON.stringify(responseData)}`)
       }
 
       setNotificationSent(responseData.notificationSent || false)
-      setNotificationType(responseData.notificationType || null)
       setNotificationError(responseData.notificationError || null)
+      setTwilioErrorDetails(responseData.twilioErrorDetails || null)
       setOrderSubmitted(true)
     } catch (error) {
       console.error("[v0] Error submitting order:", error)
@@ -193,13 +197,11 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
             </p>
             {notificationSent ? (
               <div className="bg-success/10 border-2 border-success/30 rounded-2xl p-4 mb-6">
-                <p className="text-sm text-success font-semibold">
-                  ✓ {notificationType} notification sent successfully
-                </p>
+                <p className="text-sm text-success font-semibold">✓ SMS notification sent successfully</p>
               </div>
             ) : (
               <div className="bg-warning/10 border-2 border-warning/30 rounded-2xl p-4 mb-6">
-                <p className="text-sm text-warning font-semibold">⚠ Notification not sent</p>
+                <p className="text-sm text-warning font-semibold">⚠ SMS notification not sent</p>
                 {notificationError && <p className="text-xs text-warning/80 mt-2 break-words">{notificationError}</p>}
               </div>
             )}
@@ -212,8 +214,8 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
               setPhoneNumber("")
               setOrderItems({})
               setNotificationSent(false)
-              setNotificationType(null)
               setNotificationError(null)
+              setTwilioErrorDetails(null)
             }}
             className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-6 text-lg rounded-2xl shadow-lg"
           >
