@@ -77,10 +77,9 @@ export function DeleteOrderButton({ orderId, customerName, onDeleteStart }: Dele
   return (
     <>
       <Button
-        variant="outline"
         size="sm"
         onClick={() => setIsOpen(true)}
-        className="h-9 px-3 border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-400"
+        className="h-9 px-3 bg-red-600 hover:bg-red-700 text-white font-semibold shadow-sm"
       >
         <Trash2 className="h-4 w-4 mr-1" />
         Delete
