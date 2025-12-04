@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -19,58 +19,19 @@ interface OrderItem {
   total_price: number
 }
 
+interface MenuItem {
+  id: string
+  name: string
+  price: number
+  section: string
+}
+
 interface EditOrderModalProps {
   orderId: string
   customerName: string
   items: OrderItem[]
   open: boolean
   onOpenChange: (open: boolean) => void
-}
-
-const MENU_ITEMS = {
-  POLLO: [
-    { name: "Stir fry c/vegetales", price: 13 },
-    { name: "Tinga", price: 12 },
-    { name: "Mole", price: 12 },
-    { name: "Pollinita", price: 13 },
-    { name: "Crema de chipotle", price: 14 },
-    { name: "Crema de poblano y elote", price: 14 },
-    { name: "Deshebrado 12 oz", price: 10 },
-    { name: "Salsa verde c/ papas", price: 12 },
-  ],
-  RES: [
-    { name: "Bolognesa", price: 15 },
-    { name: "Yakimeshi", price: 12 },
-    { name: "Picadillo verde", price: 14 },
-    { name: "Picadillo fit", price: 15 },
-    { name: "Deshebrada 12 oz", price: 16 },
-    { name: "Deshebrada c/ papa", price: 15 },
-    { name: "Burritos desheb/papa (4)", price: 20 },
-    { name: "Cortadillo c/ poblano", price: 16 },
-  ],
-  PAVO: [
-    { name: "Picadillo", price: 13 },
-    { name: "Albóndigas al chipotle", price: 15 },
-  ],
-  CERDO: [
-    { name: "Carnitas healthy", price: 16 },
-    { name: "Cochinita pibil", price: 16 },
-    { name: "Chicharrón salsa verde", price: 13 },
-  ],
-  VEGANO: [
-    { name: "Arroz rojo c/elote", price: 6 },
-    { name: "Arroz cilantro limón", price: 6 },
-    { name: "Arroz integral", price: 6 },
-    { name: "Calabacitas a la mexicana", price: 9 },
-    { name: "Calabacitas con elote", price: 9 },
-    { name: "Fideo seco", price: 6 },
-    { name: "Lentejas c/vegetales", price: 9 },
-  ],
-  VEGETARIANO: [
-    { name: "Puré de papa", price: 7 },
-    { name: "Puré de camote", price: 9 },
-    { name: "Quinoa c/vegetales", price: 6 },
-  ],
 }
 
 export function EditOrderModal({ orderId, customerName, items, open, onOpenChange }: EditOrderModalProps) {
@@ -91,6 +52,34 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
   const [customItemName, setCustomItemName] = useState("")
   const [customItemPrice, setCustomItemPrice] = useState("")
   const [customItemQuantity, setCustomItemQuantity] = useState("1")
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([])
+  const [menuSections, setMenuSections] = useState<string[]>([])
+  const [loadingMenu, setLoadingMenu] = useState(true)
+
+  useEffect(() => {
+    const fetchMenu = async () => {
+      if (!open) return
+
+      setLoadingMenu(true)
+      try {
+        const response = await fetch("/api/menu")
+        if (response.ok) {
+          const data = await response.json()
+          setMenuItems(data)
+
+          // Extract unique sections
+          const sections = [...new Set(data.map((item: MenuItem) => item.section))]
+          setMenuSections(sections)
+        }
+      } catch (error) {
+        console.error("[v0] Error fetching menu:", error)
+      } finally {
+        setLoadingMenu(false)
+      }
+    }
+
+    fetchMenu()
+  }, [open])
 
   const updateQuantity = (index: number, change: number) => {
     setEditedItems((prev) => {
@@ -111,7 +100,7 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
   const addNewItem = () => {
     if (!selectedItem || !selectedCategory) return
 
-    const menuItem = MENU_ITEMS[selectedCategory as keyof typeof MENU_ITEMS].find((item) => item.name === selectedItem)
+    const menuItem = menuItems.find((item) => item.name === selectedItem && item.section === selectedCategory)
     if (!menuItem) return
 
     // Check if item already exists
@@ -180,7 +169,9 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
   const handleSave = async () => {
     setIsSaving(true)
     try {
+      console.log("[v0] Saving order with items:", editedItems)
       const result = await updateOrderItems(orderId, editedItems)
+      console.log("[v0] Save result:", result)
       if (result.success) {
         toast({
           title: "Success",
@@ -196,6 +187,7 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
         })
       }
     } catch (error) {
+      console.error("[v0] Error in handleSave:", error)
       toast({
         title: "Error",
         description: "An unexpected error occurred",
@@ -272,38 +264,44 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
           {/* Add New Item */}
           <div className="border-t border-gray-200 pt-4">
             <h3 className="text-lg font-bold mb-3 text-gray-900">Add Item from Menu</h3>
-            <div className="flex gap-3 mb-3">
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.keys(MENU_ITEMS).map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={selectedItem} onValueChange={setSelectedItem} disabled={!selectedCategory}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Select item" />
-                </SelectTrigger>
-                <SelectContent>
-                  {selectedCategory &&
-                    MENU_ITEMS[selectedCategory as keyof typeof MENU_ITEMS].map((item) => (
-                      <SelectItem key={item.name} value={item.name}>
-                        {item.name} - ${item.price}
+            {loadingMenu ? (
+              <p className="text-sm text-gray-500">Loading menu...</p>
+            ) : (
+              <div className="flex gap-3 mb-3">
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {menuSections.map((section) => (
+                      <SelectItem key={section} value={section}>
+                        {section}
                       </SelectItem>
                     ))}
-                </SelectContent>
-              </Select>
+                  </SelectContent>
+                </Select>
 
-              <Button onClick={addNewItem} disabled={!selectedItem} className="bg-teal-500 hover:bg-teal-600">
-                Add
-              </Button>
-            </div>
+                <Select value={selectedItem} onValueChange={setSelectedItem} disabled={!selectedCategory}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select item" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectedCategory &&
+                      menuItems
+                        .filter((item) => item.section === selectedCategory)
+                        .map((item) => (
+                          <SelectItem key={item.id} value={item.name}>
+                            {item.name} - ${item.price}
+                          </SelectItem>
+                        ))}
+                  </SelectContent>
+                </Select>
+
+                <Button onClick={addNewItem} disabled={!selectedItem} className="bg-teal-500 hover:bg-teal-600">
+                  Add
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Add Custom Item */}
