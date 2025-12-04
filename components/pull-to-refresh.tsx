@@ -9,8 +9,10 @@ export function PullToRefresh() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const touchStartY = useRef(0)
   const isPulling = useRef(false)
+  const containerRef = useRef<HTMLDivElement>(null)
 
-  const threshold = 80 // Distance to pull before refresh triggers
+  const threshold = 100 // Distance to pull before refresh triggers
+  const maxPullDistance = 140 // Maximum visual pull distance
 
   useEffect(() => {
     const handleTouchStart = (e: TouchEvent) => {
@@ -22,35 +24,42 @@ export function PullToRefresh() {
     }
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!isPulling.current) return
+      if (!isPulling.current || isRefreshing) return
 
       const touchY = e.touches[0].clientY
       const distance = touchY - touchStartY.current
 
-      // Only allow pulling down
+      // Only allow pulling down with damping effect for smooth feel
       if (distance > 0 && window.scrollY === 0) {
-        setPullDistance(Math.min(distance, threshold + 50))
+        const dampingFactor = 0.5
+        const dampenedDistance = Math.pow(distance, dampingFactor) * 10
+        setPullDistance(Math.min(dampenedDistance, maxPullDistance))
+
         // Prevent default scroll behavior during pull
-        if (distance > 10) {
+        if (distance > 5) {
           e.preventDefault()
         }
+      } else if (distance < 0) {
+        isPulling.current = false
+        setPullDistance(0)
       }
     }
 
     const handleTouchEnd = async () => {
-      if (!isPulling.current) return
+      if (!isPulling.current || isRefreshing) return
 
       isPulling.current = false
 
       if (pullDistance >= threshold) {
         setIsRefreshing(true)
+
         // Trigger refresh
-        router.refresh()
-        // Keep the spinner visible for at least 1 second
+        await router.refresh()
+
         setTimeout(() => {
           setIsRefreshing(false)
           setPullDistance(0)
-        }, 1000)
+        }, 800)
       } else {
         setPullDistance(0)
       }
@@ -65,53 +74,62 @@ export function PullToRefresh() {
       document.removeEventListener("touchmove", handleTouchMove)
       document.removeEventListener("touchend", handleTouchEnd)
     }
-  }, [pullDistance, router])
+  }, [pullDistance, router, isRefreshing])
 
   const progress = Math.min(pullDistance / threshold, 1)
-  const rotation = progress * 360
+  const rotation = isRefreshing ? 0 : progress * 180
+
+  const shouldShow = pullDistance > 20 || isRefreshing
 
   return (
     <div
-      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center pointer-events-none transition-transform duration-200"
+      ref={containerRef}
+      className="fixed top-0 left-0 right-0 z-50 flex flex-col items-center justify-start pointer-events-none"
       style={{
-        transform: `translateY(${isRefreshing ? 60 : Math.min(pullDistance - 40, 0)}px)`,
+        transform: `translateY(${isRefreshing ? 70 : pullDistance * 0.6}px)`,
+        transition: isPulling.current ? "none" : "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
       }}
     >
       <div
-        className="bg-primary/90 backdrop-blur-sm rounded-full p-3 shadow-lg transition-opacity duration-200"
+        className="bg-primary rounded-full p-4 shadow-2xl"
         style={{
-          opacity: pullDistance > 10 || isRefreshing ? 1 : 0,
+          opacity: shouldShow ? Math.min(progress, 1) : 0,
+          transform: `scale(${shouldShow ? Math.min(0.7 + progress * 0.3, 1) : 0.5})`,
+          transition: isPulling.current
+            ? "opacity 0.15s ease, transform 0.15s ease"
+            : "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
       >
         <svg
-          className="w-6 h-6 text-white transition-transform duration-200"
+          className="w-7 h-7 text-white"
           style={{
-            transform: `rotate(${isRefreshing ? 0 : rotation}deg)`,
+            transform: `rotate(${rotation}deg)`,
+            transition: isRefreshing ? "none" : "transform 0.2s ease-out",
           }}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          {isRefreshing ? (
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              className="animate-spin origin-center"
-            />
-          ) : (
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          )}
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2.5}
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            className={isRefreshing ? "animate-spin origin-center" : ""}
+          />
         </svg>
       </div>
+
       {pullDistance >= threshold && !isRefreshing && (
-        <div className="absolute top-20 text-sm font-semibold text-primary">Release to refresh</div>
+        <div
+          className="mt-3 px-4 py-2 bg-primary/10 backdrop-blur-sm rounded-full text-sm font-semibold text-primary"
+          style={{
+            opacity: progress >= 1 ? 1 : 0,
+            transition: "opacity 0.2s ease",
+          }}
+        >
+          Release to refresh
+        </div>
       )}
     </div>
   )
