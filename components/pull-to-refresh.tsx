@@ -16,26 +16,23 @@ export function PullToRefresh() {
 
   useEffect(() => {
     const handleTouchStart = (e: TouchEvent) => {
-      // Only allow pull-to-refresh when scrolled to the top
-      if (window.scrollY === 0) {
+      if (window.scrollY === 0 && !isRefreshing) {
         touchStartY.current = e.touches[0].clientY
         isPulling.current = true
       }
     }
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!isPulling.current || isRefreshing) return
+      if (!isPulling.current) return
 
       const touchY = e.touches[0].clientY
       const distance = touchY - touchStartY.current
 
-      // Only allow pulling down with damping effect for smooth feel
       if (distance > 0 && window.scrollY === 0) {
         const dampingFactor = 0.5
         const dampenedDistance = Math.pow(distance, dampingFactor) * 10
         setPullDistance(Math.min(dampenedDistance, maxPullDistance))
 
-        // Prevent default scroll behavior during pull
         if (distance > 5) {
           e.preventDefault()
         }
@@ -46,15 +43,19 @@ export function PullToRefresh() {
     }
 
     const handleTouchEnd = async () => {
-      if (!isPulling.current || isRefreshing) return
+      if (!isPulling.current) return
 
+      const currentPullDistance = pullDistance
       isPulling.current = false
 
-      if (pullDistance >= threshold) {
+      if (currentPullDistance >= threshold && !isRefreshing) {
         setIsRefreshing(true)
 
-        // Trigger refresh
-        await router.refresh()
+        try {
+          await router.refresh()
+        } catch (error) {
+          console.error("[v0] Refresh error:", error)
+        }
 
         setTimeout(() => {
           setIsRefreshing(false)
@@ -74,7 +75,7 @@ export function PullToRefresh() {
       document.removeEventListener("touchmove", handleTouchMove)
       document.removeEventListener("touchend", handleTouchEnd)
     }
-  }, [pullDistance, router, isRefreshing])
+  }, [pullDistance, router])
 
   const progress = Math.min(pullDistance / threshold, 1)
   const rotation = isRefreshing ? 0 : progress * 180
