@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Minus, Plus, X } from "lucide-react"
 import { updateOrderItems } from "./actions"
 import { toast } from "@/hooks/use-toast"
@@ -86,6 +88,9 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
   const [selectedCategory, setSelectedCategory] = useState<string>("")
   const [selectedItem, setSelectedItem] = useState<string>("")
   const [isSaving, setIsSaving] = useState(false)
+  const [customItemName, setCustomItemName] = useState("")
+  const [customItemPrice, setCustomItemPrice] = useState("")
+  const [customItemQuantity, setCustomItemQuantity] = useState("1")
 
   const updateQuantity = (index: number, change: number) => {
     setEditedItems((prev) => {
@@ -132,6 +137,40 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
 
     setSelectedItem("")
     setSelectedCategory("")
+  }
+
+  const addCustomItem = () => {
+    const name = customItemName.trim()
+    const price = Number.parseFloat(customItemPrice)
+    const quantity = Number.parseInt(customItemQuantity)
+
+    if (!name || isNaN(price) || price <= 0 || isNaN(quantity) || quantity <= 0) {
+      toast({
+        title: "Invalid Input",
+        description: "Please enter valid item name, price, and quantity",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setEditedItems((prev) => [
+      ...prev,
+      {
+        item_name: name,
+        quantity: quantity,
+        unit_price: price,
+      },
+    ])
+
+    // Reset custom item fields
+    setCustomItemName("")
+    setCustomItemPrice("")
+    setCustomItemQuantity("1")
+
+    toast({
+      title: "Custom Item Added",
+      description: `${name} has been added to the order`,
+    })
   }
 
   const getTotalPrice = () => {
@@ -264,6 +303,63 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
               <Button onClick={addNewItem} disabled={!selectedItem} className="bg-teal-500 hover:bg-teal-600">
                 Add
               </Button>
+            </div>
+          </div>
+
+          {/* Add Custom Item */}
+          <div className="border-t border-gray-200 pt-4 bg-purple-50 p-4 rounded-lg">
+            <h3 className="text-lg font-bold mb-3 text-purple-900">Add Custom Item</h3>
+            <p className="text-sm text-gray-600 mb-3">For special orders not in the menu</p>
+            <div className="space-y-3">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <Label htmlFor="customName" className="text-sm font-medium text-gray-700">
+                    Item Name
+                  </Label>
+                  <Input
+                    id="customName"
+                    value={customItemName}
+                    onChange={(e) => setCustomItemName(e.target.value)}
+                    placeholder="e.g., Special Birthday Cake"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="customQuantity" className="text-sm font-medium text-gray-700">
+                    Quantity
+                  </Label>
+                  <Input
+                    id="customQuantity"
+                    type="number"
+                    min="1"
+                    value={customItemQuantity}
+                    onChange={(e) => setCustomItemQuantity(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <Label htmlFor="customPrice" className="text-sm font-medium text-gray-700">
+                    Price ($)
+                  </Label>
+                  <Input
+                    id="customPrice"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={customItemPrice}
+                    onChange={(e) => setCustomItemPrice(e.target.value)}
+                    placeholder="0.00"
+                    className="mt-1"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button onClick={addCustomItem} className="bg-purple-600 hover:bg-purple-700 w-full">
+                    Add Custom Item
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
 
