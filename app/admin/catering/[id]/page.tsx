@@ -39,7 +39,6 @@ export default async function EditCateringPage({ params }: { params: Promise<{ i
       </>
     )
   }
-  // </CHANGE>
 
   const { data: items } = await supabase
     .from("catering_quote_items")
@@ -47,13 +46,36 @@ export default async function EditCateringPage({ params }: { params: Promise<{ i
     .eq("quote_id", id)
     .order("created_at", { ascending: true })
 
-  const formattedItems = (items || []).map((item) => ({
-    id: item.id,
-    label: item.name,
-    price: Number(item.line_total),
-  }))
+  const pricedItems = (items || [])
+    .filter((item) => !item.item_type || item.item_type === "priced")
+    .map((item) => ({
+      id: item.id,
+      label: item.name,
+      price: Number(item.line_total),
+      item_type: "priced" as const,
+    }))
 
-  console.log("[v0] Successfully loaded quote:", quote.id, "with", formattedItems.length, "items")
+  const includedItems = (items || [])
+    .filter((item) => item.item_type === "included")
+    .map((item) => ({
+      id: item.id,
+      label: item.name,
+      price: 0,
+      item_type: "included" as const,
+    }))
+
+  const allItems = [...pricedItems, ...includedItems]
+  // </CHANGE>
+
+  console.log(
+    "[v0] Successfully loaded quote:",
+    quote.id,
+    "with",
+    pricedItems.length,
+    "priced items and",
+    includedItems.length,
+    "included items",
+  )
 
   return (
     <>
@@ -96,6 +118,9 @@ export default async function EditCateringPage({ params }: { params: Promise<{ i
           phone: quote.phone,
           notes: quote.notes,
           status: quote.status,
+          quote_type: quote.quote_type || "items",
+          people_count: quote.people_count,
+          price_per_person: quote.price_per_person ? Number(quote.price_per_person) : 0,
           subtotal: Number(quote.subtotal),
           tax: Number(quote.tax),
           delivery_fee: Number(quote.delivery_fee),
@@ -104,7 +129,7 @@ export default async function EditCateringPage({ params }: { params: Promise<{ i
           converted_order_id: quote.converted_order_id,
           converted_at: quote.converted_at,
         }}
-        initialItems={formattedItems}
+        initialItems={allItems}
       />
     </>
   )
