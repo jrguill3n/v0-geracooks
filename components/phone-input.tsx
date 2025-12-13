@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useRef, useEffect } from "react"
 import { Check, ChevronDown, Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -93,15 +95,17 @@ export function PhoneInput({
 }: PhoneInputProps) {
   const [internalCountryCode, setInternalCountryCode] = useState("+1")
   const [internalPhoneNumber, setInternalPhoneNumber] = useState("")
+  const [isOpen, setIsOpen] = useState(false)
+  const [search, setSearch] = useState("")
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Use props if provided, otherwise use internal state
   const countryCode = propCountryCode ?? internalCountryCode
   const phoneNumber = propPhoneNumber ?? internalPhoneNumber
 
-  // Parse value prop on mount or when it changes
+  // Parse value prop on mount or when it changes (only if using single value prop)
   useEffect(() => {
-    if (value && !propCountryCode) {
-      // Extract country code from value if it starts with +
+    if (value && !propCountryCode && !propPhoneNumber) {
       const match = value.match(/^(\+\d+)(.*)$/)
       if (match) {
         setInternalCountryCode(match[1])
@@ -110,35 +114,33 @@ export function PhoneInput({
         setInternalPhoneNumber(value)
       }
     }
-  }, [value, propCountryCode])
+  }, [value, propCountryCode, propPhoneNumber])
 
   const handleCountryCodeChange = (code: string) => {
     if (propOnCountryCodeChange) {
       propOnCountryCodeChange(code)
     } else {
       setInternalCountryCode(code)
-      // Also update parent with combined value
       if (onChange) {
         onChange(`${code}${internalPhoneNumber}`)
       }
     }
+    setIsOpen(false)
+    setSearch("")
   }
 
-  const handlePhoneNumberChange = (number: string) => {
+  const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const number = e.target.value
+
     if (propOnPhoneNumberChange) {
       propOnPhoneNumberChange(number)
     } else {
       setInternalPhoneNumber(number)
-      // Update parent with combined value
       if (onChange) {
         onChange(`${internalCountryCode}${number}`)
       }
     }
   }
-
-  const [isOpen, setIsOpen] = useState(false)
-  const [search, setSearch] = useState("")
-  const dropdownRef = useRef<HTMLDivElement>(null)
 
   const filteredCountries = countryCodes.filter(
     (country) => country.country.toLowerCase().includes(search.toLowerCase()) || country.code.includes(search),
@@ -226,7 +228,7 @@ export function PhoneInput({
         name="tel"
         autoComplete="tel"
         value={phoneNumber}
-        onChange={(e) => handlePhoneNumberChange(e.target.value)}
+        onChange={handlePhoneNumberChange}
         placeholder="5551234567"
         required={required}
         className="flex-1 bg-white border border-gray-300 focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
