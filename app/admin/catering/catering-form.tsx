@@ -136,28 +136,33 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
     setLoading(true)
     setError("")
 
+    const validationErrors: string[] = []
+
     if (!customerName.trim()) {
-      setError("Customer name is required")
-      setLoading(false)
-      return
+      validationErrors.push("Customer name is required")
     }
 
     if (!phone.trim()) {
-      setError("Customer phone is required")
-      setLoading(false)
-      return
+      validationErrors.push("Customer phone is required")
     }
 
     if (items.length === 0) {
-      setError("At least one item is required")
-      setLoading(false)
-      return
+      validationErrors.push("At least one item is required")
     }
 
-    const invalidItem = items.find((item) => !item.label.trim() || item.price <= 0)
+    const invalidItem = items.find((item) => !item.label.trim() || item.price < 0 || Number.isNaN(item.price))
     if (invalidItem) {
-      setError("All items must have a description and a valid price")
+      validationErrors.push("All items must have a description and a valid price (minimum $0.00)")
+    }
+
+    if (validationErrors.length > 0) {
+      setError(validationErrors.join(". "))
       setLoading(false)
+      toast({
+        title: "Validation Error",
+        description: validationErrors.join(". "),
+        variant: "destructive",
+      })
       return
     }
 
@@ -174,9 +179,14 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
     }
 
     try {
+      console.log("[v0] Submitting quote:", quote)
+      console.log("[v0] Items:", items)
+
       const result = initialQuote?.id
         ? await updateCateringQuote(initialQuote.id, quote, items)
         : await createCateringQuote(quote, items)
+
+      console.log("[v0] Result:", result)
 
       if (result.error) {
         setError(result.error)
@@ -193,15 +203,16 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
         if (result.id && !initialQuote) {
           router.push(`/admin/catering/${result.id}`)
         } else {
-          router.push("/admin/catering")
+          router.refresh()
         }
       }
     } catch (error) {
       console.error("[v0] Error saving quote:", error)
-      setError("An unexpected error occurred")
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"
+      setError(errorMessage)
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
@@ -245,7 +256,16 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6">
       <form onSubmit={handleSubmit} className="space-y-6">
-        {error && <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">{error}</div>}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+            <p className="font-semibold mb-1">Please fix the following errors:</p>
+            <ul className="list-disc list-inside text-sm space-y-1">
+              {error.split(". ").map((err, i) => (
+                <li key={i}>{err}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Customer Section */}
         <div className="bg-white p-6 rounded-lg shadow">
@@ -327,20 +347,22 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
                     )}
                   </div>
                   <div className="w-32">
-                    <Label className="text-sm font-medium">Price *</Label>
+                    <Label className="text-sm font-medium">Price * (min $0)</Label>
                     <Input
                       type="text"
                       inputMode="decimal"
-                      value={item.price || ""}
+                      value={item.price === 0 ? "0" : item.price || ""}
                       onChange={(e) => {
                         const val = e.target.value
-                        if (val === "" || /^\d*\.?\d{0,2}$/.test(val)) {
-                          updateItem(index, "price", val === "" ? 0 : Number.parseFloat(val) || 0)
+                        if (val === "" || val === "0" || /^\d*\.?\d{0,2}$/.test(val)) {
+                          const numValue = val === "" ? 0 : Number.parseFloat(val) || 0
+                          updateItem(index, "price", numValue)
                         }
                       }}
                       required
                       className="mt-1"
                       placeholder="0.00"
+                      min="0"
                     />
                   </div>
                   {items.length > 1 && (
