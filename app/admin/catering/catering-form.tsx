@@ -35,7 +35,7 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
   const [countryCode, setCountryCode] = useState("+1")
   const [phoneNumber, setPhoneNumber] = useState("")
   const [notes, setNotes] = useState(initialQuote?.notes || "")
-  const [status, setStatus] = useState(initialQuote?.status || "draft")
+  const [status, setStatus] = useState(initialQuote?.status || "sent")
 
   const [quoteType, setQuoteType] = useState<"items" | "per_person">(initialQuote?.quote_type || "items")
   const [peopleCount, setPeopleCount] = useState<number>(initialQuote?.people_count || 0)

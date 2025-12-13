@@ -58,7 +58,7 @@ export async function createCateringQuote(input: any) {
     console.log("[catering] create - starting with:", {
       customer: customerName,
       phone: phone,
-      status: input.status || "draft",
+      status: input.status || "sent",
       quoteType: quoteType,
       itemCount: items.length + includedItems.length,
       total: input.total || 0,
@@ -70,7 +70,7 @@ export async function createCateringQuote(input: any) {
         customer_name: customerName,
         phone: phone,
         notes: input.notes,
-        status: input.status || "draft",
+        status: input.status || "sent",
         quote_type: quoteType,
         people_count: peopleCount,
         price_per_person: pricePerPerson,
