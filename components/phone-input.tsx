@@ -75,87 +75,46 @@ const countryCodes: CountryCode[] = [
 ]
 
 interface PhoneInputProps {
-  value?: string
-  onChange?: (value: string) => void
-  required?: boolean
   countryCode?: string
   phoneNumber?: string
   onCountryCodeChange?: (code: string) => void
   onPhoneNumberChange?: (number: string) => void
+  required?: boolean
 }
 
 export function PhoneInput({
-  value,
-  onChange,
+  countryCode = "+1",
+  phoneNumber = "",
+  onCountryCodeChange,
+  onPhoneNumberChange,
   required,
-  countryCode: propCountryCode,
-  phoneNumber: propPhoneNumber,
-  onCountryCodeChange: propOnCountryCodeChange,
-  onPhoneNumberChange: propOnPhoneNumberChange,
 }: PhoneInputProps) {
-  const [draftCountryCode, setDraftCountryCode] = useState("+1")
-  const [draftPhoneDigits, setDraftPhoneDigits] = useState("")
+  const [selectedCode, setSelectedCode] = useState(countryCode)
+  const [phoneDigits, setPhoneDigits] = useState(phoneNumber)
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState("")
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const isInitializedRef = useRef(false)
 
-  // Initialize from props only once on mount
   useEffect(() => {
-    if (!isInitializedRef.current) {
-      if (propCountryCode && propPhoneNumber) {
-        // New-style props
-        setDraftCountryCode(propCountryCode)
-        setDraftPhoneDigits(propPhoneNumber)
-      } else if (value) {
-        // Old-style single value prop - parse it
-        const match = value.match(/^(\+\d+)(.*)$/)
-        if (match) {
-          setDraftCountryCode(match[1])
-          // Strip non-digits from phone part
-          setDraftPhoneDigits(match[2].replace(/\D/g, ""))
-        } else {
-          // Just digits, no country code
-          setDraftPhoneDigits(value.replace(/\D/g, ""))
-        }
-      }
-      isInitializedRef.current = true
-    }
-  }, [])
+    setSelectedCode(countryCode)
+  }, [countryCode])
 
-  const notifyParent = (countryCode: string, phoneDigits: string) => {
-    // Notify parent with combined normalized value
-    const combined = `${countryCode}${phoneDigits}`
-    if (onChange) {
-      onChange(combined)
-    }
-    if (propOnCountryCodeChange) {
-      propOnCountryCodeChange(countryCode)
-    }
-    if (propOnPhoneNumberChange) {
-      propOnPhoneNumberChange(phoneDigits)
-    }
-  }
+  useEffect(() => {
+    setPhoneDigits(phoneNumber)
+  }, [phoneNumber])
 
   const handleCountryCodeChange = (code: string) => {
-    setDraftCountryCode(code)
-    notifyParent(code, draftPhoneDigits)
+    setSelectedCode(code)
+    onCountryCodeChange?.(code)
     setIsOpen(false)
     setSearch("")
   }
 
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target.value
-    // Strip non-digits, allow paste with formatted numbers
     const digits = input.replace(/\D/g, "")
-    setDraftPhoneDigits(digits)
-    // Update parent immediately so validation works
-    notifyParent(draftCountryCode, digits)
-  }
-
-  const handlePhoneBlur = () => {
-    // On blur, ensure parent has the latest normalized value
-    notifyParent(draftCountryCode, draftPhoneDigits)
+    setPhoneDigits(digits)
+    onPhoneNumberChange?.(digits)
   }
 
   const filteredCountries = countryCodes.filter(
@@ -174,11 +133,7 @@ export function PhoneInput({
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  const handleSelect = (code: string) => {
-    handleCountryCodeChange(code)
-  }
-
-  const selectedCountry = countryCodes.find((c) => c.code === draftCountryCode) || countryCodes[0]
+  const selectedCountry = countryCodes.find((c) => c.code === selectedCode) || countryCodes[0]
 
   return (
     <div className="flex gap-2">
@@ -218,16 +173,16 @@ export function PhoneInput({
                   <button
                     key={`${country.code}-${country.country}-${index}`}
                     type="button"
-                    onClick={() => handleSelect(country.code)}
+                    onClick={() => handleCountryCodeChange(country.code)}
                     className={`w-full px-4 py-2.5 text-left hover:bg-teal-50 flex items-center justify-between transition-colors ${
-                      country.code === draftCountryCode ? "bg-teal-50" : ""
+                      country.code === selectedCode ? "bg-teal-50" : ""
                     }`}
                   >
                     <div className="flex-1">
                       <span className="font-medium text-gray-900">{country.country}</span>
                       <span className="text-gray-500 ml-2 text-sm">{country.code}</span>
                     </div>
-                    {country.code === draftCountryCode && <Check className="h-4 w-4 text-teal-600" />}
+                    {country.code === selectedCode && <Check className="h-4 w-4 text-teal-600" />}
                   </button>
                 ))
               ) : (
@@ -243,9 +198,8 @@ export function PhoneInput({
         type="tel"
         name="tel"
         autoComplete="tel"
-        value={draftPhoneDigits}
+        value={phoneDigits}
         onChange={handlePhoneNumberChange}
-        onBlur={handlePhoneBlur}
         placeholder="5551234567"
         required={required}
         className="flex-1 bg-white border border-gray-300 focus:border-teal-500 focus:ring-1 focus:ring-teal-500"

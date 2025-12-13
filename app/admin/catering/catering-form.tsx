@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { toast } from "sonner"
+import { PhoneInput } from "@/components/phone-input"
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
@@ -27,11 +28,12 @@ interface CateringFormProps {
 
 export function CateringForm({ initialQuote, initialItems = [] }: CateringFormProps) {
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState<string[]>([])
 
   const [customerName, setCustomerName] = useState(initialQuote?.customer_name || "")
-  const [phone, setPhone] = useState(initialQuote?.phone || "")
+  const [countryCode, setCountryCode] = useState("+1")
+  const [phoneNumber, setPhoneNumber] = useState("")
   const [notes, setNotes] = useState(initialQuote?.notes || "")
   const [status, setStatus] = useState(initialQuote?.status || "draft")
 
@@ -66,6 +68,20 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
       setStatus(initialQuote.status)
     }
   }, [initialQuote?.status])
+
+  useEffect(() => {
+    if (initialQuote?.phone) {
+      // Parse phone: "+1234567890" -> countryCode: "+1", phoneNumber: "234567890"
+      const match = initialQuote.phone.match(/^(\+\d+)(.*)$/)
+      if (match) {
+        setCountryCode(match[1])
+        setPhoneNumber(match[2].replace(/\D/g, ""))
+      } else {
+        // No country code, just digits
+        setPhoneNumber(initialQuote.phone.replace(/\D/g, ""))
+      }
+    }
+  }, [initialQuote?.phone])
 
   const calculateSubtotal = () => {
     if (quoteType === "per_person") {
@@ -176,25 +192,22 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    console.log("[v0] Form submitted")
+
     setErrors([])
+    setIsLoading(true)
 
-    console.log("[v0] Form submit triggered")
-    console.log("[v0] Current status:", status)
+    try {
+      // Validation
+      const validationErrors: string[] = []
 
-    const validationErrors: string[] = []
+      if (!customerName.trim()) {
+        validationErrors.push("Customer name is required")
+      }
 
-    if (!customerName.trim()) {
-      validationErrors.push("Customer name is required")
-    }
-
-    if (!phone.trim()) {
-      validationErrors.push("Customer phone is required")
-    }
-
-    if (quoteType === "items") {
-      if (items.length === 0) {
-        validationErrors.push("At least one item is required")
+      const cleanedPhoneNumber = phoneNumber.replace(/\D/g, "")
+      if (!cleanedPhoneNumber) {
+        validationErrors.push("Customer phone is required")
       }
 
       items.forEach((item, index) => {
@@ -210,91 +223,96 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
           validationErrors.push(`Item ${index + 1}: Price cannot be negative`)
         }
       })
-    } else {
-      // Per person validation
-      if (!peopleCount || peopleCount < 1) {
-        validationErrors.push("Number of people must be at least 1")
-      }
 
-      if (pricePerPerson < 0) {
-        validationErrors.push("Price per person cannot be negative")
-      }
-
-      includedItems.forEach((item, index) => {
-        if (!item.label.trim()) {
-          validationErrors.push(`Included Item ${index + 1}: Description is required`)
+      if (quoteType === "per_person") {
+        if (!peopleCount || peopleCount < 1) {
+          validationErrors.push("Number of people must be at least 1")
         }
-      })
-    }
 
-    if (validationErrors.length > 0) {
-      const errorMessage = validationErrors.join(". ")
-      setErrors([errorMessage])
-      setLoading(false)
-      console.log("[v0] Validation failed:", validationErrors)
-      toast.error(errorMessage)
-      return
-    }
+        if (pricePerPerson < 0) {
+          validationErrors.push("Price per person cannot be negative")
+        }
 
-    const subtotal = calculateSubtotal()
-    const total = calculateTotal()
-    const allItemsForSave = [...items, ...includedItems]
-
-    const quote: CateringQuote = {
-      customer_name: customerName,
-      phone: phone,
-      notes: notes,
-      status: status, // Ensure status is included in payload
-      quote_type: quoteType,
-      people_count: quoteType === "per_person" ? peopleCount : null,
-      price_per_person: quoteType === "per_person" ? pricePerPerson : null,
-      subtotal,
-      tax,
-      delivery_fee: deliveryFee,
-      discount,
-      total,
-    }
-
-    console.log("[v0] Quote payload:", { id: initialQuote?.id, status: quote.status, total: quote.total })
-
-    let result
-    if (initialQuote?.id) {
-      console.log("[v0] Updating existing quote:", initialQuote.id, "with status:", status)
-      result = await updateCateringQuote(initialQuote.id, quote, allItemsForSave)
-    } else {
-      console.log("[v0] Creating new quote with status:", status)
-      result = await createCateringQuote(quote, allItemsForSave)
-    }
-
-    setLoading(false)
-
-    if (result.error) {
-      console.error("[v0] Save error:", result.error)
-      setErrors([result.error])
-      toast.error("Error saving quote")
-      return
-    }
-
-    console.log("[v0] Save successful!", result)
-
-    const statusLabel = status.charAt(0).toUpperCase() + status.slice(1)
-    if (initialQuote?.id) {
-      toast.success("Quote updated successfully", {
-        description: `Status: ${statusLabel}`,
-      })
-      console.log("[v0] Refreshing page after update")
-      router.refresh() // Refresh to get latest data including status
-    } else {
-      toast.success("Quote created successfully", {
-        description: `Status: ${statusLabel}`,
-      })
-      if (!result.id) {
-        console.error("[v0] No ID returned from create, redirecting to list")
-        router.push("/admin/catering")
-      } else {
-        console.log("[v0] Redirecting to:", `/admin/catering/${result.id}`)
-        router.push(`/admin/catering/${result.id}`)
+        includedItems.forEach((item, index) => {
+          if (!item.label.trim()) {
+            validationErrors.push(`Included Item ${index + 1}: Description is required`)
+          }
+        })
       }
+
+      if (validationErrors.length > 0) {
+        setErrors(validationErrors)
+        setIsLoading(false)
+        return
+      }
+
+      const fullPhone = countryCode + cleanedPhoneNumber
+
+      const subtotal = calculateSubtotal()
+      const total = calculateTotal()
+
+      const payload = {
+        customer_name: customerName,
+        phone: fullPhone,
+        notes,
+        status,
+        quote_type: quoteType,
+        people_count: quoteType === "per_person" ? peopleCount : null,
+        price_per_person: quoteType === "per_person" ? pricePerPerson : null,
+        items: quoteType === "items" ? items : [],
+        included_items: quoteType === "per_person" ? includedItems : [],
+        subtotal,
+        tax,
+        delivery_fee: deliveryFee,
+        discount,
+        total,
+      }
+
+      console.log("[v0] Submitting payload:", payload)
+
+      let result
+      if (initialQuote?.id) {
+        console.log("[v0] Updating existing quote:", initialQuote.id, "with status:", status)
+        result = await updateCateringQuote(initialQuote.id, payload)
+      } else {
+        console.log("[v0] Creating new quote with status:", status)
+        result = await createCateringQuote(payload)
+      }
+
+      setIsLoading(false)
+
+      if (result.error) {
+        console.error("[v0] Save error:", result.error)
+        setErrors([result.error])
+        toast.error("Error saving quote")
+        return
+      }
+
+      console.log("[v0] Save successful!", result)
+
+      const statusLabel = status.charAt(0).toUpperCase() + status.slice(1)
+      if (initialQuote?.id) {
+        toast.success("Quote updated successfully", {
+          description: `Status: ${statusLabel}`,
+        })
+        console.log("[v0] Refreshing page after update")
+        router.refresh() // Refresh to get latest data including status
+      } else {
+        toast.success("Quote created successfully", {
+          description: `Status: ${statusLabel}`,
+        })
+        if (!result.id) {
+          console.error("[v0] No ID returned from create, redirecting to list")
+          router.push("/admin/catering")
+        } else {
+          console.log("[v0] Redirecting to:", `/admin/catering/${result.id}`)
+          router.push(`/admin/catering/${result.id}`)
+        }
+      }
+    } catch (error) {
+      console.error("[v0] Error during form submission:", error)
+      setIsLoading(false)
+      toast.error("An error occurred while submitting the form")
     }
   }
 
@@ -323,7 +341,7 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
     message += `💰 *Total: $${calculateTotal().toFixed(2)}*\n\n`
     message += `Por favor confirma si te interesa esta cotización. ¡Gracias! 🙏`
 
-    const cleanPhone = phone.replace(/\D/g, "")
+    const cleanPhone = phoneNumber.replace(/\D/g, "")
     const encodedMessage = encodeURIComponent(message)
     window.open(`https://wa.me/${cleanPhone}?text=${encodedMessage}`, "_blank")
 
@@ -373,11 +391,11 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
             </div>
             <div>
               <Label htmlFor="phone">Phone Number *</Label>
-              <Input
-                id="phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Enter phone number"
+              <PhoneInput
+                countryCode={countryCode}
+                phoneNumber={phoneNumber}
+                onCountryCodeChange={setCountryCode}
+                onPhoneNumberChange={setPhoneNumber}
                 required
               />
             </div>
@@ -732,15 +750,15 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
             <Button
               type="button"
               onClick={handleWhatsApp}
-              disabled={!customerName || !phone || loading}
+              disabled={!customerName || !phoneNumber || isLoading}
               className="bg-green-600 hover:bg-green-700 font-semibold"
             >
               <MessageSquare className="w-4 h-4 mr-2" />
               Share via WhatsApp
             </Button>
           )}
-          <Button type="submit" disabled={loading} className="bg-purple-600 hover:bg-purple-700 font-semibold">
-            {loading ? "Saving..." : initialQuote ? "Update Quote" : "Create Quote"}
+          <Button type="submit" disabled={isLoading} className="bg-purple-600 hover:bg-purple-700 font-semibold">
+            {isLoading ? "Saving..." : initialQuote ? "Update Quote" : "Create Quote"}
           </Button>
         </div>
       </form>
