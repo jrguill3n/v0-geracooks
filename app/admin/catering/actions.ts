@@ -5,11 +5,8 @@ import { createClient } from "@/lib/supabase/server"
 
 export interface CateringQuoteItem {
   id?: string
-  name: string
-  description?: string
-  unitPrice: number
-  qty: number
-  lineTotal: number
+  label: string
+  price: number
 }
 
 export interface CateringQuote {
@@ -25,12 +22,13 @@ export interface CateringQuote {
   total: number
   created_at?: string
   updated_at?: string
+  converted_order_id?: string
+  converted_at?: string
 }
 
 export async function createCateringQuote(quote: CateringQuote, items: CateringQuoteItem[]) {
   const supabase = await createClient()
 
-  // Insert quote
   const { data: quoteData, error: quoteError } = await supabase
     .from("catering_quotes")
     .insert({
@@ -52,14 +50,12 @@ export async function createCateringQuote(quote: CateringQuote, items: CateringQ
     return { error: quoteError.message }
   }
 
-  // Insert items
   const itemsToInsert = items.map((item) => ({
     quote_id: quoteData.id,
-    name: item.name,
-    description: item.description,
-    unit_price: item.unitPrice,
-    qty: item.qty,
-    line_total: item.lineTotal,
+    name: item.label,
+    qty: 1,
+    unit_price: item.price,
+    line_total: item.price,
   }))
 
   const { error: itemsError } = await supabase.from("catering_quote_items").insert(itemsToInsert)
@@ -76,7 +72,6 @@ export async function createCateringQuote(quote: CateringQuote, items: CateringQ
 export async function updateCateringQuote(id: string, quote: CateringQuote, items: CateringQuoteItem[]) {
   const supabase = await createClient()
 
-  // Update quote
   const { error: quoteError } = await supabase
     .from("catering_quotes")
     .update({
@@ -98,17 +93,14 @@ export async function updateCateringQuote(id: string, quote: CateringQuote, item
     return { error: quoteError.message }
   }
 
-  // Delete existing items
   await supabase.from("catering_quote_items").delete().eq("quote_id", id)
 
-  // Insert new items
   const itemsToInsert = items.map((item) => ({
     quote_id: id,
-    name: item.name,
-    description: item.description,
-    unit_price: item.unitPrice,
-    qty: item.qty,
-    line_total: item.lineTotal,
+    name: item.label,
+    qty: 1,
+    unit_price: item.price,
+    line_total: item.price,
   }))
 
   const { error: itemsError } = await supabase.from("catering_quote_items").insert(itemsToInsert)
@@ -140,21 +132,18 @@ export async function deleteCateringQuote(id: string) {
 export async function duplicateCateringQuote(id: string) {
   const supabase = await createClient()
 
-  // Fetch existing quote
   const { data: quote, error: quoteError } = await supabase.from("catering_quotes").select("*").eq("id", id).single()
 
   if (quoteError) {
     return { error: quoteError.message }
   }
 
-  // Fetch items
   const { data: items, error: itemsError } = await supabase.from("catering_quote_items").select("*").eq("quote_id", id)
 
   if (itemsError) {
     return { error: itemsError.message }
   }
 
-  // Create duplicate
   const { data: newQuote, error: newQuoteError } = await supabase
     .from("catering_quotes")
     .insert({
@@ -175,14 +164,12 @@ export async function duplicateCateringQuote(id: string) {
     return { error: newQuoteError.message }
   }
 
-  // Duplicate items
   if (items && items.length > 0) {
     const newItems = items.map((item) => ({
       quote_id: newQuote.id,
       name: item.name,
-      description: item.description,
-      unit_price: item.unit_price,
       qty: item.qty,
+      unit_price: item.unit_price,
       line_total: item.line_total,
     }))
 
@@ -208,4 +195,137 @@ export async function updateQuoteStatus(id: string, status: string) {
   revalidatePath("/admin/catering")
   revalidatePath(`/admin/catering/${id}`)
   return { success: true }
+}
+
+export async function convertQuoteToOrder(quoteId: string) {
+  const supabase = await createClient()
+
+  const { data: existingQuote } = await supabase
+    .from("catering_quotes")
+    .select("converted_order_id, status")
+    .eq("id", quoteId)
+    .single()
+
+  if (existingQuote?.converted_order_id) {
+    return { error: "Esta cotización ya fue convertida a orden", orderId: existingQuote.converted_order_id }
+  }
+
+  if (existingQuote?.status !== "accepted") {
+    return { error: "Solo se pueden convertir cotizaciones aceptadas" }
+  }
+
+  const { data: quote, error: quoteError } = await supabase
+    .from("catering_quotes")
+    .select("*")
+    .eq("id", quoteId)
+    .single()
+
+  if (quoteError || !quote) {
+    return { error: "No se pudo encontrar la cotización" }
+  }
+
+  const { data: items, error: itemsError } = await supabase
+    .from("catering_quote_items")
+    .select("*")
+    .eq("quote_id", quoteId)
+
+  if (itemsError) {
+    return { error: "No se pudieron cargar los items" }
+  }
+
+  let customerId: string
+
+  const { data: existingCustomer } = await supabase
+    .from("customers")
+    .select("id, name")
+    .eq("phone", quote.phone)
+    .single()
+
+  if (existingCustomer) {
+    customerId = existingCustomer.id
+    if (existingCustomer.name !== quote.customer_name) {
+      await supabase
+        .from("customers")
+        .update({ name: quote.customer_name, updated_at: new Date().toISOString() })
+        .eq("id", customerId)
+    }
+  } else {
+    const { data: newCustomer, error: customerError } = await supabase
+      .from("customers")
+      .insert({ phone: quote.phone, name: quote.customer_name })
+      .select()
+      .single()
+
+    if (customerError) {
+      return { error: "Error al crear cliente" }
+    }
+    customerId = newCustomer.id
+  }
+
+  const { data: order, error: orderError } = await supabase
+    .from("orders")
+    .insert({
+      customer_id: customerId,
+      customer_name: quote.customer_name,
+      phone: quote.phone,
+      total_price: quote.total,
+      status: "pending",
+    })
+    .select()
+    .single()
+
+  if (orderError) {
+    console.error("[v0] Error creating order:", orderError)
+    return { error: "Error al crear la orden" }
+  }
+
+  const orderItemsData =
+    items?.map((item) => ({
+      order_id: order.id,
+      item_name: item.name,
+      quantity: 1,
+      unit_price: item.line_total,
+      total_price: item.line_total,
+      section: "Catering",
+      extras: null,
+    })) || []
+
+  const adjustment = (quote.tax || 0) + (quote.delivery_fee || 0) - (quote.discount || 0)
+  if (adjustment !== 0) {
+    orderItemsData.push({
+      order_id: order.id,
+      item_name: "Ajustes (impuestos, envío, descuento)",
+      quantity: 1,
+      unit_price: adjustment,
+      total_price: adjustment,
+      section: "Catering",
+      extras: null,
+    })
+  }
+
+  const { error: itemsInsertError } = await supabase.from("order_items").insert(orderItemsData)
+
+  if (itemsInsertError) {
+    console.error("[v0] Error creating order items:", itemsInsertError)
+    await supabase.from("orders").delete().eq("id", order.id)
+    return { error: "Error al crear items de la orden" }
+  }
+
+  const { error: updateError } = await supabase
+    .from("catering_quotes")
+    .update({
+      converted_order_id: order.id,
+      converted_at: new Date().toISOString(),
+    })
+    .eq("id", quoteId)
+
+  if (updateError) {
+    console.error("[v0] Error updating quote:", updateError)
+  }
+
+  revalidatePath("/admin/catering")
+  revalidatePath(`/admin/catering/${quoteId}`)
+  revalidatePath("/admin")
+
+  return { success: true, orderId: order.id }
 }

@@ -14,15 +14,12 @@ CREATE TABLE IF NOT EXISTS catering_quotes (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Create catering_quote_items table
+-- Simplified catering_quote_items: only label and price (no qty or description)
 CREATE TABLE IF NOT EXISTS catering_quote_items (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   quote_id UUID NOT NULL REFERENCES catering_quotes(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  description TEXT,
-  unit_price DECIMAL(10, 2) NOT NULL,
-  qty INTEGER NOT NULL CHECK (qty >= 1),
-  line_total DECIMAL(10, 2) NOT NULL,
+  label TEXT NOT NULL,
+  price DECIMAL(10, 2) NOT NULL CHECK (price >= 0),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
