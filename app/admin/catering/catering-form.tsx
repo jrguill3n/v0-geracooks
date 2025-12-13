@@ -259,8 +259,9 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
         quote_type: quoteType,
         people_count: quoteType === "per_person" ? peopleCount : null,
         price_per_person: quoteType === "per_person" ? pricePerPerson : null,
-        items: quoteType === "items" ? items : [],
-        included_items: quoteType === "per_person" ? includedItems : [],
+        items: quoteType === "items" ? items.map((item) => ({ ...item, item_type: "priced" })) : [],
+        included_items:
+          quoteType === "per_person" ? includedItems.map((item) => ({ ...item, item_type: "included" })) : [],
         subtotal,
         tax,
         delivery_fee: deliveryFee,
@@ -268,7 +269,13 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
         total,
       }
 
-      console.log("[v0] Submitting payload:", payload)
+      console.log("[v0] Submitting payload:", {
+        quoteType,
+        itemsCount: payload.items.length,
+        includedCount: payload.included_items.length,
+        customerName,
+        phone: fullPhone.slice(-4), // Log last 4 digits only
+      })
 
       let result
       if (initialQuote?.id) {

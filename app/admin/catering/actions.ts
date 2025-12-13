@@ -30,34 +30,55 @@ export interface CateringQuote {
   converted_at?: string
 }
 
-export async function createCateringQuote(quote: CateringQuote, items: CateringQuoteItem[]) {
+export async function createCateringQuote(input: any) {
   try {
+    // Normalize incoming payload to prevent crashes
+    const quoteType = input.quote_type || input.quoteType || "items"
+    const customerName = input.customer_name || input.customerName || ""
+    const phone = input.phone || ""
+    const items = Array.isArray(input.items) ? input.items : []
+    const includedItems = Array.isArray(input.included_items) ? input.included_items : []
+    const peopleCount = input.people_count || input.peopleCount || null
+    const pricePerPerson = input.price_per_person || input.pricePerPerson || null
+
+    console.log("[create quote] payload keys", Object.keys(input || {}))
+    console.log(
+      "[create quote] quoteType:",
+      quoteType,
+      "items:",
+      items.length,
+      "included:",
+      includedItems.length,
+      "people:",
+      peopleCount,
+    )
+
     const supabase = await createClient()
 
     console.log("[catering] create - starting with:", {
-      customer: quote.customer_name,
-      phone: quote.phone,
-      status: quote.status,
-      quoteType: quote.quote_type,
-      itemCount: items.length,
-      total: quote.total,
+      customer: customerName,
+      phone: phone,
+      status: input.status || "draft",
+      quoteType: quoteType,
+      itemCount: items.length + includedItems.length,
+      total: input.total || 0,
     })
 
     const { data: quoteData, error: quoteError } = await supabase
       .from("catering_quotes")
       .insert({
-        customer_name: quote.customer_name,
-        phone: quote.phone,
-        notes: quote.notes,
-        status: quote.status,
-        quote_type: quote.quote_type || "items",
-        people_count: quote.people_count,
-        price_per_person: quote.price_per_person,
-        subtotal: quote.subtotal,
-        tax: quote.tax,
-        delivery_fee: quote.delivery_fee,
-        discount: quote.discount,
-        total: quote.total,
+        customer_name: customerName,
+        phone: phone,
+        notes: input.notes,
+        status: input.status || "draft",
+        quote_type: quoteType,
+        people_count: peopleCount,
+        price_per_person: pricePerPerson,
+        subtotal: input.subtotal || 0,
+        tax: input.tax || 0,
+        delivery_fee: input.delivery_fee || input.deliveryFee || 0,
+        discount: input.discount || 0,
+        total: input.total || 0,
       })
       .select()
       .single()
@@ -69,13 +90,15 @@ export async function createCateringQuote(quote: CateringQuote, items: CateringQ
 
     console.log("[catering] create - quote created, ID:", quoteData.id, "Status:", quoteData.status)
 
-    if (items.length > 0) {
-      const itemsToInsert = items.map((item) => ({
+    const allItems = [...items, ...includedItems]
+
+    if (allItems.length > 0) {
+      const itemsToInsert = allItems.map((item) => ({
         quote_id: quoteData.id,
         name: item.label,
         qty: 1,
-        unit_price: item.price,
-        line_total: item.price,
+        unit_price: item.price || 0,
+        line_total: item.price || 0,
         item_type: item.item_type || "priced",
       }))
 
@@ -103,27 +126,32 @@ export async function createCateringQuote(quote: CateringQuote, items: CateringQ
   }
 }
 
-export async function updateCateringQuote(id: string, quote: CateringQuote, items: CateringQuoteItem[]) {
+export async function updateCateringQuote(id: string, input: any) {
   try {
+    // Normalize incoming payload
+    const quoteType = input.quote_type || input.quoteType || "items"
+    const items = Array.isArray(input.items) ? input.items : []
+    const includedItems = Array.isArray(input.included_items) ? input.included_items : []
+
     const supabase = await createClient()
 
-    console.log("[catering] update - starting, ID:", id, "Status:", quote.status)
+    console.log("[catering] update - starting, ID:", id, "Status:", input.status)
 
     const { error: quoteError } = await supabase
       .from("catering_quotes")
       .update({
-        customer_name: quote.customer_name,
-        phone: quote.phone,
-        notes: quote.notes,
-        status: quote.status,
-        quote_type: quote.quote_type || "items",
-        people_count: quote.people_count,
-        price_per_person: quote.price_per_person,
-        subtotal: quote.subtotal,
-        tax: quote.tax,
-        delivery_fee: quote.delivery_fee,
-        discount: quote.discount,
-        total: quote.total,
+        customer_name: input.customer_name || input.customerName,
+        phone: input.phone,
+        notes: input.notes,
+        status: input.status || "draft",
+        quote_type: quoteType,
+        people_count: input.people_count || input.peopleCount || null,
+        price_per_person: input.price_per_person || input.pricePerPerson || null,
+        subtotal: input.subtotal || 0,
+        tax: input.tax || 0,
+        delivery_fee: input.delivery_fee || input.deliveryFee || 0,
+        discount: input.discount || 0,
+        total: input.total || 0,
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)
@@ -135,13 +163,15 @@ export async function updateCateringQuote(id: string, quote: CateringQuote, item
 
     await supabase.from("catering_quote_items").delete().eq("quote_id", id)
 
-    if (items.length > 0) {
-      const itemsToInsert = items.map((item) => ({
+    const allItems = [...items, ...includedItems]
+
+    if (allItems.length > 0) {
+      const itemsToInsert = allItems.map((item) => ({
         quote_id: id,
         name: item.label,
         qty: 1,
-        unit_price: item.price,
-        line_total: item.price,
+        unit_price: item.price || 0,
+        line_total: item.price || 0,
         item_type: item.item_type || "priced",
       }))
 
