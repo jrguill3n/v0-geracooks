@@ -358,6 +358,16 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
     }
   }
 
+  const handleMarkAsAccepted = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    setStatus("accepted")
+    // Trigger form submission with accepted status
+    const form = e.currentTarget.closest("form")
+    if (form) {
+      form.requestSubmit()
+    }
+  }
+
   useEffect(() => {
     const handleClickOutside = () => {
       setSuggestions([])
@@ -752,7 +762,7 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3 justify-end">
+        <div className="flex gap-3 flex-wrap">
           {initialQuote && (
             <Button
               type="button"
@@ -762,6 +772,16 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
             >
               <MessageSquare className="w-4 h-4 mr-2" />
               Share via WhatsApp
+            </Button>
+          )}
+          {initialQuote && (
+            <Button
+              type="button"
+              onClick={handleMarkAsAccepted}
+              disabled={isLoading || status === "accepted"}
+              className="bg-teal-600 hover:bg-teal-700 font-semibold disabled:opacity-50"
+            >
+              {status === "accepted" ? "✓ Already Accepted" : "Mark as Accepted"}
             </Button>
           )}
           <Button type="submit" disabled={isLoading} className="bg-purple-600 hover:bg-purple-700 font-semibold">
