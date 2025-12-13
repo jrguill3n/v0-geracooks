@@ -73,13 +73,69 @@ const countryCodes: CountryCode[] = [
 ]
 
 interface PhoneInputProps {
-  countryCode: string
-  phoneNumber: string
-  onCountryCodeChange: (code: string) => void
-  onPhoneNumberChange: (number: string) => void
+  value?: string
+  onChange?: (value: string) => void
+  required?: boolean
+  countryCode?: string
+  phoneNumber?: string
+  onCountryCodeChange?: (code: string) => void
+  onPhoneNumberChange?: (number: string) => void
 }
 
-export function PhoneInput({ countryCode, phoneNumber, onCountryCodeChange, onPhoneNumberChange }: PhoneInputProps) {
+export function PhoneInput({
+  value,
+  onChange,
+  required,
+  countryCode: propCountryCode,
+  phoneNumber: propPhoneNumber,
+  onCountryCodeChange: propOnCountryCodeChange,
+  onPhoneNumberChange: propOnPhoneNumberChange,
+}: PhoneInputProps) {
+  const [internalCountryCode, setInternalCountryCode] = useState("+1")
+  const [internalPhoneNumber, setInternalPhoneNumber] = useState("")
+
+  // Use props if provided, otherwise use internal state
+  const countryCode = propCountryCode ?? internalCountryCode
+  const phoneNumber = propPhoneNumber ?? internalPhoneNumber
+
+  // Parse value prop on mount or when it changes
+  useEffect(() => {
+    if (value && !propCountryCode) {
+      // Extract country code from value if it starts with +
+      const match = value.match(/^(\+\d+)(.*)$/)
+      if (match) {
+        setInternalCountryCode(match[1])
+        setInternalPhoneNumber(match[2].trim())
+      } else {
+        setInternalPhoneNumber(value)
+      }
+    }
+  }, [value, propCountryCode])
+
+  const handleCountryCodeChange = (code: string) => {
+    if (propOnCountryCodeChange) {
+      propOnCountryCodeChange(code)
+    } else {
+      setInternalCountryCode(code)
+      // Also update parent with combined value
+      if (onChange) {
+        onChange(`${code}${internalPhoneNumber}`)
+      }
+    }
+  }
+
+  const handlePhoneNumberChange = (number: string) => {
+    if (propOnPhoneNumberChange) {
+      propOnPhoneNumberChange(number)
+    } else {
+      setInternalPhoneNumber(number)
+      // Update parent with combined value
+      if (onChange) {
+        onChange(`${internalCountryCode}${number}`)
+      }
+    }
+  }
+
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState("")
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -101,9 +157,7 @@ export function PhoneInput({ countryCode, phoneNumber, onCountryCodeChange, onPh
   }, [])
 
   const handleSelect = (code: string) => {
-    onCountryCodeChange(code)
-    setIsOpen(false)
-    setSearch("")
+    handleCountryCodeChange(code)
   }
 
   const selectedCountry = countryCodes.find((c) => c.code === countryCode) || countryCodes[0]
@@ -126,7 +180,6 @@ export function PhoneInput({ countryCode, phoneNumber, onCountryCodeChange, onPh
 
         {isOpen && (
           <div className="absolute top-full left-0 mt-1 w-80 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-96 overflow-hidden flex flex-col">
-            {/* Search Input */}
             <div className="p-2 border-b border-gray-200 bg-gray-50">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -141,7 +194,6 @@ export function PhoneInput({ countryCode, phoneNumber, onCountryCodeChange, onPh
               </div>
             </div>
 
-            {/* Country List */}
             <div className="overflow-y-auto flex-1">
               {filteredCountries.length > 0 ? (
                 filteredCountries.map((country, index) => (
@@ -174,8 +226,9 @@ export function PhoneInput({ countryCode, phoneNumber, onCountryCodeChange, onPh
         name="tel"
         autoComplete="tel"
         value={phoneNumber}
-        onChange={(e) => onPhoneNumberChange(e.target.value)}
+        onChange={(e) => handlePhoneNumberChange(e.target.value)}
         placeholder="5551234567"
+        required={required}
         className="flex-1 bg-white border border-gray-300 focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
       />
     </div>
