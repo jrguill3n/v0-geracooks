@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 interface CountryCode {
   code: string
   country: string
-  countryCode: string // Added country code abbreviation field
+  countryCode: string
   flag?: string
 }
 
@@ -93,53 +93,69 @@ export function PhoneInput({
   onCountryCodeChange: propOnCountryCodeChange,
   onPhoneNumberChange: propOnPhoneNumberChange,
 }: PhoneInputProps) {
-  const [internalCountryCode, setInternalCountryCode] = useState("+1")
-  const [internalPhoneNumber, setInternalPhoneNumber] = useState("")
+  const [draftCountryCode, setDraftCountryCode] = useState("+1")
+  const [draftPhoneDigits, setDraftPhoneDigits] = useState("")
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState("")
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const isInitializedRef = useRef(false)
 
-  // Use props if provided, otherwise use internal state
-  const countryCode = propCountryCode ?? internalCountryCode
-  const phoneNumber = propPhoneNumber ?? internalPhoneNumber
-
-  // Parse value prop on mount or when it changes (only if using single value prop)
+  // Initialize from props only once on mount
   useEffect(() => {
-    if (value && !propCountryCode && !propPhoneNumber) {
-      const match = value.match(/^(\+\d+)(.*)$/)
-      if (match) {
-        setInternalCountryCode(match[1])
-        setInternalPhoneNumber(match[2].trim())
-      } else {
-        setInternalPhoneNumber(value)
+    if (!isInitializedRef.current) {
+      if (propCountryCode && propPhoneNumber) {
+        // New-style props
+        setDraftCountryCode(propCountryCode)
+        setDraftPhoneDigits(propPhoneNumber)
+      } else if (value) {
+        // Old-style single value prop - parse it
+        const match = value.match(/^(\+\d+)(.*)$/)
+        if (match) {
+          setDraftCountryCode(match[1])
+          // Strip non-digits from phone part
+          setDraftPhoneDigits(match[2].replace(/\D/g, ""))
+        } else {
+          // Just digits, no country code
+          setDraftPhoneDigits(value.replace(/\D/g, ""))
+        }
       }
+      isInitializedRef.current = true
     }
-  }, [value, propCountryCode, propPhoneNumber])
+  }, [])
+
+  const notifyParent = (countryCode: string, phoneDigits: string) => {
+    // Notify parent with combined normalized value
+    const combined = `${countryCode}${phoneDigits}`
+    if (onChange) {
+      onChange(combined)
+    }
+    if (propOnCountryCodeChange) {
+      propOnCountryCodeChange(countryCode)
+    }
+    if (propOnPhoneNumberChange) {
+      propOnPhoneNumberChange(phoneDigits)
+    }
+  }
 
   const handleCountryCodeChange = (code: string) => {
-    if (propOnCountryCodeChange) {
-      propOnCountryCodeChange(code)
-    } else {
-      setInternalCountryCode(code)
-      if (onChange) {
-        onChange(`${code}${internalPhoneNumber}`)
-      }
-    }
+    setDraftCountryCode(code)
+    notifyParent(code, draftPhoneDigits)
     setIsOpen(false)
     setSearch("")
   }
 
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const number = e.target.value
+    const input = e.target.value
+    // Strip non-digits, allow paste with formatted numbers
+    const digits = input.replace(/\D/g, "")
+    setDraftPhoneDigits(digits)
+    // Update parent immediately so validation works
+    notifyParent(draftCountryCode, digits)
+  }
 
-    if (propOnPhoneNumberChange) {
-      propOnPhoneNumberChange(number)
-    } else {
-      setInternalPhoneNumber(number)
-      if (onChange) {
-        onChange(`${internalCountryCode}${number}`)
-      }
-    }
+  const handlePhoneBlur = () => {
+    // On blur, ensure parent has the latest normalized value
+    notifyParent(draftCountryCode, draftPhoneDigits)
   }
 
   const filteredCountries = countryCodes.filter(
@@ -162,7 +178,7 @@ export function PhoneInput({
     handleCountryCodeChange(code)
   }
 
-  const selectedCountry = countryCodes.find((c) => c.code === countryCode) || countryCodes[0]
+  const selectedCountry = countryCodes.find((c) => c.code === draftCountryCode) || countryCodes[0]
 
   return (
     <div className="flex gap-2">
@@ -204,14 +220,14 @@ export function PhoneInput({
                     type="button"
                     onClick={() => handleSelect(country.code)}
                     className={`w-full px-4 py-2.5 text-left hover:bg-teal-50 flex items-center justify-between transition-colors ${
-                      country.code === countryCode ? "bg-teal-50" : ""
+                      country.code === draftCountryCode ? "bg-teal-50" : ""
                     }`}
                   >
                     <div className="flex-1">
                       <span className="font-medium text-gray-900">{country.country}</span>
                       <span className="text-gray-500 ml-2 text-sm">{country.code}</span>
                     </div>
-                    {country.code === countryCode && <Check className="h-4 w-4 text-teal-600" />}
+                    {country.code === draftCountryCode && <Check className="h-4 w-4 text-teal-600" />}
                   </button>
                 ))
               ) : (
@@ -227,8 +243,9 @@ export function PhoneInput({
         type="tel"
         name="tel"
         autoComplete="tel"
-        value={phoneNumber}
+        value={draftPhoneDigits}
         onChange={handlePhoneNumberChange}
+        onBlur={handlePhoneBlur}
         placeholder="5551234567"
         required={required}
         className="flex-1 bg-white border border-gray-300 focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
