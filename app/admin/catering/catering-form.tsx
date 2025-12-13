@@ -60,6 +60,13 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
   const [showSuggestions, setShowSuggestions] = useState<number | null>(null)
   const debounceTimerRef = useRef<NodeJS.Timeout>()
 
+  useEffect(() => {
+    if (initialQuote?.status) {
+      console.log("[v0] Syncing status from props:", initialQuote.status)
+      setStatus(initialQuote.status)
+    }
+  }, [initialQuote?.status])
+
   const calculateSubtotal = () => {
     if (quoteType === "per_person") {
       return peopleCount * pricePerPerson
