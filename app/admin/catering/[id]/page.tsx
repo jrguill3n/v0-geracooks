@@ -5,23 +5,29 @@ import { ConvertToOrderButton } from "../convert-to-order-button"
 import Link from "next/link"
 import { CheckCircle2, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
-// </CHANGE>
 
-export default async function EditCateringPage({ params }: { params: { id: string } }) {
+export default async function EditCateringPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  console.log("[v0] Loading catering quote with ID:", id)
+
   const supabase = await createClient()
 
-  const { data: quote, error } = await supabase.from("catering_quotes").select("*").eq("id", params.id).single()
+  const { data: quote, error } = await supabase.from("catering_quotes").select("*").eq("id", id).single()
+
+  console.log("[v0] Quote lookup result:", { found: !!quote, error: error?.message })
 
   if (error || !quote) {
+    console.error("[v0] Quote not found. ID:", id, "Error:", error)
     return (
       <>
         <AdminNav title="Quote Not Found" subtitle="This quote could not be found" />
         <div className="max-w-4xl mx-auto px-4 py-12 sm:px-6 text-center">
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-8">
             <h2 className="text-2xl font-bold text-yellow-900 mb-2">Quote Not Found</h2>
-            <p className="text-yellow-700 mb-6">
+            <p className="text-yellow-700 mb-2">
               The catering quote you're looking for doesn't exist or has been deleted.
             </p>
+            <p className="text-xs text-yellow-600 mb-6 font-mono">ID: {id}</p>
             <Link href="/admin/catering">
               <Button className="bg-purple-600 hover:bg-purple-700">
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -38,7 +44,7 @@ export default async function EditCateringPage({ params }: { params: { id: strin
   const { data: items } = await supabase
     .from("catering_quote_items")
     .select("*")
-    .eq("quote_id", params.id)
+    .eq("quote_id", id)
     .order("created_at", { ascending: true })
 
   const formattedItems = (items || []).map((item) => ({
@@ -46,6 +52,8 @@ export default async function EditCateringPage({ params }: { params: { id: strin
     label: item.name,
     price: Number(item.line_total),
   }))
+
+  console.log("[v0] Successfully loaded quote:", quote.id, "with", formattedItems.length, "items")
 
   return (
     <>

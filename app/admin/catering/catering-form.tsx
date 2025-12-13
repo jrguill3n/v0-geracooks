@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Trash2, MessageCircle, Save } from "lucide-react"
+import { Plus, Trash2, MessageCircle, Save, Users } from "lucide-react"
 import {
   createCateringQuote,
   updateCateringQuote,
@@ -19,6 +19,7 @@ import {
   updateQuoteStatus,
 } from "./actions"
 import { PhoneInput } from "@/components/phone-input"
+import { SegmentedControl } from "@/components/ui/segmented-control"
 
 interface CateringFormProps {
   initialQuote?: CateringQuote
@@ -35,6 +36,10 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
   const [notes, setNotes] = useState(initialQuote?.notes || "")
   const [status, setStatus] = useState(initialQuote?.status || "draft")
 
+  const [quoteType, setQuoteType] = useState<"items" | "per_person">(initialQuote?.quote_type || "items")
+  const [peopleCount, setPeopleCount] = useState<number>(initialQuote?.people_count || 0)
+  const [pricePerPerson, setPricePerPerson] = useState<number>(initialQuote?.price_per_person || 0)
+
   const [items, setItems] = useState<CateringQuoteItem[]>(
     initialItems.length > 0 ? initialItems : [{ label: "", price: 0 }],
   )
@@ -49,6 +54,9 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
   const debounceTimerRef = useRef<NodeJS.Timeout>()
 
   const calculateSubtotal = () => {
+    if (quoteType === "per_person") {
+      return peopleCount * pricePerPerson
+    }
     return items.reduce((sum, item) => {
       const price = typeof item.price === "number" && !Number.isNaN(item.price) ? item.price : 0
       return sum + price
@@ -138,7 +146,6 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
     e.preventDefault()
 
     console.log("[v0] Form submit triggered")
-    console.log("[v0] Current items:", items)
 
     setLoading(true)
     setError("")
@@ -153,23 +160,34 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
       validationErrors.push("Customer phone is required")
     }
 
-    if (items.length === 0) {
-      validationErrors.push("At least one item is required")
+    if (quoteType === "items") {
+      if (items.length === 0) {
+        validationErrors.push("At least one item is required")
+      }
+
+      items.forEach((item, index) => {
+        if (!item.label.trim()) {
+          validationErrors.push(`Item ${index + 1}: Description is required`)
+        }
+
+        const price = typeof item.price === "number" ? item.price : Number.parseFloat(String(item.price))
+
+        if (Number.isNaN(price)) {
+          validationErrors.push(`Item ${index + 1}: Invalid price`)
+        } else if (price < 0) {
+          validationErrors.push(`Item ${index + 1}: Price cannot be negative`)
+        }
+      })
+    } else {
+      // Per person validation
+      if (!peopleCount || peopleCount < 1) {
+        validationErrors.push("Number of people must be at least 1")
+      }
+
+      if (pricePerPerson < 0) {
+        validationErrors.push("Price per person cannot be negative")
+      }
     }
-
-    items.forEach((item, index) => {
-      if (!item.label.trim()) {
-        validationErrors.push(`Item ${index + 1}: Description is required`)
-      }
-
-      const price = typeof item.price === "number" ? item.price : Number.parseFloat(String(item.price))
-
-      if (Number.isNaN(price)) {
-        validationErrors.push(`Item ${index + 1}: Invalid price`)
-      } else if (price < 0) {
-        validationErrors.push(`Item ${index + 1}: Price cannot be negative`)
-      }
-    })
 
     if (validationErrors.length > 0) {
       const errorMessage = validationErrors.join(". ")
@@ -189,6 +207,9 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
       phone: phone.trim(),
       notes: notes.trim(),
       status,
+      quote_type: quoteType,
+      people_count: quoteType === "per_person" ? peopleCount : null,
+      price_per_person: quoteType === "per_person" ? pricePerPerson : null,
       subtotal: calculateSubtotal(),
       tax,
       delivery_fee: deliveryFee,
@@ -198,12 +219,10 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
 
     try {
       console.log("[v0] Submitting quote:", quote)
-      console.log("[v0] Items:", items)
-      console.log("[v0] Is update?", !!initialQuote?.id)
 
       const result = initialQuote?.id
-        ? await updateCateringQuote(initialQuote.id, quote, items)
-        : await createCateringQuote(quote, items)
+        ? await updateCateringQuote(initialQuote.id, quote, quoteType === "items" ? items : [])
+        : await createCateringQuote(quote, quoteType === "items" ? items : [])
 
       console.log("[v0] Server result:", result)
 
@@ -222,12 +241,10 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
         })
 
         if (!initialQuote) {
-          // Creating new quote
           if (result.id) {
             console.log("[v0] Redirecting to new quote:", `/admin/catering/${result.id}`)
             router.push(`/admin/catering/${result.id}`)
           } else {
-            // Fallback: redirect to list if ID is missing
             console.error("[v0] Warning: Quote created but ID is missing. Redirecting to list.")
             toast({
               title: "Warning",
@@ -237,7 +254,6 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
             router.push("/admin/catering")
           }
         } else {
-          // Updating existing quote - stay on page and refresh
           console.log("[v0] Refreshing page after update")
           router.refresh()
           setLoading(false)
@@ -262,9 +278,20 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
     message += `📋 *Detalles*\n`
     message += `─────────────────\n\n`
 
-    items.forEach((item) => {
-      message += `• ${item.label} - $${item.price.toFixed(2)}\n`
-    })
+    if (quoteType === "per_person") {
+      message += `👥 Personas: ${peopleCount}\n`
+      message += `💵 Precio por persona: $${pricePerPerson.toFixed(2)}\n`
+      message += `💰 Subtotal: $${calculateSubtotal().toFixed(2)}\n\n`
+    } else {
+      items.forEach((item) => {
+        message += `• ${item.label} - $${item.price.toFixed(2)}\n`
+      })
+      message += `\n💰 Subtotal: $${calculateSubtotal().toFixed(2)}\n`
+    }
+
+    if (tax > 0) message += `📊 Impuesto: $${tax.toFixed(2)}\n`
+    if (deliveryFee > 0) message += `🚚 Envío: $${deliveryFee.toFixed(2)}\n`
+    if (discount > 0) message += `🎉 Descuento: -$${discount.toFixed(2)}\n`
 
     message += `\n─────────────────\n`
     message += `💰 *Total: $${calculateTotal().toFixed(2)}*\n\n`
@@ -328,100 +355,171 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
           </div>
         </div>
 
-        {/* Items Section */}
         <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">Items</h3>
-            <Button
-              type="button"
-              onClick={addItem}
-              size="sm"
-              variant="outline"
-              className="border-purple-500 text-purple-600 hover:bg-purple-50 bg-transparent"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Item
-            </Button>
-          </div>
-
           <div className="space-y-3">
-            {items.map((item, index) => (
-              <div
-                key={index}
-                className="border border-gray-200 rounded-lg p-4 hover:border-purple-300 transition-colors"
-              >
-                <div className="flex gap-3 items-start">
-                  <div className="flex-1 relative">
-                    <Label className="text-sm font-medium">Item Description *</Label>
-                    <Input
-                      value={item.label}
-                      onChange={(e) => updateItem(index, "label", e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(e, index)}
-                      onClick={(e) => e.stopPropagation()}
-                      placeholder="e.g., 50 Empanadas de pollo y queso"
-                      required
-                      className="mt-1"
-                    />
-                    {showSuggestions === index && suggestions.length > 0 && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                        <div className="px-3 py-2 text-xs font-medium text-gray-500 bg-gray-50 border-b">
-                          Sugerencias
-                        </div>
-                        {suggestions.map((suggestion, suggestionIndex) => (
-                          <button
-                            key={suggestionIndex}
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              selectSuggestion(index, suggestion)
-                            }}
-                            className={`w-full text-left px-3 py-2 hover:bg-purple-50 cursor-pointer transition-colors ${
-                              activeSuggestionIndex === suggestionIndex ? "bg-purple-100" : ""
-                            }`}
-                          >
-                            {suggestion}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="w-32">
-                    <Label className="text-sm font-medium">Price * (min $0)</Label>
-                    <Input
-                      type="text"
-                      inputMode="decimal"
-                      value={item.price === 0 ? "0" : item.price || ""}
-                      onChange={(e) => {
-                        const val = e.target.value
-                        // Allow empty, numbers, and decimals
-                        if (val === "" || /^\d*\.?\d{0,2}$/.test(val)) {
-                          // Parse to number, treating empty as 0
-                          const numValue = val === "" ? 0 : Number.parseFloat(val) || 0
-                          console.log("[v0] Price input:", val, "-> parsed:", numValue)
-                          updateItem(index, "price", numValue)
-                        }
-                      }}
-                      required
-                      className="mt-1"
-                      placeholder="0.00"
-                    />
-                  </div>
-                  {items.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() => removeItem(index)}
-                      className="mt-6 border-red-500 text-red-600 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
+            <div>
+              <Label className="text-base font-semibold">Quote Type *</Label>
+              <p className="text-sm text-gray-500 mb-3">Elige cómo se calcula este catering</p>
+            </div>
+            <SegmentedControl
+              value={quoteType}
+              onValueChange={(value) => setQuoteType(value as "items" | "per_person")}
+              options={[
+                { value: "items", label: "Items" },
+                { value: "per_person", label: "Per Person" },
+              ]}
+              className="w-full sm:w-auto"
+            />
           </div>
         </div>
+
+        {quoteType === "items" ? (
+          // Items Section
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Items</h3>
+              <Button
+                type="button"
+                onClick={addItem}
+                size="sm"
+                variant="outline"
+                className="border-purple-500 text-purple-600 hover:bg-purple-50 bg-transparent"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Item
+              </Button>
+            </div>
+
+            <div className="space-y-3">
+              {items.map((item, index) => (
+                <div
+                  key={index}
+                  className="border border-gray-200 rounded-lg p-4 hover:border-purple-300 transition-colors"
+                >
+                  <div className="flex gap-3 items-start">
+                    <div className="flex-1 relative">
+                      <Label className="text-sm font-medium">Item Description *</Label>
+                      <Input
+                        value={item.label}
+                        onChange={(e) => updateItem(index, "label", e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(e, index)}
+                        onClick={(e) => e.stopPropagation()}
+                        placeholder="e.g., 50 Empanadas de pollo y queso"
+                        required
+                        className="mt-1"
+                      />
+                      {showSuggestions === index && suggestions.length > 0 && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                          <div className="px-3 py-2 text-xs font-medium text-gray-500 bg-gray-50 border-b">
+                            Sugerencias
+                          </div>
+                          {suggestions.map((suggestion, suggestionIndex) => (
+                            <button
+                              key={suggestionIndex}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                selectSuggestion(index, suggestion)
+                              }}
+                              className={`w-full text-left px-3 py-2 hover:bg-purple-50 cursor-pointer transition-colors ${
+                                activeSuggestionIndex === suggestionIndex ? "bg-purple-100" : ""
+                              }`}
+                            >
+                              {suggestion}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="w-32">
+                      <Label className="text-sm font-medium">Price *</Label>
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        value={item.price === 0 ? "0" : item.price || ""}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          if (val === "" || /^\d*\.?\d{0,2}$/.test(val)) {
+                            const numValue = val === "" ? 0 : Number.parseFloat(val) || 0
+                            updateItem(index, "price", numValue)
+                          }
+                        }}
+                        required
+                        className="mt-1"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    {items.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => removeItem(index)}
+                        className="mt-6 border-red-500 text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex items-center gap-2 mb-4">
+              <Users className="w-5 h-5 text-purple-600" />
+              <h3 className="text-lg font-semibold">People Pricing</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="peopleCount">Number of People *</Label>
+                <Input
+                  id="peopleCount"
+                  type="text"
+                  inputMode="numeric"
+                  value={peopleCount || ""}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    if (val === "" || /^\d+$/.test(val)) {
+                      setPeopleCount(val === "" ? 0 : Number.parseInt(val, 10))
+                    }
+                  }}
+                  placeholder="e.g., 50"
+                  required
+                  className="text-lg"
+                />
+              </div>
+              <div>
+                <Label htmlFor="pricePerPerson">Price per Person *</Label>
+                <Input
+                  id="pricePerPerson"
+                  type="text"
+                  inputMode="decimal"
+                  value={pricePerPerson === 0 ? "0" : pricePerPerson || ""}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    if (val === "" || /^\d*\.?\d{0,2}$/.test(val)) {
+                      setPricePerPerson(val === "" ? 0 : Number.parseFloat(val) || 0)
+                    }
+                  }}
+                  placeholder="0.00"
+                  required
+                  className="text-lg"
+                />
+              </div>
+            </div>
+            {peopleCount > 0 && pricePerPerson > 0 && (
+              <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                <p className="text-sm text-purple-700">
+                  <span className="font-semibold">{peopleCount} personas</span> ×{" "}
+                  <span className="font-semibold">${pricePerPerson.toFixed(2)}</span> ={" "}
+                  <span className="text-lg font-bold">${calculateSubtotal().toFixed(2)}</span>
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Totals Section */}
         <div className="bg-white p-6 rounded-lg shadow">
