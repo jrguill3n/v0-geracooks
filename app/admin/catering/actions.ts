@@ -31,124 +31,144 @@ export interface CateringQuote {
 }
 
 export async function createCateringQuote(quote: CateringQuote, items: CateringQuoteItem[]) {
-  const supabase = await createClient()
+  try {
+    const supabase = await createClient()
 
-  console.log("[v0] Creating catering quote:", {
-    customer: quote.customer_name,
-    phone: quote.phone,
-    status: quote.status, // Log status being saved
-    quoteType: quote.quote_type,
-    itemCount: items.length,
-    total: quote.total,
-  })
-
-  const { data: quoteData, error: quoteError } = await supabase
-    .from("catering_quotes")
-    .insert({
-      customer_name: quote.customer_name,
+    console.log("[catering] create - starting with:", {
+      customer: quote.customer_name,
       phone: quote.phone,
-      notes: quote.notes,
-      status: quote.status, // Already correct
-      quote_type: quote.quote_type || "items",
-      people_count: quote.people_count,
-      price_per_person: quote.price_per_person,
-      subtotal: quote.subtotal,
-      tax: quote.tax,
-      delivery_fee: quote.delivery_fee,
-      discount: quote.discount,
+      status: quote.status,
+      quoteType: quote.quote_type,
+      itemCount: items.length,
       total: quote.total,
     })
-    .select()
-    .single()
 
-  if (quoteError) {
-    console.error("[v0] Error creating quote:", quoteError)
-    return { error: quoteError.message }
-  }
+    const { data: quoteData, error: quoteError } = await supabase
+      .from("catering_quotes")
+      .insert({
+        customer_name: quote.customer_name,
+        phone: quote.phone,
+        notes: quote.notes,
+        status: quote.status,
+        quote_type: quote.quote_type || "items",
+        people_count: quote.people_count,
+        price_per_person: quote.price_per_person,
+        subtotal: quote.subtotal,
+        tax: quote.tax,
+        delivery_fee: quote.delivery_fee,
+        discount: quote.discount,
+        total: quote.total,
+      })
+      .select()
+      .single()
 
-  console.log("[v0] Quote created successfully - ID:", quoteData.id, "Status stored:", quoteData.status)
-
-  if (items.length > 0) {
-    const itemsToInsert = items.map((item) => ({
-      quote_id: quoteData.id,
-      name: item.label,
-      qty: 1,
-      unit_price: item.price,
-      line_total: item.price,
-      item_type: item.item_type || "priced", // Default to priced if not specified
-    }))
-
-    const { error: itemsError } = await supabase.from("catering_quote_items").insert(itemsToInsert)
-
-    if (itemsError) {
-      console.error("[v0] Error creating items:", itemsError)
-      return { error: itemsError.message }
+    if (quoteError) {
+      console.error("[catering] create error - quote insert failed:", quoteError.message, quoteError)
+      return { error: `Failed to create quote: ${quoteError.message}` }
     }
+
+    console.log("[catering] create - quote created, ID:", quoteData.id, "Status:", quoteData.status)
+
+    if (items.length > 0) {
+      const itemsToInsert = items.map((item) => ({
+        quote_id: quoteData.id,
+        name: item.label,
+        qty: 1,
+        unit_price: item.price,
+        line_total: item.price,
+        item_type: item.item_type || "priced",
+      }))
+
+      const { error: itemsError } = await supabase.from("catering_quote_items").insert(itemsToInsert)
+
+      if (itemsError) {
+        console.error("[catering] create error - items insert failed:", itemsError.message, itemsError)
+        return { error: `Quote created but failed to add items: ${itemsError.message}` }
+      }
+    }
+
+    revalidatePath("/admin/catering")
+    revalidatePath(`/admin/catering/${quoteData.id}`)
+    console.log("[catering] create - success, revalidated paths")
+
+    return { success: true, id: quoteData.id }
+  } catch (error) {
+    console.error(
+      "[catering] create error - unexpected exception:",
+      error instanceof Error ? error.message : "Unknown",
+      error instanceof Error ? error.stack : "",
+      error,
+    )
+    return { error: `Unexpected error creating quote: ${error instanceof Error ? error.message : "Unknown error"}` }
   }
-
-  revalidatePath("/admin/catering")
-  revalidatePath(`/admin/catering/${quoteData.id}`)
-  console.log("[v0] Revalidated paths for new quote:", quoteData.id)
-
-  return { success: true, id: quoteData.id }
 }
 
 export async function updateCateringQuote(id: string, quote: CateringQuote, items: CateringQuoteItem[]) {
-  const supabase = await createClient()
+  try {
+    const supabase = await createClient()
 
-  console.log("[v0] Updating catering quote:", id, "with status:", quote.status)
+    console.log("[catering] update - starting, ID:", id, "Status:", quote.status)
 
-  const { error: quoteError } = await supabase
-    .from("catering_quotes")
-    .update({
-      customer_name: quote.customer_name,
-      phone: quote.phone,
-      notes: quote.notes,
-      status: quote.status, // Already correct
-      quote_type: quote.quote_type || "items",
-      people_count: quote.people_count,
-      price_per_person: quote.price_per_person,
-      subtotal: quote.subtotal,
-      tax: quote.tax,
-      delivery_fee: quote.delivery_fee,
-      discount: quote.discount,
-      total: quote.total,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", id)
+    const { error: quoteError } = await supabase
+      .from("catering_quotes")
+      .update({
+        customer_name: quote.customer_name,
+        phone: quote.phone,
+        notes: quote.notes,
+        status: quote.status,
+        quote_type: quote.quote_type || "items",
+        people_count: quote.people_count,
+        price_per_person: quote.price_per_person,
+        subtotal: quote.subtotal,
+        tax: quote.tax,
+        delivery_fee: quote.delivery_fee,
+        discount: quote.discount,
+        total: quote.total,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
 
-  if (quoteError) {
-    console.error("[v0] Error updating quote:", quoteError)
-    return { error: quoteError.message }
-  }
-
-  await supabase.from("catering_quote_items").delete().eq("quote_id", id)
-
-  if (items.length > 0) {
-    const itemsToInsert = items.map((item) => ({
-      quote_id: id,
-      name: item.label,
-      qty: 1,
-      unit_price: item.price,
-      line_total: item.price,
-      item_type: item.item_type || "priced", // Default to priced if not specified
-    }))
-
-    const { error: itemsError } = await supabase.from("catering_quote_items").insert(itemsToInsert)
-
-    if (itemsError) {
-      console.error("[v0] Error creating items:", itemsError)
-      return { error: itemsError.message }
+    if (quoteError) {
+      console.error("[catering] update error - quote update failed:", quoteError.message, quoteError)
+      return { error: `Failed to update quote: ${quoteError.message}` }
     }
+
+    await supabase.from("catering_quote_items").delete().eq("quote_id", id)
+
+    if (items.length > 0) {
+      const itemsToInsert = items.map((item) => ({
+        quote_id: id,
+        name: item.label,
+        qty: 1,
+        unit_price: item.price,
+        line_total: item.price,
+        item_type: item.item_type || "priced",
+      }))
+
+      const { error: itemsError } = await supabase.from("catering_quote_items").insert(itemsToInsert)
+
+      if (itemsError) {
+        console.error("[catering] update error - items insert failed:", itemsError.message, itemsError)
+        return { error: `Quote updated but failed to add items: ${itemsError.message}` }
+      }
+    }
+
+    const { data: updatedQuote } = await supabase.from("catering_quotes").select("status").eq("id", id).single()
+
+    console.log("[catering] update - success, ID:", id, "Status in DB:", updatedQuote?.status)
+
+    revalidatePath("/admin/catering")
+    revalidatePath(`/admin/catering/${id}`)
+    return { success: true }
+  } catch (error) {
+    console.error(
+      "[catering] update error - unexpected exception:",
+      error instanceof Error ? error.message : "Unknown",
+      error instanceof Error ? error.stack : "",
+      error,
+    )
+    return { error: `Unexpected error updating quote: ${error instanceof Error ? error.message : "Unknown error"}` }
   }
-
-  const { data: updatedQuote } = await supabase.from("catering_quotes").select("status").eq("id", id).single()
-
-  console.log("[v0] Quote updated successfully - ID:", id, "Status in DB:", updatedQuote?.status)
-
-  revalidatePath("/admin/catering")
-  revalidatePath(`/admin/catering/${id}`)
-  return { success: true }
 }
 
 export async function deleteCateringQuote(id: string) {
@@ -351,7 +371,7 @@ export async function convertQuoteToOrder(quoteId: string) {
     .single()
 
   if (orderError) {
-    console.error("[v0] Error creating order:", orderError)
+    console.error("[catering] convert error - order insert failed:", orderError.message, orderError)
     return { error: "Error al crear la orden" }
   }
 
@@ -375,7 +395,7 @@ export async function convertQuoteToOrder(quoteId: string) {
   const { error: itemsInsertError } = await supabase.from("order_items").insert(orderItemsData)
 
   if (itemsInsertError) {
-    console.error("[v0] Error creating order items:", itemsInsertError)
+    console.error("[catering] convert error - order items insert failed:", itemsInsertError.message, itemsInsertError)
     await supabase.from("orders").delete().eq("id", order.id)
     return { error: "Error al crear items de la orden" }
   }
@@ -389,7 +409,7 @@ export async function convertQuoteToOrder(quoteId: string) {
     .eq("id", quoteId)
 
   if (updateError) {
-    console.error("[v0] Error updating quote:", updateError)
+    console.error("[catering] convert error - quote update failed:", updateError.message, updateError)
   }
 
   revalidatePath("/admin/catering")
