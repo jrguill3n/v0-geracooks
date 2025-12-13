@@ -49,7 +49,10 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
   const debounceTimerRef = useRef<NodeJS.Timeout>()
 
   const calculateSubtotal = () => {
-    return items.reduce((sum, item) => sum + item.price, 0)
+    return items.reduce((sum, item) => {
+      const price = typeof item.price === "number" && !Number.isNaN(item.price) ? item.price : 0
+      return sum + price
+    }, 0)
   }
 
   const calculateTotal = () => {
@@ -133,6 +136,10 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    console.log("[v0] Form submit triggered")
+    console.log("[v0] Current items:", items)
+
     setLoading(true)
     setError("")
 
@@ -150,26 +157,37 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
       validationErrors.push("At least one item is required")
     }
 
-    const invalidItem = items.find((item) => !item.label.trim() || item.price < 0 || Number.isNaN(item.price))
-    if (invalidItem) {
-      validationErrors.push("All items must have a description and a valid price (minimum $0.00)")
-    }
+    items.forEach((item, index) => {
+      if (!item.label.trim()) {
+        validationErrors.push(`Item ${index + 1}: Description is required`)
+      }
+
+      const price = typeof item.price === "number" ? item.price : Number.parseFloat(String(item.price))
+
+      if (Number.isNaN(price)) {
+        validationErrors.push(`Item ${index + 1}: Invalid price`)
+      } else if (price < 0) {
+        validationErrors.push(`Item ${index + 1}: Price cannot be negative`)
+      }
+    })
 
     if (validationErrors.length > 0) {
-      setError(validationErrors.join(". "))
+      const errorMessage = validationErrors.join(". ")
+      setError(errorMessage)
       setLoading(false)
+      console.log("[v0] Validation failed:", validationErrors)
       toast({
         title: "Validation Error",
-        description: validationErrors.join(". "),
+        description: errorMessage,
         variant: "destructive",
       })
       return
     }
 
     const quote: CateringQuote = {
-      customer_name: customerName,
-      phone,
-      notes,
+      customer_name: customerName.trim(),
+      phone: phone.trim(),
+      notes: notes.trim(),
       status,
       subtotal: calculateSubtotal(),
       tax,
@@ -181,12 +199,13 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
     try {
       console.log("[v0] Submitting quote:", quote)
       console.log("[v0] Items:", items)
+      console.log("[v0] Is update?", !!initialQuote?.id)
 
       const result = initialQuote?.id
         ? await updateCateringQuote(initialQuote.id, quote, items)
         : await createCateringQuote(quote, items)
 
-      console.log("[v0] Result:", result)
+      console.log("[v0] Server result:", result)
 
       if (result.error) {
         setError(result.error)
@@ -195,14 +214,18 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
           description: result.error,
           variant: "destructive",
         })
+        setLoading(false)
       } else {
         toast({
           title: "Success",
           description: initialQuote ? "Quote updated successfully" : "Quote created successfully",
         })
+
         if (result.id && !initialQuote) {
+          console.log("[v0] Redirecting to:", `/admin/catering/${result.id}`)
           router.push(`/admin/catering/${result.id}`)
         } else {
+          console.log("[v0] Refreshing page")
           router.refresh()
         }
       }
@@ -215,7 +238,6 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
         description: errorMessage,
         variant: "destructive",
       })
-    } finally {
       setLoading(false)
     }
   }
@@ -260,9 +282,12 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
           <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
             <p className="font-semibold mb-1">Please fix the following errors:</p>
             <ul className="list-disc list-inside text-sm space-y-1">
-              {error.split(". ").map((err, i) => (
-                <li key={i}>{err}</li>
-              ))}
+              {error
+                .split(". ")
+                .filter((e) => e)
+                .map((err, i) => (
+                  <li key={i}>{err}</li>
+                ))}
             </ul>
           </div>
         )}
@@ -354,15 +379,17 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
                       value={item.price === 0 ? "0" : item.price || ""}
                       onChange={(e) => {
                         const val = e.target.value
-                        if (val === "" || val === "0" || /^\d*\.?\d{0,2}$/.test(val)) {
+                        // Allow empty, numbers, and decimals
+                        if (val === "" || /^\d*\.?\d{0,2}$/.test(val)) {
+                          // Parse to number, treating empty as 0
                           const numValue = val === "" ? 0 : Number.parseFloat(val) || 0
+                          console.log("[v0] Price input:", val, "-> parsed:", numValue)
                           updateItem(index, "price", numValue)
                         }
                       }}
                       required
                       className="mt-1"
                       placeholder="0.00"
-                      min="0"
                     />
                   </div>
                   {items.length > 1 && (
@@ -478,7 +505,7 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
             <Button
               type="button"
               onClick={handleWhatsApp}
-              disabled={!customerName || !phone}
+              disabled={!customerName || !phone || loading}
               className="bg-green-600 hover:bg-green-700 font-semibold"
             >
               <MessageCircle className="w-4 h-4 mr-2" />
