@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { toast } from "@/hooks/use-toast"
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
@@ -135,14 +136,27 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
     setLoading(true)
     setError("")
 
-    if (!customerName || !phone) {
-      setError("Customer name and phone are required")
+    if (!customerName.trim()) {
+      setError("Customer name is required")
       setLoading(false)
       return
     }
 
-    if (items.length === 0 || items.some((item) => !item.label || item.price < 0)) {
-      setError("At least one valid item is required")
+    if (!phone.trim()) {
+      setError("Customer phone is required")
+      setLoading(false)
+      return
+    }
+
+    if (items.length === 0) {
+      setError("At least one item is required")
+      setLoading(false)
+      return
+    }
+
+    const invalidItem = items.find((item) => !item.label.trim() || item.price <= 0)
+    if (invalidItem) {
+      setError("All items must have a description and a valid price")
       setLoading(false)
       return
     }
@@ -159,16 +173,39 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
       total: calculateTotal(),
     }
 
-    const result = initialQuote?.id
-      ? await updateCateringQuote(initialQuote.id, quote, items)
-      : await createCateringQuote(quote, items)
+    try {
+      const result = initialQuote?.id
+        ? await updateCateringQuote(initialQuote.id, quote, items)
+        : await createCateringQuote(quote, items)
 
-    setLoading(false)
-
-    if (result.error) {
-      setError(result.error)
-    } else {
-      router.push("/admin/catering")
+      if (result.error) {
+        setError(result.error)
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Success",
+          description: initialQuote ? "Quote updated successfully" : "Quote created successfully",
+        })
+        if (result.id && !initialQuote) {
+          router.push(`/admin/catering/${result.id}`)
+        } else {
+          router.push("/admin/catering")
+        }
+      }
+    } catch (error) {
+      console.error("[v0] Error saving quote:", error)
+      setError("An unexpected error occurred")
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
     }
   }
 

@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Minus, Plus, X } from "lucide-react"
+import { X } from "lucide-react"
 import { updateOrderItems } from "./actions"
 import { toast } from "@/hooks/use-toast"
 
@@ -51,7 +51,7 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
   const [isSaving, setIsSaving] = useState(false)
   const [customItemName, setCustomItemName] = useState("")
   const [customItemPrice, setCustomItemPrice] = useState("")
-  const [customItemQuantity, setCustomItemQuantity] = useState("1")
+  const [customItemQuantity, setCustomItemQuantity] = useState("")
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [menuSections, setMenuSections] = useState<string[]>([])
   const [loadingMenu, setLoadingMenu] = useState(true)
@@ -81,20 +81,23 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
     fetchMenu()
   }, [open])
 
-  const updateQuantity = (index: number, change: number) => {
-    setEditedItems((prev) => {
-      const newItems = [...prev]
-      const newQuantity = newItems[index].quantity + change
-      if (newQuantity <= 0) {
-        return newItems.filter((_, i) => i !== index)
-      }
-      newItems[index] = { ...newItems[index], quantity: newQuantity }
-      return newItems
-    })
-  }
-
   const removeItem = (index: number) => {
     setEditedItems((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const updateItemQuantity = (index: number, value: string) => {
+    const quantity = Number.parseInt(value) || 0
+    if (quantity <= 0) {
+      // Remove item if quantity is 0 or invalid
+      removeItem(index)
+      return
+    }
+
+    setEditedItems((prev) => {
+      const newItems = [...prev]
+      newItems[index] = { ...newItems[index], quantity }
+      return newItems
+    })
   }
 
   const addNewItem = () => {
@@ -133,10 +136,28 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
     const price = Number.parseFloat(customItemPrice)
     const quantity = Number.parseInt(customItemQuantity)
 
-    if (!name || isNaN(price) || price <= 0 || isNaN(quantity) || quantity <= 0) {
+    if (!name) {
       toast({
         title: "Invalid Input",
-        description: "Please enter valid item name, price, and quantity",
+        description: "Please enter an item name",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (isNaN(price) || price <= 0) {
+      toast({
+        title: "Invalid Input",
+        description: "Please enter a valid price greater than 0",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (isNaN(quantity) || quantity <= 0) {
+      toast({
+        title: "Invalid Input",
+        description: "Please enter a valid quantity (at least 1)",
         variant: "destructive",
       })
       return
@@ -151,10 +172,9 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
       },
     ])
 
-    // Reset custom item fields
     setCustomItemName("")
     setCustomItemPrice("")
-    setCustomItemQuantity("1")
+    setCustomItemQuantity("")
 
     toast({
       title: "Custom Item Added",
@@ -226,23 +246,19 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
                       <p className="text-sm text-gray-600">${item.unit_price} each</p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => updateQuantity(index, -1)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <span className="w-8 text-center font-bold text-gray-900">{item.quantity}</span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => updateQuantity(index, 1)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor={`qty-${index}`} className="text-sm text-gray-600">
+                          Qty:
+                        </Label>
+                        <Input
+                          id={`qty-${index}`}
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => updateItemQuantity(index, e.target.value)}
+                          className="w-20 text-center"
+                        />
+                      </div>
                       <Button
                         size="sm"
                         variant="destructive"
@@ -332,6 +348,7 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
                     min="1"
                     value={customItemQuantity}
                     onChange={(e) => setCustomItemQuantity(e.target.value)}
+                    placeholder=""
                     className="mt-1"
                   />
                 </div>
