@@ -329,11 +329,15 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
                   <div className="w-32">
                     <Label className="text-sm font-medium">Price *</Label>
                     <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={item.price}
-                      onChange={(e) => updateItem(index, "price", Number.parseFloat(e.target.value) || 0)}
+                      type="text"
+                      inputMode="decimal"
+                      value={item.price || ""}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        if (val === "" || /^\d*\.?\d{0,2}$/.test(val)) {
+                          updateItem(index, "price", val === "" ? 0 : Number.parseFloat(val) || 0)
+                        }
+                      }}
                       required
                       className="mt-1"
                       placeholder="0.00"
@@ -368,33 +372,45 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
               <div>
                 <Label>Tax</Label>
                 <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={tax}
-                  onChange={(e) => setTax(Number.parseFloat(e.target.value) || 0)}
+                  type="text"
+                  inputMode="decimal"
+                  value={tax || ""}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    if (val === "" || /^\d*\.?\d{0,2}$/.test(val)) {
+                      setTax(val === "" ? 0 : Number.parseFloat(val) || 0)
+                    }
+                  }}
                   placeholder="0.00"
                 />
               </div>
               <div>
                 <Label>Delivery Fee</Label>
                 <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={deliveryFee}
-                  onChange={(e) => setDeliveryFee(Number.parseFloat(e.target.value) || 0)}
+                  type="text"
+                  inputMode="decimal"
+                  value={deliveryFee || ""}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    if (val === "" || /^\d*\.?\d{0,2}$/.test(val)) {
+                      setDeliveryFee(val === "" ? 0 : Number.parseFloat(val) || 0)
+                    }
+                  }}
                   placeholder="0.00"
                 />
               </div>
               <div>
                 <Label>Discount</Label>
                 <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={discount}
-                  onChange={(e) => setDiscount(Number.parseFloat(e.target.value) || 0)}
+                  type="text"
+                  inputMode="decimal"
+                  value={discount || ""}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    if (val === "" || /^\d*\.?\d{0,2}$/.test(val)) {
+                      setDiscount(val === "" ? 0 : Number.parseFloat(val) || 0)
+                    }
+                  }}
                   placeholder="0.00"
                 />
               </div>
