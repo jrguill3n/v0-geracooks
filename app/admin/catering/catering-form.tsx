@@ -221,12 +221,26 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
           description: initialQuote ? "Quote updated successfully" : "Quote created successfully",
         })
 
-        if (result.id && !initialQuote) {
-          console.log("[v0] Redirecting to:", `/admin/catering/${result.id}`)
-          router.push(`/admin/catering/${result.id}`)
+        if (!initialQuote) {
+          // Creating new quote
+          if (result.id) {
+            console.log("[v0] Redirecting to new quote:", `/admin/catering/${result.id}`)
+            router.push(`/admin/catering/${result.id}`)
+          } else {
+            // Fallback: redirect to list if ID is missing
+            console.error("[v0] Warning: Quote created but ID is missing. Redirecting to list.")
+            toast({
+              title: "Warning",
+              description: "Quote created but could not navigate to detail page",
+              variant: "destructive",
+            })
+            router.push("/admin/catering")
+          }
         } else {
-          console.log("[v0] Refreshing page")
+          // Updating existing quote - stay on page and refresh
+          console.log("[v0] Refreshing page after update")
           router.refresh()
+          setLoading(false)
         }
       }
     } catch (error) {

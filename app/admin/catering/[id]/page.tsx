@@ -2,9 +2,10 @@ import { createClient } from "@/lib/supabase/server"
 import { AdminNav } from "@/components/admin-nav"
 import { CateringForm } from "../catering-form"
 import { ConvertToOrderButton } from "../convert-to-order-button"
-import { notFound } from "next/navigation"
 import Link from "next/link"
-import { CheckCircle2 } from "lucide-react"
+import { CheckCircle2, ArrowLeft } from "lucide-react"
+import { Button } from "@/components/ui/button"
+// </CHANGE>
 
 export default async function EditCateringPage({ params }: { params: { id: string } }) {
   const supabase = await createClient()
@@ -12,8 +13,27 @@ export default async function EditCateringPage({ params }: { params: { id: strin
   const { data: quote, error } = await supabase.from("catering_quotes").select("*").eq("id", params.id).single()
 
   if (error || !quote) {
-    notFound()
+    return (
+      <>
+        <AdminNav title="Quote Not Found" subtitle="This quote could not be found" />
+        <div className="max-w-4xl mx-auto px-4 py-12 sm:px-6 text-center">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-8">
+            <h2 className="text-2xl font-bold text-yellow-900 mb-2">Quote Not Found</h2>
+            <p className="text-yellow-700 mb-6">
+              The catering quote you're looking for doesn't exist or has been deleted.
+            </p>
+            <Link href="/admin/catering">
+              <Button className="bg-purple-600 hover:bg-purple-700">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Catering List
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </>
+    )
   }
+  // </CHANGE>
 
   const { data: items } = await supabase
     .from("catering_quote_items")
