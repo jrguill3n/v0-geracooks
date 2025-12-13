@@ -36,6 +36,7 @@ export async function createCateringQuote(quote: CateringQuote, items: CateringQ
   console.log("[v0] Creating catering quote:", {
     customer: quote.customer_name,
     phone: quote.phone,
+    status: quote.status, // Log status being saved
     quoteType: quote.quote_type,
     itemCount: items.length,
     total: quote.total,
@@ -47,7 +48,7 @@ export async function createCateringQuote(quote: CateringQuote, items: CateringQ
       customer_name: quote.customer_name,
       phone: quote.phone,
       notes: quote.notes,
-      status: quote.status,
+      status: quote.status, // Already correct
       quote_type: quote.quote_type || "items",
       people_count: quote.people_count,
       price_per_person: quote.price_per_person,
@@ -65,7 +66,7 @@ export async function createCateringQuote(quote: CateringQuote, items: CateringQ
     return { error: quoteError.message }
   }
 
-  console.log("[v0] Quote created successfully with ID:", quoteData.id)
+  console.log("[v0] Quote created successfully - ID:", quoteData.id, "Status stored:", quoteData.status)
 
   if (items.length > 0) {
     const itemsToInsert = items.map((item) => ({
@@ -95,7 +96,7 @@ export async function createCateringQuote(quote: CateringQuote, items: CateringQ
 export async function updateCateringQuote(id: string, quote: CateringQuote, items: CateringQuoteItem[]) {
   const supabase = await createClient()
 
-  console.log("[v0] Updating catering quote:", id)
+  console.log("[v0] Updating catering quote:", id, "with status:", quote.status)
 
   const { error: quoteError } = await supabase
     .from("catering_quotes")
@@ -103,7 +104,7 @@ export async function updateCateringQuote(id: string, quote: CateringQuote, item
       customer_name: quote.customer_name,
       phone: quote.phone,
       notes: quote.notes,
-      status: quote.status,
+      status: quote.status, // Already correct
       quote_type: quote.quote_type || "items",
       people_count: quote.people_count,
       price_per_person: quote.price_per_person,
@@ -141,7 +142,9 @@ export async function updateCateringQuote(id: string, quote: CateringQuote, item
     }
   }
 
-  console.log("[v0] Quote updated successfully:", id)
+  const { data: updatedQuote } = await supabase.from("catering_quotes").select("status").eq("id", id).single()
+
+  console.log("[v0] Quote updated successfully - ID:", id, "Status in DB:", updatedQuote?.status)
 
   revalidatePath("/admin/catering")
   revalidatePath(`/admin/catering/${id}`)

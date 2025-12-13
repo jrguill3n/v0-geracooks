@@ -14,7 +14,12 @@ export default async function EditCateringPage({ params }: { params: Promise<{ i
 
   const { data: quote, error } = await supabase.from("catering_quotes").select("*").eq("id", id).single()
 
-  console.log("[v0] Quote lookup result:", { found: !!quote, error: error?.message })
+  console.log("[v0] Quote lookup result:", {
+    found: !!quote,
+    status: quote?.status,
+    quote_type: quote?.quote_type,
+    error: error?.message,
+  })
 
   if (error || !quote) {
     console.error("[v0] Quote not found. ID:", id, "Error:", error)
@@ -38,6 +43,11 @@ export default async function EditCateringPage({ params }: { params: Promise<{ i
         </div>
       </>
     )
+  }
+
+  const quoteStatus = quote.status || "draft"
+  if (!quote.status) {
+    console.warn("[v0] Warning: Quote status is null/undefined, defaulting to 'draft'")
   }
 
   const { data: items } = await supabase
@@ -65,11 +75,12 @@ export default async function EditCateringPage({ params }: { params: Promise<{ i
     }))
 
   const allItems = [...pricedItems, ...includedItems]
-  // </CHANGE>
 
   console.log(
     "[v0] Successfully loaded quote:",
     quote.id,
+    "Status:",
+    quoteStatus,
     "with",
     pricedItems.length,
     "priced items and",
@@ -107,7 +118,7 @@ export default async function EditCateringPage({ params }: { params: Promise<{ i
         </div>
       ) : (
         <div className="max-w-4xl mx-auto px-4 sm:px-6 mb-6">
-          <ConvertToOrderButton quoteId={quote.id} status={quote.status} customerName={quote.customer_name} />
+          <ConvertToOrderButton quoteId={quote.id} status={quoteStatus} customerName={quote.customer_name} />
         </div>
       )}
 
@@ -117,7 +128,7 @@ export default async function EditCateringPage({ params }: { params: Promise<{ i
           customer_name: quote.customer_name,
           phone: quote.phone,
           notes: quote.notes,
-          status: quote.status,
+          status: quoteStatus, // Use quoteStatus with fallback
           quote_type: quote.quote_type || "items",
           people_count: quote.people_count,
           price_per_person: quote.price_per_person ? Number(quote.price_per_person) : 0,

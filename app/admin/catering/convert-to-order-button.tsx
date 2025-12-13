@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
@@ -28,19 +28,28 @@ export function ConvertToOrderButton({ quoteId, status, customerName }: ConvertT
   const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
 
+  useEffect(() => {
+    console.log("[v0] ConvertToOrderButton status:", status, "for quote:", quoteId)
+  }, [status, quoteId])
+
   const isAccepted = status === "accepted"
+
+  console.log("[v0] Convert button render - status:", status, "isAccepted:", isAccepted)
 
   const handleConvert = async () => {
     setLoading(true)
     setShowConfirm(false)
 
+    console.log("[v0] Converting quote:", quoteId, "with status:", status)
     const result = await convertQuoteToOrder(quoteId)
 
     setLoading(false)
 
     if (result.error) {
+      console.error("[v0] Conversion error:", result.error)
       toast.error(result.error)
     } else if (result.orderId) {
+      console.log("[v0] Conversion successful! Order ID:", result.orderId)
       toast.success("Order created successfully!", {
         description: `Quote for ${customerName} has been converted to an order`,
         action: {
@@ -58,7 +67,9 @@ export function ConvertToOrderButton({ quoteId, status, customerName }: ConvertT
         <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0" />
         <div>
           <p className="font-semibold text-yellow-900">Conversion Not Available</p>
-          <p className="text-sm text-yellow-700">Solo disponible cuando el estado esté en "Accepted"</p>
+          <p className="text-sm text-yellow-700">
+            Solo disponible cuando el estado esté en "Accepted" (actualmente: {status})
+          </p>
         </div>
       </div>
     )

@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Trash2, MessageCircle, Save, Calculator } from "lucide-react"
+import { X, Plus, MessageSquare } from "lucide-react"
 import {
   createCateringQuote,
   updateCateringQuote,
@@ -18,7 +18,6 @@ import {
   type CateringQuoteItem,
   updateQuoteStatus,
 } from "./actions"
-import { PhoneInput } from "@/components/phone-input"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 
 interface CateringFormProps {
@@ -29,7 +28,7 @@ interface CateringFormProps {
 export function CateringForm({ initialQuote, initialItems = [] }: CateringFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
+  const [errors, setErrors] = useState<string[]>([])
 
   const [customerName, setCustomerName] = useState(initialQuote?.customer_name || "")
   const [phone, setPhone] = useState(initialQuote?.phone || "")
@@ -171,7 +170,10 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setError("")
+    setErrors([])
+
+    console.log("[v0] Form submit triggered")
+    console.log("[v0] Current status:", status)
 
     const validationErrors: string[] = []
 
@@ -220,84 +222,72 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
 
     if (validationErrors.length > 0) {
       const errorMessage = validationErrors.join(". ")
-      setError(errorMessage)
+      setErrors([errorMessage])
       setLoading(false)
       console.log("[v0] Validation failed:", validationErrors)
-      toast({
-        title: "Validation Error",
-        description: errorMessage,
-        variant: "destructive",
-      })
+      toast.error(errorMessage)
       return
     }
 
+    const subtotal = calculateSubtotal()
+    const total = calculateTotal()
+    const allItemsForSave = [...items, ...includedItems]
+
     const quote: CateringQuote = {
-      customer_name: customerName.trim(),
-      phone: phone.trim(),
-      notes: notes.trim(),
-      status,
+      customer_name: customerName,
+      phone: phone,
+      notes: notes,
+      status: status, // Ensure status is included in payload
       quote_type: quoteType,
       people_count: quoteType === "per_person" ? peopleCount : null,
       price_per_person: quoteType === "per_person" ? pricePerPerson : null,
-      subtotal: calculateSubtotal(),
+      subtotal,
       tax,
       delivery_fee: deliveryFee,
       discount,
-      total: calculateTotal(),
+      total,
     }
 
-    try {
-      console.log("[v0] Submitting quote:", quote)
+    console.log("[v0] Quote payload:", { id: initialQuote?.id, status: quote.status, total: quote.total })
 
-      const result = initialQuote?.id
-        ? await updateCateringQuote(initialQuote.id, quote, quoteType === "items" ? items : [])
-        : await createCateringQuote(quote, quoteType === "items" ? items : [])
+    let result
+    if (initialQuote?.id) {
+      console.log("[v0] Updating existing quote:", initialQuote.id, "with status:", status)
+      result = await updateCateringQuote(initialQuote.id, quote, allItemsForSave)
+    } else {
+      console.log("[v0] Creating new quote with status:", status)
+      result = await createCateringQuote(quote, allItemsForSave)
+    }
 
-      console.log("[v0] Server result:", result)
+    setLoading(false)
 
-      if (result.error) {
-        setError(result.error)
-        toast({
-          title: "Error",
-          description: result.error,
-          variant: "destructive",
-        })
-        setLoading(false)
-      } else {
-        toast({
-          title: "Success",
-          description: initialQuote ? "Quote updated successfully" : "Quote created successfully",
-        })
+    if (result.error) {
+      console.error("[v0] Save error:", result.error)
+      setErrors([result.error])
+      toast.error("Error saving quote")
+      return
+    }
 
-        if (!initialQuote) {
-          if (result.id) {
-            console.log("[v0] Redirecting to new quote:", `/admin/catering/${result.id}`)
-            router.push(`/admin/catering/${result.id}`)
-          } else {
-            console.error("[v0] Warning: Quote created but ID is missing. Redirecting to list.")
-            toast({
-              title: "Warning",
-              description: "Quote created but could not navigate to detail page",
-              variant: "destructive",
-            })
-            router.push("/admin/catering")
-          }
-        } else {
-          console.log("[v0] Refreshing page after update")
-          router.refresh()
-          setLoading(false)
-        }
-      }
-    } catch (error) {
-      console.error("[v0] Error saving quote:", error)
-      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred"
-      setError(errorMessage)
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
+    console.log("[v0] Save successful!", result)
+
+    const statusLabel = status.charAt(0).toUpperCase() + status.slice(1)
+    if (initialQuote?.id) {
+      toast.success("Quote updated successfully", {
+        description: `Status: ${statusLabel}`,
       })
-      setLoading(false)
+      console.log("[v0] Refreshing page after update")
+      router.refresh() // Refresh to get latest data including status
+    } else {
+      toast.success("Quote created successfully", {
+        description: `Status: ${statusLabel}`,
+      })
+      if (!result.id) {
+        console.error("[v0] No ID returned from create, redirecting to list")
+        router.push("/admin/catering")
+      } else {
+        console.log("[v0] Redirecting to:", `/admin/catering/${result.id}`)
+        router.push(`/admin/catering/${result.id}`)
+      }
     }
   }
 
@@ -348,16 +338,13 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6">
       <form onSubmit={handleSubmit} className="space-y-6">
-        {error && (
+        {errors.length > 0 && (
           <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
             <p className="font-semibold mb-1">Please fix the following errors:</p>
             <ul className="list-disc list-inside text-sm space-y-1">
-              {error
-                .split(". ")
-                .filter((e) => e)
-                .map((err, i) => (
-                  <li key={i}>{err}</li>
-                ))}
+              {errors.map((err, i) => (
+                <li key={i}>{err}</li>
+              ))}
             </ul>
           </div>
         )}
@@ -379,7 +366,13 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
             </div>
             <div>
               <Label htmlFor="phone">Phone Number *</Label>
-              <PhoneInput value={phone} onChange={setPhone} required />
+              <Input
+                id="phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Enter phone number"
+                required
+              />
             </div>
           </div>
         </div>
@@ -486,7 +479,7 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
                         onClick={() => removeItem(index)}
                         className="mt-6 border-red-500 text-red-600 hover:bg-red-50"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <X className="w-4 h-4" />
                       </Button>
                     )}
                   </div>
@@ -498,7 +491,7 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
           <>
             <div className="bg-white p-6 rounded-lg shadow">
               <div className="flex items-center gap-2 mb-4">
-                <Calculator className="w-5 h-5 text-purple-600" />
+                <Plus className="w-5 h-5 text-purple-600" />
                 <h3 className="text-lg font-semibold">Per Person Pricing</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -620,7 +613,7 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
                             onClick={() => removeIncludedItem(index)}
                             className="border-red-500 text-red-600 hover:bg-red-50"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <X className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>
@@ -735,12 +728,11 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
               disabled={!customerName || !phone || loading}
               className="bg-green-600 hover:bg-green-700 font-semibold"
             >
-              <MessageCircle className="w-4 h-4 mr-2" />
+              <MessageSquare className="w-4 h-4 mr-2" />
               Share via WhatsApp
             </Button>
           )}
           <Button type="submit" disabled={loading} className="bg-purple-600 hover:bg-purple-700 font-semibold">
-            <Save className="w-4 h-4 mr-2" />
             {loading ? "Saving..." : initialQuote ? "Update Quote" : "Create Quote"}
           </Button>
         </div>
