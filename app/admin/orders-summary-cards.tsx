@@ -108,12 +108,17 @@ export function OrdersSummaryCards({ orders, isLoading }: OrdersSummaryCardsProp
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 mb-5">
         {[1, 2, 3].map((i) => (
-          <Card key={i} className="p-4 border-0 shadow-md bg-white rounded-2xl animate-pulse">
-            <div className="h-3 bg-gray-200 rounded w-1/2 mb-3" />
-            <div className="h-8 bg-gray-200 rounded w-1/3 mb-2" />
-            <div className="h-4 bg-gray-100 rounded w-1/4" />
+          <Card key={i} className="px-3 py-2.5 border-0 shadow-sm bg-white rounded-xl animate-pulse h-[88px]">
+            <div className="flex items-center justify-between mb-2">
+              <div className="h-2.5 bg-gray-200 rounded w-20" />
+              <div className="h-2 bg-gray-100 rounded w-16" />
+            </div>
+            <div className="flex items-baseline gap-3">
+              <div className="h-6 bg-gray-200 rounded w-10" />
+              <div className="h-4 bg-gray-100 rounded w-16" />
+            </div>
           </Card>
         ))}
       </div>
@@ -124,11 +129,11 @@ export function OrdersSummaryCards({ orders, isLoading }: OrdersSummaryCardsProp
 
   if (!hasOrders) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 mb-5">
         {["Week", "Month", "Year"].map((period) => (
-          <Card key={period} className="p-4 border-0 shadow-md bg-white rounded-2xl">
-            <p className="text-xs font-semibold text-foreground/50 uppercase tracking-wide mb-1">Orders by {period}</p>
-            <p className="text-sm text-gray-400">No orders yet</p>
+          <Card key={period} className="px-3 py-2.5 border-0 shadow-sm bg-white rounded-xl h-[88px]">
+            <p className="text-[10px] font-semibold text-foreground/50 uppercase tracking-wider">Orders by {period}</p>
+            <p className="text-xs text-gray-400 mt-1">No orders yet</p>
           </Card>
         ))}
       </div>
@@ -142,20 +147,24 @@ export function OrdersSummaryCards({ orders, isLoading }: OrdersSummaryCardsProp
   ]
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 mb-5">
       {cards.map((card) => (
         <Card
           key={card.title}
           onClick={() => router.push(`/admin/analytics?range=${card.filter}`)}
-          className="p-4 border-0 shadow-md hover:shadow-lg bg-white rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+          className="px-3 py-2.5 border-0 shadow-sm hover:shadow-md bg-white rounded-xl cursor-pointer transition-all duration-150 hover:bg-gray-50/80 active:scale-[0.98] h-[88px] flex flex-col justify-between"
         >
-          <p className="text-xs font-semibold text-foreground/50 uppercase tracking-wide mb-0.5">{card.title}</p>
-          <p className="text-[10px] text-gray-400 mb-2">
-            {card.range}
-            {card.subtext && ` · ${card.subtext}`}
-          </p>
-          <p className="text-3xl font-bold text-foreground leading-none">{card.orders}</p>
-          <p className="text-sm font-semibold text-success mt-1">{formatCurrency(card.revenue)}</p>
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-semibold text-foreground/50 uppercase tracking-wider">{card.title}</p>
+            <p className="text-[10px] text-gray-400">
+              {card.subtext || card.range}
+            </p>
+          </div>
+          <div className="flex items-baseline gap-3">
+            <p className="text-2xl font-bold text-foreground leading-none">{card.orders}</p>
+            <p className="text-sm font-medium text-success">{formatCurrency(card.revenue)}</p>
+          </div>
+          <p className="text-[10px] text-gray-400 hover:text-primary transition-colors">View details →</p>
         </Card>
       ))}
     </div>
