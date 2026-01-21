@@ -15,7 +15,7 @@ export interface CateringQuote {
   customer_name: string
   phone: string
   notes?: string
-  status: "draft" | "sent" | "accepted" | "cancelled"
+  status: "draft" | "sent" | "accepted" | "cancelled" | "approved"
   quote_type?: "items" | "per_person"
   people_count?: number | null
   price_per_person?: number | null
@@ -128,14 +128,153 @@ export async function createCateringQuote(input: any) {
 
 export async function updateCateringQuote(id: string, input: any) {
   try {
-    // Normalize incoming payload
     const quoteType = input.quote_type || input.quoteType || "items"
     const items = Array.isArray(input.items) ? input.items : []
     const includedItems = Array.isArray(input.included_items) ? input.included_items : []
+    const newStatus = input.status || "draft"
 
     const supabase = await createClient()
 
-    console.log("[catering] update - starting, ID:", id, "Status:", input.status)
+    console.log("[catering] update - starting, ID:", id, "Status:", newStatus)
+
+    const { data: existingQuote } = await supabase
+      .from("catering_quotes")
+      .select("converted_order_id, status")
+      .eq("id", id)
+      .single()
+
+    if (newStatus === "approved" && existingQuote?.status !== "approved" && !existingQuote?.converted_order_id) {
+      console.log("[catering] update - status changed to approved, auto-creating order")
+
+      // Fetch full quote data
+      const { data: quote } = await supabase.from("catering_quotes").select("*").eq("id", id).single()
+
+      if (quote) {
+        // Create order using existing logic (same as convertQuoteToOrder but inline)
+        let orderItemsData: any[] = []
+
+        if (quote.quote_type === "per_person") {
+          const { data: includedItemsList } = await supabase
+            .from("catering_quote_items")
+            .select("*")
+            .eq("quote_id", id)
+            .eq("item_type", "included")
+
+          const itemName =
+            includedItemsList && includedItemsList.length > 0
+              ? `Catering - ${quote.people_count} personas (incluye: ${includedItemsList.map((i) => i.name).join(", ")})`
+              : `Catering - ${quote.people_count} personas`
+
+          orderItemsData.push({
+            item_name: itemName,
+            quantity: 1,
+            unit_price: quote.subtotal,
+            total_price: quote.subtotal,
+            section: "Catering",
+            extras: null,
+          })
+        } else {
+          const { data: itemsList } = await supabase
+            .from("catering_quote_items")
+            .select("*")
+            .eq("quote_id", id)
+            .eq("item_type", "priced")
+
+          orderItemsData =
+            itemsList?.map((item) => ({
+              item_name: item.name,
+              quantity: 1,
+              unit_price: item.line_total,
+              total_price: item.line_total,
+              section: "Catering",
+              extras: null,
+            })) || []
+        }
+
+        // Handle customer
+        let customerId: string
+        const { data: existingCustomer } = await supabase
+          .from("customers")
+          .select("id, name")
+          .eq("phone", quote.phone)
+          .single()
+
+        if (existingCustomer) {
+          customerId = existingCustomer.id
+          if (existingCustomer.name !== quote.customer_name) {
+            await supabase
+              .from("customers")
+              .update({ name: quote.customer_name, updated_at: new Date().toISOString() })
+              .eq("id", customerId)
+          }
+        } else {
+          const { data: newCustomer, error: customerError } = await supabase
+            .from("customers")
+            .insert({ phone: quote.phone, name: quote.customer_name })
+            .select()
+            .single()
+
+          if (customerError) {
+            console.error("[catering] update - customer creation failed:", customerError)
+            return { error: "Failed to create customer for order" }
+          }
+          customerId = newCustomer.id
+        }
+
+        const { data: order, error: orderError } = await supabase
+          .from("orders")
+          .insert({
+            customer_id: customerId,
+            customer_name: quote.customer_name,
+            phone: quote.phone,
+            total_price: quote.total,
+            status: "pending",
+            source: "catering",
+            catering_quote_id: id,
+          })
+          .select()
+          .single()
+
+        if (orderError) {
+          console.error("[catering] update - order creation failed:", orderError)
+          return { error: "Failed to create order from quote" }
+        }
+
+        // Add order items
+        orderItemsData = orderItemsData.map((item) => ({ ...item, order_id: order.id }))
+
+        const adjustment = (quote.tax || 0) + (quote.delivery_fee || 0) - (quote.discount || 0)
+        if (adjustment !== 0) {
+          orderItemsData.push({
+            order_id: order.id,
+            item_name: "Ajustes (impuestos, envío, descuento)",
+            quantity: 1,
+            unit_price: adjustment,
+            total_price: adjustment,
+            section: "Catering",
+            extras: null,
+          })
+        }
+
+        const { error: itemsInsertError } = await supabase.from("order_items").insert(orderItemsData)
+
+        if (itemsInsertError) {
+          console.error("[catering] update - order items insert failed:", itemsInsertError)
+          await supabase.from("orders").delete().eq("id", order.id)
+          return { error: "Failed to create order items" }
+        }
+
+        await supabase
+          .from("catering_quotes")
+          .update({
+            converted_order_id: order.id,
+            converted_at: new Date().toISOString(),
+          })
+          .eq("id", id)
+
+        console.log("[catering] update - order auto-created:", order.id)
+      }
+    }
 
     const { error: quoteError } = await supabase
       .from("catering_quotes")
@@ -143,7 +282,7 @@ export async function updateCateringQuote(id: string, input: any) {
         customer_name: input.customer_name || input.customerName,
         phone: input.phone,
         notes: input.notes,
-        status: input.status || "draft",
+        status: newStatus,
         quote_type: quoteType,
         people_count: input.people_count || input.peopleCount || null,
         price_per_person: input.price_per_person || input.pricePerPerson || null,
@@ -183,13 +322,19 @@ export async function updateCateringQuote(id: string, input: any) {
       }
     }
 
-    const { data: updatedQuote } = await supabase.from("catering_quotes").select("status").eq("id", id).single()
+    const { data: updatedQuote } = await supabase
+      .from("catering_quotes")
+      .select("status, converted_order_id")
+      .eq("id", id)
+      .single()
 
     console.log("[catering] update - success, ID:", id, "Status in DB:", updatedQuote?.status)
 
     revalidatePath("/admin/catering")
     revalidatePath(`/admin/catering/${id}`)
-    return { success: true }
+    revalidatePath("/admin")
+
+    return { success: true, orderId: updatedQuote?.converted_order_id }
   } catch (error) {
     console.error(
       "[catering] update error - unexpected exception:",
@@ -396,6 +541,8 @@ export async function convertQuoteToOrder(quoteId: string) {
       phone: quote.phone,
       total_price: quote.total,
       status: "pending",
+      source: "catering",
+      catering_quote_id: quoteId,
     })
     .select()
     .single()

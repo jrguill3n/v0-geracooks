@@ -1,11 +1,12 @@
-import { createClient } from "@/lib/supabase/server"
 import { Card } from "@/components/ui/card"
+import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 import { checkAuth } from "@/lib/auth"
 import { OrdersList } from "./orders-list"
 import { AdminNav } from "@/components/admin-nav"
 import { PWAInstaller } from "@/components/pwa-installer"
 import { PullToRefresh } from "@/components/pull-to-refresh"
+import { OrdersSummaryCards } from "./orders-summary-cards"
 
 interface Order {
   id: string
@@ -116,15 +117,10 @@ export default async function AdminPage({
     {} as Record<string, OrderItem[]>,
   )
 
-  const { data: allOrdersForStats } = await supabase.from("orders").select("total_price, created_at")
-
-  const totalRevenue = allOrdersForStats?.reduce((sum, order) => sum + Number(order.total_price), 0) || 0
-  const todayOrders =
-    allOrdersForStats?.filter((order) => {
-      const orderDate = new Date(order.created_at)
-      const today = new Date()
-      return orderDate.toDateString() === today.toDateString()
-    }).length || 0
+  const { data: allOrdersForStats } = await supabase
+    .from("orders")
+    .select("id, total_price, created_at")
+    .order("created_at", { ascending: false })
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-white to-secondary/30">
@@ -134,64 +130,7 @@ export default async function AdminPage({
       <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6">
         <PWAInstaller />
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          <Card className="p-6 sm:p-8 border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white rounded-3xl">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-bold text-foreground/60 mb-2 tracking-wide">Total Orders</p>
-                <p className="text-5xl font-bold text-foreground tracking-tight">{totalOrders || 0}</p>
-              </div>
-              <div className="p-4 bg-primary/10 rounded-2xl">
-                <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.5}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6 sm:p-8 border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white rounded-3xl">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-bold text-foreground/60 mb-2 tracking-wide">Today's Orders</p>
-                <p className="text-5xl font-bold text-foreground tracking-tight">{todayOrders}</p>
-              </div>
-              <div className="p-4 bg-warning/10 rounded-2xl">
-                <svg className="w-8 h-8 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.5}
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6 sm:p-8 border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white rounded-3xl">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-bold text-success/80 mb-2 tracking-wide">Total Revenue</p>
-                <p className="text-5xl font-bold text-success tracking-tight">${totalRevenue.toFixed(2)}</p>
-              </div>
-              <div className="p-4 bg-success/10 rounded-2xl">
-                <svg className="w-8 h-8 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.5}
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-            </div>
-          </Card>
-        </div>
+        <OrdersSummaryCards orders={allOrdersForStats || []} />
 
         <OrdersList
           orders={orders || []}

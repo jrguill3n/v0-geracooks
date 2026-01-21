@@ -21,6 +21,8 @@ interface Order {
     phone: string
     nickname: string
   }
+  source?: string
+  catering_quote_id?: string
 }
 
 interface OrderItem {
@@ -81,6 +83,9 @@ export function OrdersList({
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null)
   const [editingOrder, setEditingOrder] = useState<{ id: string; name: string; items: OrderItem[] } | null>(null)
   const [phoneSearch, setPhoneSearch] = useState(phoneFilter)
+  const [showCateringOnly, setShowCateringOnly] = useState(false)
+
+  const filteredOrders = showCateringOnly ? orders.filter((order: any) => order.source === "catering") : orders
 
   const goToPage = (page: number) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -123,6 +128,7 @@ export function OrdersList({
     params.delete("phone")
     params.set("page", "1")
     setPhoneSearch("")
+    setShowCateringOnly(false)
     router.push(`/admin?${params.toString()}`)
   }
 
@@ -254,9 +260,23 @@ export function OrdersList({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Catering filter toggle */}
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="cateringFilter"
+              checked={showCateringOnly}
+              onChange={(e) => setShowCateringOnly(e.target.checked)}
+              className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+            />
+            <label htmlFor="cateringFilter" className="text-sm text-gray-700 cursor-pointer select-none">
+              Show Catering only
+            </label>
+          </div>
         </div>
 
-        {(statusFilter || phoneFilter) && (
+        {(statusFilter || phoneFilter || showCateringOnly) && (
           <div className="flex items-center gap-2 flex-wrap mt-3">
             <span className="text-sm text-gray-600">Active filters:</span>
             {statusFilter && (
@@ -292,6 +312,22 @@ export function OrdersList({
                 </button>
               </Badge>
             )}
+            {showCateringOnly && (
+              <Badge className="gap-1.5 text-sm px-3 py-1 font-semibold bg-purple-100 text-purple-700 border-purple-300">
+                Catering
+                <button
+                  onClick={() => {
+                    const params = new URLSearchParams(searchParams.toString())
+                    params.set("page", "1")
+                    setShowCateringOnly(false)
+                    router.push(`/admin?${params.toString()}`)
+                  }}
+                  className="ml-1 hover:opacity-70"
+                >
+                  ×
+                </button>
+              </Badge>
+            )}
             <Button variant="ghost" size="sm" onClick={clearFilters} className="h-7 text-xs">
               Clear All
             </Button>
@@ -299,17 +335,22 @@ export function OrdersList({
         )}
       </Card>
 
-      {orders.length === 0 ? (
+      {filteredOrders.length === 0 ? (
         <Card className="p-8 text-center border border-gray-200 bg-white">
           <p className="text-sm text-gray-600">
-            {statusFilter || phoneFilter ? "No orders match your filters" : "No orders yet"}
+            {showCateringOnly
+              ? "No catering orders found"
+              : statusFilter || phoneFilter
+                ? "No orders match your filters"
+                : "No orders yet"}
           </p>
         </Card>
       ) : (
-        orders.map((order: any) => {
+        filteredOrders.map((order: any) => {
           const items = itemsByOrder[order.id] || []
           const isDeleting = deletingOrderId === order.id
           const customerNickname = order.customers?.nickname
+          const isCateringOrder = order.source === "catering"
 
           const itemsBySection: Record<string, OrderItem[]> = {}
           items.forEach((item: OrderItem) => {
@@ -323,9 +364,9 @@ export function OrdersList({
           return (
             <Card
               key={order.id}
-              className={`p-4 sm:p-5 border border-gray-200 hover:border-gray-300 hover:shadow-md bg-white transition-all duration-300 overflow-hidden ${
+              className={`p-4 sm:p-5 border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-300 overflow-hidden ${
                 isDeleting ? "opacity-0 scale-95 -translate-x-4" : "opacity-100 scale-100 translate-x-0"
-              }`}
+              } ${isCateringOrder ? "bg-purple-50/30" : "bg-white"}`}
             >
               <div className="flex flex-col gap-3 mb-4">
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
@@ -338,11 +379,24 @@ export function OrdersList({
                       <Badge className={`text-xs px-2.5 py-1 border ${getStatusColor(order.status)}`}>
                         {order.status}
                       </Badge>
+                      {isCateringOrder && (
+                        <Badge className="text-xs px-2.5 py-1 bg-purple-100 text-purple-700 border-purple-300">
+                          Catering
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-xs sm:text-sm text-gray-700 mb-1 break-all">
                       📞 {order.customers?.phone || order.phone || "No phone"}
                     </p>
                     <p className="text-xs text-gray-500 mb-3">{formatTimeAgo(new Date(order.created_at))}</p>
+                    {order.catering_quote_id && (
+                      <a
+                        href={`/admin/catering/${order.catering_quote_id}`}
+                        className="text-xs text-purple-600 hover:text-purple-800 underline"
+                      >
+                        View Catering Quote →
+                      </a>
+                    )}
                   </div>
                   <div className="sm:text-right shrink-0">
                     <p className="text-2xl sm:text-3xl font-bold text-gray-900">

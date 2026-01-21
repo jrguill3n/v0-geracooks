@@ -368,6 +368,16 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
     }
   }
 
+  const handleMarkAsApproved = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    setStatus("approved")
+    // Trigger form submission with approved status
+    const form = e.currentTarget.closest("form")
+    if (form) {
+      form.requestSubmit()
+    }
+  }
+
   useEffect(() => {
     const handleClickOutside = () => {
       setSuggestions([])
@@ -748,13 +758,14 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
           <div>
             <Label htmlFor="status">Status</Label>
             <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger>
+              <SelectTrigger id="status">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="draft">Draft</SelectItem>
                 <SelectItem value="sent">Sent</SelectItem>
                 <SelectItem value="accepted">Accepted</SelectItem>
+                <SelectItem value="approved">Approved (auto-creates order)</SelectItem>
                 <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
@@ -782,6 +793,16 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
               className="bg-teal-600 hover:bg-teal-700 font-semibold disabled:opacity-50"
             >
               {status === "accepted" ? "✓ Already Accepted" : "Mark as Accepted"}
+            </Button>
+          )}
+          {initialQuote && (
+            <Button
+              type="button"
+              onClick={handleMarkAsApproved}
+              disabled={isLoading || status === "approved"}
+              className="bg-blue-600 hover:bg-blue-700 font-semibold disabled:opacity-50"
+            >
+              {status === "approved" ? "✓ Already Approved" : "Mark as Approved"}
             </Button>
           )}
           <Button type="submit" disabled={isLoading} className="bg-purple-600 hover:bg-purple-700 font-semibold">

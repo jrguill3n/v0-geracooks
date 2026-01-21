@@ -92,31 +92,35 @@ export default async function EditCateringPage({ params }: { params: Promise<{ i
     <>
       <AdminNav title="Edit Catering Quote" subtitle={`Quote for ${quote.customer_name}`} />
 
-      {quote.converted_order_id ? (
+      {quote.converted_order_id && (
         <div className="max-w-4xl mx-auto px-4 sm:px-6 mb-6">
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <CheckCircle2 className="w-5 h-5 text-green-600" />
               <div>
-                <p className="font-semibold text-green-900">Converted to Order</p>
+                <p className="font-semibold text-green-900">Order Created Automatically</p>
                 <p className="text-sm text-green-700">
-                  {new Date(quote.converted_at).toLocaleDateString("es-ES", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
+                  {quote.converted_at
+                    ? new Date(quote.converted_at).toLocaleDateString("es-ES", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })
+                    : "Recently"}
                 </p>
               </div>
             </div>
             <Link
-              href={`/admin?orderId=${quote.converted_order_id}`}
+              href={`/admin`}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition-colors"
             >
-              View Order
+              View Order →
             </Link>
           </div>
         </div>
-      ) : (
+      )}
+
+      {!quote.converted_order_id && quoteStatus !== "approved" && (
         <div className="max-w-4xl mx-auto px-4 sm:px-6 mb-6">
           <ConvertToOrderButton quoteId={quote.id} status={quoteStatus} customerName={quote.customer_name} />
         </div>
@@ -128,7 +132,7 @@ export default async function EditCateringPage({ params }: { params: Promise<{ i
           customer_name: quote.customer_name,
           phone: quote.phone,
           notes: quote.notes,
-          status: quoteStatus, // Use quoteStatus with fallback
+          status: quoteStatus,
           quote_type: quote.quote_type || "items",
           people_count: quote.people_count,
           price_per_person: quote.price_per_person ? Number(quote.price_per_person) : 0,
