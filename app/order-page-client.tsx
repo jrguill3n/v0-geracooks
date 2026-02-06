@@ -11,7 +11,7 @@ import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
-import { Minus, Plus, ShoppingBag, ChevronDown, ChevronUp } from "lucide-react"
+import { Minus, Plus, ShoppingBag } from "lucide-react"
 import { PhoneInput } from "@/components/phone-input"
 
 interface MenuItem {
@@ -50,10 +50,6 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
   const [submitStatus, setSubmitStatus] = useState<"idle" | "submitting" | "success" | "error">("idle")
   const [selectedItemForExtras, setSelectedItemForExtras] = useState<MenuItem | null>(null)
   const [tempExtras, setTempExtras] = useState<string[]>([])
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
-    const categories = Object.keys(menuItems)
-    return { [categories[0]]: true }
-  })
   const [activeCategory, setActiveCategory] = useState<string>(() => Object.keys(menuItems)[0])
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const categoryNavRef = useRef<HTMLDivElement | null>(null)
@@ -153,20 +149,12 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
     }
   }
 
-  const toggleSection = (category: string) => {
-    setExpandedSections((prev) => ({ ...prev, [category]: !prev[category] }))
-  }
-
   const scrollToSection = (category: string) => {
     const section = sectionRefs.current[category]
     if (section) {
       const offset = 200
       const top = section.offsetTop - offset
       window.scrollTo({ top, behavior: "smooth" })
-
-      if (!expandedSections[category]) {
-        setExpandedSections((prev) => ({ ...prev, [category]: true }))
-      }
     }
   }
 
@@ -409,103 +397,95 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
           </div>
         </div>
 
-        {Object.entries(menuItems).map(([category, items]) => (
-          <div
-            key={category}
-            className="mb-4"
-            ref={(el) => {
-              sectionRefs.current[category] = el
-            }}
-          >
-            <div className="bg-white border-0 rounded-3xl shadow-lg overflow-hidden">
-              <button
-                onClick={() => toggleSection(category)}
-                className="w-full bg-gradient-to-r from-primary via-primary/95 to-primary/90 p-4 flex items-center justify-between hover:from-primary/95 hover:via-primary/90 hover:to-primary/85 transition-all duration-200"
-              >
-                <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-bold text-white">{category}</h2>
-                  <span className="bg-white/20 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                    {items.length}
+        {Object.entries(menuItems).map(([category, items]) => {
+          const categoryItemCount = getCategoryItemCount(category)
+          
+          return (
+            <div
+              key={category}
+              className="mb-6"
+              ref={(el) => {
+                sectionRefs.current[category] = el
+              }}
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <h2 className="text-lg font-semibold text-indigo-700 tracking-wide">
+                  {category}
+                </h2>
+                {categoryItemCount > 0 && (
+                  <span className="bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                    {categoryItemCount}
                   </span>
-                </div>
-                <div className="text-white">
-                  {expandedSections[category] ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                </div>
-              </button>
+                )}
+              </div>
+              
+              <div className="h-px bg-gray-200 mb-4" />
 
-              <div
-                className={`transition-all duration-300 ease-in-out ${
-                  expandedSections[category] ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"
-                }`}
-              >
-                <div className="p-4">
-                  <div className="space-y-3">
-                    {items.map((item) => {
-                      const itemInCart = orderItems[item.name]
-                      const hasQuantity = itemInCart && itemInCart.quantity > 0
+              <div className="space-y-3">
+                {items.map((item) => {
+                  const itemInCart = orderItems[item.name]
+                  const hasQuantity = itemInCart && itemInCart.quantity > 0
 
-                      return (
-                        <div
-                          key={item.name}
-                          className={`relative bg-white rounded-2xl p-4 transition-all duration-300 ${
-                            hasQuantity
-                              ? "shadow-md ring-2 ring-indigo-500"
-                              : "shadow hover:shadow-md"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1">
-                                <h3 className="text-base font-bold text-gray-900 leading-tight">{item.name}</h3>
-                                <InfoTooltip description={item.description || ""} itemName={item.name} price={item.price} />
-                              </div>
-                              {item.description && (
-                                <p className="text-sm text-gray-500 mt-1 line-clamp-2">{item.description}</p>
-                              )}
-                              <p className="text-lg font-bold text-green-600 mt-2">${item.price.toFixed(2)}</p>
-                              {item.extras && item.extras.length > 0 && (
-                                <p className="text-xs text-purple-600 font-semibold mt-1">+ Extras available</p>
-                              )}
-                            </div>
-
-                            <div className="flex items-center gap-2 shrink-0">
-                              {!hasQuantity ? (
-                                <Button
-                                  onClick={() => handleAddItem(item)}
-                                  className="h-11 px-5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-full shadow-sm transition-all duration-200"
-                                >
-                                  + Add
-                                </Button>
-                              ) : (
-                                <>
-                                  <button
-                                    onClick={() => updateQuantity(item.name, -1)}
-                                    className="h-11 w-11 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-all duration-200 active:scale-95"
-                                  >
-                                    <Minus className="h-5 w-5" />
-                                  </button>
-                                  <span className="min-w-[2rem] text-center font-bold text-gray-900 text-lg">
-                                    {itemInCart.quantity}
-                                  </span>
-                                  <button
-                                    onClick={() => handleAddItem(item)}
-                                    className="h-11 w-11 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-all duration-200 active:scale-95 shadow-sm"
-                                  >
-                                    <Plus className="h-5 w-5" />
-                                  </button>
-                                </>
-                              )}
-                            </div>
+                  return (
+                    <div
+                      key={item.name}
+                      className={`relative bg-white rounded-2xl p-4 transition-all duration-300 ${
+                        hasQuantity
+                          ? "shadow-md ring-2 ring-indigo-500"
+                          : "shadow hover:shadow-md"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1">
+                            <h3 className="text-base font-bold text-gray-900 leading-tight">{item.name}</h3>
+                            <InfoTooltip description={item.description || ""} itemName={item.name} price={item.price} />
                           </div>
+                          {item.description && (
+                            <p className="text-sm text-gray-500 mt-1 line-clamp-2">{item.description}</p>
+                          )}
+                          <p className="text-lg font-bold text-green-600 mt-2">${item.price.toFixed(2)}</p>
+                          {item.extras && item.extras.length > 0 && (
+                            <p className="text-xs text-purple-600 font-semibold mt-1">+ Extras available</p>
+                          )}
                         </div>
-                      )
-                    })}
-                  </div>
-                </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          {!hasQuantity ? (
+                            <Button
+                              onClick={() => handleAddItem(item)}
+                              className="h-11 px-5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-full shadow-sm transition-all duration-200"
+                            >
+                              + Add
+                            </Button>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => updateQuantity(item.name, -1)}
+                                className="h-11 w-11 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-all duration-200 active:scale-95"
+                              >
+                                <Minus className="h-5 w-5" />
+                              </button>
+                              <span className="min-w-[2rem] text-center font-bold text-gray-900 text-lg">
+                                {itemInCart.quantity}
+                              </span>
+                              <button
+                                onClick={() => handleAddItem(item)}
+                                className="h-11 w-11 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-all duration-200 active:scale-95 shadow-sm"
+                              >
+                                <Plus className="h-5 w-5" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
 
         <div className="text-center py-4">
           <p className="text-sm text-foreground/60 italic font-medium">
