@@ -54,7 +54,44 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
     const categories = Object.keys(menuItems)
     return { [categories[0]]: true }
   })
+  const [activeCategory, setActiveCategory] = useState<string>(() => Object.keys(menuItems)[0])
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const categoryNavRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const categories = Object.keys(menuItems)
+      let currentActive = categories[0]
+
+      for (const category of categories) {
+        const section = sectionRefs.current[category]
+        if (section) {
+          const rect = section.getBoundingClientRect()
+          if (rect.top <= 250 && rect.bottom > 250) {
+            currentActive = category
+            break
+          }
+        }
+      }
+
+      if (currentActive !== activeCategory) {
+        setActiveCategory(currentActive)
+        
+        // Auto-scroll the active pill into view
+        if (categoryNavRef.current) {
+          const activeButton = categoryNavRef.current.querySelector(`[data-category="${currentActive}"]`)
+          if (activeButton) {
+            activeButton.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+          }
+        }
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll() // Initial check
+    
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [menuItems, activeCategory])
 
   useEffect(() => {
     if (customerName.length >= 2 || phoneNumber.length >= 3) {
@@ -174,6 +211,14 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
     return Object.values(orderItems).reduce((sum, item) => sum + item.quantity, 0)
   }
 
+  const getCategoryItemCount = (category: string) => {
+    const items = menuItems[category]
+    if (!items) return 0
+    return items.reduce((sum, item) => {
+      return sum + (orderItems[item.name]?.quantity || 0)
+    }, 0)
+  }
+
   const getTotalPrice = () => {
     let total = 0
     Object.entries(orderItems).forEach(([itemName, orderItem]) => {
@@ -283,18 +328,33 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
         </div>
       </div>
 
-      <div className="sticky top-0 z-50 bg-white shadow-md border-b border-primary/10">
-        <div className="max-w-2xl mx-auto px-4 py-3 overflow-x-auto">
+      <div className="sticky top-0 z-50 bg-white shadow-md border-b border-indigo-100">
+        <div className="max-w-2xl mx-auto px-4 py-3 overflow-x-auto scrollbar-hide" ref={categoryNavRef}>
           <div className="flex gap-2 min-w-max">
-            {Object.keys(menuItems).map((category) => (
-              <button
-                key={category}
-                onClick={() => scrollToSection(category)}
-                className="px-4 py-2 rounded-full bg-primary/10 text-primary font-bold text-xs hover:bg-primary hover:text-white transition-all duration-200 whitespace-nowrap shadow-sm"
-              >
-                {category}
-              </button>
-            ))}
+            {Object.keys(menuItems).map((category) => {
+              const isActive = activeCategory === category
+              const itemCount = getCategoryItemCount(category)
+              
+              return (
+                <button
+                  key={category}
+                  data-category={category}
+                  onClick={() => scrollToSection(category)}
+                  className={`px-4 py-2 rounded-full font-bold text-xs transition-all duration-200 whitespace-nowrap shadow-sm relative ${
+                    isActive 
+                      ? 'bg-indigo-600 text-white' 
+                      : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                  }`}
+                >
+                  {category}
+                  {itemCount > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center px-1">
+                      {itemCount}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>
