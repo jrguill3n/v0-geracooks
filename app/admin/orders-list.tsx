@@ -9,6 +9,7 @@ import { DeleteOrderButton } from "./delete-order-button"
 import { EditOrderModal } from "./edit-order-modal"
 import { useState } from "react"
 import { Pencil, MessageCircle } from "lucide-react"
+import { getOrderItemCount, formatItemCount } from "@/lib/get-order-item-count"
 
 interface Order {
   id: string
@@ -16,6 +17,7 @@ interface Order {
   phone: string
   total_price: number
   status: string
+  payment_status?: string
   created_at: string
   customers?: {
     phone: string
@@ -134,17 +136,23 @@ export function OrdersList({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "pending":
+      case "new":
         return "bg-amber-50 text-amber-700 border-amber-300"
       case "packed":
         return "bg-blue-50 text-blue-700 border-blue-300"
-      case "delivered":
+      case "completed":
         return "bg-teal-50 text-teal-700 border-teal-300"
       case "cancelled":
         return "bg-gray-100 text-gray-700 border-gray-300"
       default:
         return "bg-gray-50 text-gray-600 border-gray-200"
     }
+  }
+
+  const getPaymentColor = (paymentStatus: string) => {
+    return paymentStatus === "paid"
+      ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+      : "bg-red-50 text-red-700 border-red-300"
   }
 
   const generateWhatsAppLink = (order: Order, items: OrderItem[]) => {
@@ -209,9 +217,9 @@ export function OrdersList({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Orders</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="new">New</SelectItem>
                   <SelectItem value="packed">Packed</SelectItem>
-                  <SelectItem value="delivered">Delivered</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
@@ -375,9 +383,15 @@ export function OrdersList({
                       <h3 className="text-lg sm:text-xl font-bold text-gray-900 break-words">
                         {order.customer_name}
                         {customerNickname && <span className="text-teal-600 ml-2">({customerNickname})</span>}
+                        <span className="text-sm font-normal text-gray-400 ml-2">
+                          {formatItemCount(getOrderItemCount(items))}
+                        </span>
                       </h3>
                       <Badge className={`text-xs px-2.5 py-1 border ${getStatusColor(order.status)}`}>
                         {order.status}
+                      </Badge>
+                      <Badge className={`text-xs px-2.5 py-1 border ${getPaymentColor(order.payment_status || "unpaid")}`}>
+                        {order.payment_status === "paid" ? "Paid" : "Unpaid"}
                       </Badge>
                       {isCateringOrder && (
                         <Badge className="text-xs px-2.5 py-1 bg-purple-100 text-purple-700 border-purple-300">
@@ -406,7 +420,7 @@ export function OrdersList({
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
-                  <StatusSelect orderId={order.id} currentStatus={order.status} />
+                  <StatusSelect orderId={order.id} currentStatus={order.status} currentPaymentStatus={order.payment_status || "unpaid"} />
                   <Button
                     size="sm"
                     onClick={() => {
@@ -437,7 +451,10 @@ export function OrdersList({
               </div>
 
               <div className="border-t border-gray-100 pt-4 mt-4">
-                <p className="text-sm sm:text-base font-semibold mb-3 text-gray-700">Order Items:</p>
+                <p className="text-sm sm:text-base font-semibold mb-3 text-gray-700">
+                  Order Items{" "}
+                  <span className="font-normal text-gray-400">{formatItemCount(getOrderItemCount(items))}</span>:
+                </p>
                 <div className="space-y-4">
                   {Object.entries(itemsBySection).map(([section, sectionItems]) => (
                     <div key={section}>

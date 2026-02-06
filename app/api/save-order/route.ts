@@ -47,7 +47,8 @@ export async function POST(request: Request) {
         customer_name: customerName,
         phone: phone,
         total_price: totalPrice,
-        status: "pending",
+        status: "new",
+        payment_status: "unpaid",
       })
       .select()
       .single()
