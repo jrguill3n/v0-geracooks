@@ -342,7 +342,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
       </div>
 
       <div className="sticky top-0 z-50 bg-white">
-        <div className="max-w-2xl mx-auto px-4 py-2">
+        <div className="max-w-2xl mx-auto">
           <div className="overflow-x-auto scrollbar-hide -mx-4 px-4" ref={categoryNavRef}>
             <div className="flex gap-2 min-w-max">
               {Object.keys(menuItems).map((category) => {
