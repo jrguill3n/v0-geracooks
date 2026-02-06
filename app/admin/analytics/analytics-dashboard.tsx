@@ -151,6 +151,7 @@ export function AnalyticsDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [rangeDays, setRangeDays] = useState<RangeDays>(null)
+  const [customerSort, setCustomerSort] = useState<"spent" | "orders">("spent")
 
   useEffect(() => {
     fetchAnalytics()
@@ -277,9 +278,13 @@ export function AnalyticsDashboard() {
         })
       }
     })
-    const topCustomers = Array.from(customerMap.values())
-      .sort((a, b) => b.totalSpent - a.totalSpent)
-      .slice(0, 5)
+    const allCustomersBySpent = Array.from(customerMap.values())
+      .sort((a, b) => b.totalSpent - a.totalSpent || b.orderCount - a.orderCount)
+      .slice(0, 10)
+
+    const allCustomersByOrders = Array.from(customerMap.values())
+      .sort((a, b) => b.orderCount - a.orderCount || b.totalSpent - a.totalSpent)
+      .slice(0, 10)
 
     // YoY growth
     const currentYear = new Date().getFullYear()
@@ -311,7 +316,8 @@ export function AnalyticsDashboard() {
       revenueTrend,
       topItems,
       ordersByDay,
-      topCustomers,
+      allCustomersBySpent,
+      allCustomersByOrders,
     }
   }, [data, rangeDays])
 
@@ -528,40 +534,83 @@ export function AnalyticsDashboard() {
       </div>
 
       {/* Top Customers */}
-      <Card className="border-teal-200 rounded-2xl shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-teal-900">Top Customers</CardTitle>
-          <CardDescription className="text-teal-700">Best customers by total spending</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {computed.topCustomers.length > 0 ? (
-            <div className="space-y-3">
-              {computed.topCustomers.map((customer, index) => (
-                <div
-                  key={`${customer.phone}-${index}`}
-                  className="flex items-center justify-between p-4 bg-purple-50/60 rounded-xl border border-purple-100"
+      {(() => {
+        const topCustomers = customerSort === "spent"
+          ? computed.allCustomersBySpent
+          : computed.allCustomersByOrders
+
+        return (
+          <Card className="border-teal-200 rounded-2xl shadow-sm">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <CardTitle className="text-teal-900">Top Customers</CardTitle>
+                <CardDescription className="text-teal-700">
+                  {customerSort === "spent" ? "Ranked by total spent" : "Ranked by order count"}
+                </CardDescription>
+              </div>
+              <div className="flex bg-white border border-gray-200 rounded-xl p-1 shadow-sm self-start sm:self-auto">
+                <button
+                  onClick={() => setCustomerSort("spent")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
+                    customerSort === "spent"
+                      ? "bg-teal-600 text-white shadow-sm"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                  }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-sm shrink-0">
-                      {index + 1}
+                  Total spent
+                </button>
+                <button
+                  onClick={() => setCustomerSort("orders")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
+                    customerSort === "orders"
+                      ? "bg-teal-600 text-white shadow-sm"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                  }`}
+                >
+                  Orders
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {topCustomers.length > 0 ? (
+                <div className="space-y-2">
+                  {topCustomers.map((customer, index) => (
+                    <div
+                      key={`${customer.phone}-${index}`}
+                      className="flex items-start gap-3 p-3 bg-purple-50/60 rounded-xl border border-purple-100"
+                    >
+                      <div className="w-7 h-7 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        {/* Mobile: 2-line layout. Desktop: single row */}
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-semibold text-sm text-purple-900 truncate">{customer.name}</span>
+                          <span className="font-bold text-sm text-purple-900 shrink-0 tabular-nums">
+                            {customerSort === "spent"
+                              ? formatUSD(customer.totalSpent)
+                              : `${customer.orderCount} ${customer.orderCount === 1 ? "order" : "orders"}`}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 mt-0.5">
+                          <span className="text-xs text-gray-500 truncate">{customer.phone || "No phone"}</span>
+                          <span className="text-xs text-gray-500 shrink-0 tabular-nums">
+                            {customerSort === "spent"
+                              ? `${customer.orderCount} ${customer.orderCount === 1 ? "order" : "orders"}`
+                              : formatUSD(customer.totalSpent)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <div className="font-semibold text-sm text-purple-900 truncate">{customer.name}</div>
-                      <div className="text-xs text-teal-700">{customer.phone}</div>
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div className="font-bold text-lg text-purple-900">{formatUSD(customer.totalSpent)}</div>
-                    <div className="text-xs text-teal-700">{customer.orderCount} orders</div>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <ChartEmpty message="No data yet" />
-          )}
-        </CardContent>
-      </Card>
+              ) : (
+                <ChartEmpty message="No data yet" />
+              )}
+            </CardContent>
+          </Card>
+        )
+      })()}
     </div>
   )
 }
