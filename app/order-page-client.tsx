@@ -652,7 +652,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
             })}
           </div>
           
-          <div className="border-t px-6 py-4 bg-white">
+          <div className="border-t px-6 py-4 bg-white" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
             <div className="flex items-center justify-between mb-4">
               <span className="text-lg font-bold text-gray-900">Total</span>
               <span className="text-2xl font-bold text-indigo-600">${getTotalPrice().toFixed(2)}</span>
