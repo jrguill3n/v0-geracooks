@@ -118,10 +118,39 @@ function DashboardSkeleton() {
   )
 }
 
+type RangeDays = 30 | 90 | null
+
+const RANGE_OPTIONS: { label: string; value: RangeDays }[] = [
+  { label: "Last 30 days", value: 30 },
+  { label: "Last 90 days", value: 90 },
+  { label: "All time", value: null },
+]
+
+function RangeFilter({ value, onChange }: { value: RangeDays; onChange: (v: RangeDays) => void }) {
+  return (
+    <div className="flex w-full sm:w-auto bg-white border border-gray-200 rounded-xl p-1 shadow-sm">
+      {RANGE_OPTIONS.map((opt) => (
+        <button
+          key={String(opt.value)}
+          onClick={() => onChange(opt.value)}
+          className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+            value === opt.value
+              ? "bg-purple-600 text-white shadow-sm"
+              : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export function AnalyticsDashboard() {
   const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [rangeDays, setRangeDays] = useState<RangeDays>(null)
 
   useEffect(() => {
     fetchAnalytics()
@@ -149,10 +178,27 @@ export function AnalyticsDashboard() {
   const computed = useMemo(() => {
     if (!data) return null
 
-    const orders = data.orders || []
-    const orderItems = data.orderItems || []
+    const allOrders = data.orders || []
+    const allOrderItems = data.orderItems || []
     const historicalSales = data.historicalSales || []
     const customers = data.customers || []
+
+    // Apply date range filter
+    let cutoffDate: Date | null = null
+    if (rangeDays !== null) {
+      cutoffDate = new Date()
+      cutoffDate.setDate(cutoffDate.getDate() - rangeDays)
+      cutoffDate.setHours(0, 0, 0, 0)
+    }
+
+    const orders = cutoffDate
+      ? allOrders.filter((o) => new Date(o.created_at) >= cutoffDate!)
+      : allOrders
+
+    const filteredOrderIds = new Set(orders.map((o) => o.id))
+    const orderItems = cutoffDate
+      ? allOrderItems.filter((item) => filteredOrderIds.has(item.order_id))
+      : allOrderItems
 
     // KPIs
     const totalRevenue = orders.reduce((sum, o) => sum + (o.total_price || 0), 0)
@@ -163,7 +209,15 @@ export function AnalyticsDashboard() {
     // Revenue trend: merge historical + current orders by YYYY-MM
     const revenueMap = new Map<string, number>()
 
-    historicalSales.forEach((h) => {
+    // Filter historical sales by range too
+    const filteredHistorical = cutoffDate
+      ? historicalSales.filter((h) => {
+          const historicalDate = new Date(h.year, h.month - 1, 1)
+          return historicalDate >= cutoffDate!
+        })
+      : historicalSales
+
+    filteredHistorical.forEach((h) => {
       const key = `${h.year}-${String(h.month).padStart(2, "0")}`
       revenueMap.set(key, (revenueMap.get(key) || 0) + Number(h.revenue))
     })
@@ -259,7 +313,7 @@ export function AnalyticsDashboard() {
       ordersByDay,
       topCustomers,
     }
-  }, [data])
+  }, [data, rangeDays])
 
   if (loading) return <DashboardSkeleton />
 
@@ -283,8 +337,32 @@ export function AnalyticsDashboard() {
     )
   }
 
+  const hasOrders = computed.totalOrders > 0
+
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
+      {/* Date range filter */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h2 className="text-lg font-semibold text-gray-800">Overview</h2>
+        <RangeFilter value={rangeDays} onChange={setRangeDays} />
+      </div>
+
+      {/* Empty state for filtered range */}
+      {!hasOrders && rangeDays !== null && (
+        <Card className="border-gray-200 rounded-2xl shadow-sm">
+          <CardContent className="flex flex-col items-center justify-center py-16 gap-3">
+            <ShoppingCart className="h-10 w-10 text-gray-300" />
+            <p className="text-gray-500 font-medium">No orders in the last {rangeDays} days</p>
+            <button
+              onClick={() => setRangeDays(null)}
+              className="text-sm text-purple-600 hover:text-purple-800 font-medium"
+            >
+              View all time instead
+            </button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-purple-50 border-purple-200 rounded-2xl shadow-sm">
@@ -293,8 +371,8 @@ export function AnalyticsDashboard() {
             <DollarSign className="h-5 w-5 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-900">{formatUSD(computed.allTimeRevenue)}</div>
-            <p className="text-xs text-purple-700">All time</p>
+            <div className="text-2xl font-bold text-purple-900">{formatUSD(computed.totalRevenue)}</div>
+            <p className="text-xs text-purple-700">{rangeDays ? `Last ${rangeDays} days` : "All time"}</p>
           </CardContent>
         </Card>
 
@@ -305,7 +383,7 @@ export function AnalyticsDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-teal-900">{computed.totalOrders}</div>
-            <p className="text-xs text-teal-700">Since tracking started</p>
+            <p className="text-xs text-teal-700">{rangeDays ? `Last ${rangeDays} days` : "Since tracking started"}</p>
           </CardContent>
         </Card>
 
