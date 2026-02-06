@@ -18,10 +18,8 @@ export function StatusSelect({ orderId, currentStatus, currentPaymentStatus = "u
   const router = useRouter()
 
   const handleStatusChange = (newStatus: string) => {
-    console.log("[v0] Updating order", orderId, "to status:", newStatus)
     startTransition(async () => {
       const result = await updateOrderStatus(orderId, newStatus)
-      console.log("[v0] Update result:", result)
       if (result.success) {
         router.refresh()
       } else {
@@ -33,10 +31,8 @@ export function StatusSelect({ orderId, currentStatus, currentPaymentStatus = "u
 
   const handlePaymentToggle = (checked: boolean) => {
     const newPaymentStatus = checked ? "paid" : "unpaid"
-    console.log("[v0] Updating order", orderId, "to payment_status:", newPaymentStatus)
     startTransition(async () => {
       const result = await updatePaymentStatus(orderId, newPaymentStatus)
-      console.log("[v0] Payment update result:", result)
       if (result.success) {
         router.refresh()
       } else {
