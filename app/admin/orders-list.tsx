@@ -134,16 +134,31 @@ export function OrdersList({
     router.push(`/admin?${params.toString()}`)
   }
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "new":
+        return "New"
+      case "in_progress":
+        return "In Progress"
+      case "packed":
+        return "Packed"
+      case "delivered":
+        return "Delivered"
+      default:
+        return status
+    }
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "new":
+        return "bg-gray-50 text-gray-700 border-gray-300"
+      case "in_progress":
         return "bg-amber-50 text-amber-700 border-amber-300"
       case "packed":
-        return "bg-blue-50 text-blue-700 border-blue-300"
-      case "completed":
-        return "bg-teal-50 text-teal-700 border-teal-300"
-      case "cancelled":
-        return "bg-gray-100 text-gray-700 border-gray-300"
+        return "bg-indigo-50 text-indigo-700 border-indigo-300"
+      case "delivered":
+        return "bg-green-50 text-green-700 border-green-300"
       default:
         return "bg-gray-50 text-gray-600 border-gray-200"
     }
@@ -218,9 +233,9 @@ export function OrdersList({
                 <SelectContent>
                   <SelectItem value="all">All Orders</SelectItem>
                   <SelectItem value="new">New</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
                   <SelectItem value="packed">Packed</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="delivered">Delivered</SelectItem>
                 </SelectContent>
               </Select>
               {statusFilter && (
@@ -385,7 +400,7 @@ export function OrdersList({
                         {customerNickname && <span className="text-teal-600 ml-2">({customerNickname})</span>}
                       </h3>
                       <Badge className={`text-xs px-2.5 py-1 border ${getStatusColor(order.status)}`}>
-                        {order.status}
+                        {getStatusLabel(order.status)}
                       </Badge>
                       <Badge className={`text-xs px-2.5 py-1 border ${getPaymentColor(order.payment_status === "unpaid" ? "unpaid" : "paid")}`}>
                         {order.payment_status === "unpaid" ? "Unpaid" : "Paid"}
