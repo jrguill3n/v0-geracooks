@@ -9,6 +9,7 @@ import { DeleteOrderButton } from "./delete-order-button"
 import { EditOrderModal } from "./edit-order-modal"
 import { useState } from "react"
 import { Pencil, MessageCircle } from "lucide-react"
+import { getOrderItemCount, formatItemCount } from "@/lib/get-order-item-count"
 
 interface Order {
   id: string
@@ -375,6 +376,9 @@ export function OrdersList({
                       <h3 className="text-lg sm:text-xl font-bold text-gray-900 break-words">
                         {order.customer_name}
                         {customerNickname && <span className="text-teal-600 ml-2">({customerNickname})</span>}
+                        <span className="text-sm font-normal text-gray-400 ml-2">
+                          {formatItemCount(getOrderItemCount(items))}
+                        </span>
                       </h3>
                       <Badge className={`text-xs px-2.5 py-1 border ${getStatusColor(order.status)}`}>
                         {order.status}
@@ -437,7 +441,10 @@ export function OrdersList({
               </div>
 
               <div className="border-t border-gray-100 pt-4 mt-4">
-                <p className="text-sm sm:text-base font-semibold mb-3 text-gray-700">Order Items:</p>
+                <p className="text-sm sm:text-base font-semibold mb-3 text-gray-700">
+                  Order Items{" "}
+                  <span className="font-normal text-gray-400">{formatItemCount(getOrderItemCount(items))}</span>:
+                </p>
                 <div className="space-y-4">
                   {Object.entries(itemsBySection).map(([section, sectionItems]) => (
                     <div key={section}>
