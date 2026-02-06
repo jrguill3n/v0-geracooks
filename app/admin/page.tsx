@@ -34,7 +34,7 @@ interface OrderItem {
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; pageSize?: string; status?: string; phone?: string }>
+  searchParams: Promise<{ page?: string; pageSize?: string; status?: string; phone?: string; payment?: string }>
 }) {
   const isAuthenticated = await checkAuth()
 
@@ -47,6 +47,7 @@ export default async function AdminPage({
   const pageSize = Number.parseInt(params.pageSize || "20")
   const statusFilter = params.status || ""
   const phoneFilter = params.phone || ""
+  const paymentFilter = params.payment || ""
 
   const supabase = await createClient()
 
@@ -58,6 +59,10 @@ export default async function AdminPage({
 
   if (phoneFilter) {
     countQuery = countQuery.ilike("customers.phone", `%${phoneFilter}%`)
+  }
+
+  if (paymentFilter) {
+    countQuery = countQuery.eq("payment_status", paymentFilter)
   }
 
   const { count: totalOrders } = await countQuery
@@ -74,6 +79,10 @@ export default async function AdminPage({
 
   if (phoneFilter) {
     ordersQuery = ordersQuery.ilike("customers.phone", `%${phoneFilter}%`)
+  }
+
+  if (paymentFilter) {
+    ordersQuery = ordersQuery.eq("payment_status", paymentFilter)
   }
 
   const { data: rawOrders, error: ordersError } = await ordersQuery
@@ -178,6 +187,7 @@ export default async function AdminPage({
           pageSize={pageSize}
           statusFilter={statusFilter}
           phoneFilter={phoneFilter}
+          paymentFilter={paymentFilter}
         />
       </div>
     </div>
