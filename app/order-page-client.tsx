@@ -439,46 +439,67 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
                 }`}
               >
                 <div className="p-4">
-                  <div className="space-y-1">
-                    {items.map((item) => (
-                      <div
-                        key={item.name}
-                        className="flex items-center justify-between py-3 hover:bg-primary/5 px-3 -mx-3 rounded-2xl transition-all duration-200"
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center">
-                            <p className="text-foreground font-bold text-base">{item.name}</p>
-                            <InfoTooltip description={item.description || ""} itemName={item.name} price={item.price} />
+                  <div className="space-y-3">
+                    {items.map((item) => {
+                      const itemInCart = orderItems[item.name]
+                      const hasQuantity = itemInCart && itemInCart.quantity > 0
+
+                      return (
+                        <div
+                          key={item.name}
+                          className={`relative bg-white rounded-2xl p-4 transition-all duration-300 ${
+                            hasQuantity
+                              ? "shadow-md ring-2 ring-indigo-500"
+                              : "shadow hover:shadow-md"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1">
+                                <h3 className="text-base font-bold text-gray-900 leading-tight">{item.name}</h3>
+                                <InfoTooltip description={item.description || ""} itemName={item.name} price={item.price} />
+                              </div>
+                              {item.description && (
+                                <p className="text-sm text-gray-500 mt-1 line-clamp-2">{item.description}</p>
+                              )}
+                              <p className="text-lg font-bold text-green-600 mt-2">${item.price.toFixed(2)}</p>
+                              {item.extras && item.extras.length > 0 && (
+                                <p className="text-xs text-purple-600 font-semibold mt-1">+ Extras available</p>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              {!hasQuantity ? (
+                                <Button
+                                  onClick={() => handleAddItem(item)}
+                                  className="h-11 px-5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-full shadow-sm transition-all duration-200"
+                                >
+                                  + Add
+                                </Button>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => updateQuantity(item.name, -1)}
+                                    className="h-11 w-11 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-all duration-200 active:scale-95"
+                                  >
+                                    <Minus className="h-5 w-5" />
+                                  </button>
+                                  <span className="min-w-[2rem] text-center font-bold text-gray-900 text-lg">
+                                    {itemInCart.quantity}
+                                  </span>
+                                  <button
+                                    onClick={() => handleAddItem(item)}
+                                    className="h-11 w-11 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-all duration-200 active:scale-95 shadow-sm"
+                                  >
+                                    <Plus className="h-5 w-5" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           </div>
-                          <p className="text-lg font-bold text-[color:var(--teal)] mt-0.5">${item.price}</p>
-                          {item.extras && item.extras.length > 0 && (
-                            <p className="text-xs text-purple-600 font-semibold mt-1">+ Extras available</p>
-                          )}
                         </div>
-                        <div className="flex items-center gap-3">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateQuantity(item.name, -1)}
-                            disabled={!orderItems[item.name]}
-                            className="h-10 w-10 p-0 bg-primary/10 text-primary border-0 hover:bg-primary/20 disabled:opacity-30 disabled:bg-muted rounded-full font-bold shadow-sm"
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                          <span className="w-8 text-center font-bold text-foreground text-base">
-                            {orderItems[item.name]?.quantity || 0}
-                          </span>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleAddItem(item)}
-                            className="h-10 w-10 p-0 bg-primary text-white border-0 hover:bg-primary/90 rounded-full font-bold shadow-md"
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </div>
               </div>
