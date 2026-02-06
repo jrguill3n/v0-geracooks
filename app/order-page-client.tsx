@@ -4,6 +4,7 @@ import type React from "react"
 import Image from "next/image"
 import { InfoTooltip } from "@/components/info-tooltip"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 
@@ -11,7 +12,7 @@ import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
-import { Minus, Plus, ShoppingBag, ChevronDown, ChevronUp } from "lucide-react"
+import { Minus, Plus, ShoppingBag } from "lucide-react"
 import { PhoneInput } from "@/components/phone-input"
 
 interface MenuItem {
@@ -50,10 +51,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
   const [submitStatus, setSubmitStatus] = useState<"idle" | "submitting" | "success" | "error">("idle")
   const [selectedItemForExtras, setSelectedItemForExtras] = useState<MenuItem | null>(null)
   const [tempExtras, setTempExtras] = useState<string[]>([])
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
-    const categories = Object.keys(menuItems)
-    return { [categories[0]]: true }
-  })
+  const [isCartSheetOpen, setIsCartSheetOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string>(() => Object.keys(menuItems)[0])
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const categoryNavRef = useRef<HTMLDivElement | null>(null)
@@ -153,20 +151,12 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
     }
   }
 
-  const toggleSection = (category: string) => {
-    setExpandedSections((prev) => ({ ...prev, [category]: !prev[category] }))
-  }
-
   const scrollToSection = (category: string) => {
     const section = sectionRefs.current[category]
     if (section) {
       const offset = 200
       const top = section.offsetTop - offset
       window.scrollTo({ top, behavior: "smooth" })
-
-      if (!expandedSections[category]) {
-        setExpandedSections((prev) => ({ ...prev, [category]: true }))
-      }
     }
   }
 
@@ -319,7 +309,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-white to-secondary/30 pb-40">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-white to-secondary/30 pb-24">
       <div className="bg-white">
         <div className="max-w-2xl mx-auto px-6 py-2">
           <div className="flex flex-col items-center text-center">
@@ -409,103 +399,95 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
           </div>
         </div>
 
-        {Object.entries(menuItems).map(([category, items]) => (
-          <div
-            key={category}
-            className="mb-4"
-            ref={(el) => {
-              sectionRefs.current[category] = el
-            }}
-          >
-            <div className="bg-white border-0 rounded-3xl shadow-lg overflow-hidden">
-              <button
-                onClick={() => toggleSection(category)}
-                className="w-full bg-gradient-to-r from-primary via-primary/95 to-primary/90 p-4 flex items-center justify-between hover:from-primary/95 hover:via-primary/90 hover:to-primary/85 transition-all duration-200"
-              >
-                <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-bold text-white">{category}</h2>
-                  <span className="bg-white/20 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                    {items.length}
+        {Object.entries(menuItems).map(([category, items]) => {
+          const categoryItemCount = getCategoryItemCount(category)
+          
+          return (
+            <div
+              key={category}
+              className="mb-6"
+              ref={(el) => {
+                sectionRefs.current[category] = el
+              }}
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <h2 className="text-lg font-semibold text-indigo-700 tracking-wide">
+                  {category}
+                </h2>
+                {categoryItemCount > 0 && (
+                  <span className="bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                    {categoryItemCount}
                   </span>
-                </div>
-                <div className="text-white">
-                  {expandedSections[category] ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                </div>
-              </button>
+                )}
+              </div>
+              
+              <div className="h-px bg-gray-200 mb-4" />
 
-              <div
-                className={`transition-all duration-300 ease-in-out ${
-                  expandedSections[category] ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"
-                }`}
-              >
-                <div className="p-4">
-                  <div className="space-y-3">
-                    {items.map((item) => {
-                      const itemInCart = orderItems[item.name]
-                      const hasQuantity = itemInCart && itemInCart.quantity > 0
+              <div className="space-y-3">
+                {items.map((item) => {
+                  const itemInCart = orderItems[item.name]
+                  const hasQuantity = itemInCart && itemInCart.quantity > 0
 
-                      return (
-                        <div
-                          key={item.name}
-                          className={`relative bg-white rounded-2xl p-4 transition-all duration-300 ${
-                            hasQuantity
-                              ? "shadow-md ring-2 ring-indigo-500"
-                              : "shadow hover:shadow-md"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1">
-                                <h3 className="text-base font-bold text-gray-900 leading-tight">{item.name}</h3>
-                                <InfoTooltip description={item.description || ""} itemName={item.name} price={item.price} />
-                              </div>
-                              {item.description && (
-                                <p className="text-sm text-gray-500 mt-1 line-clamp-2">{item.description}</p>
-                              )}
-                              <p className="text-lg font-bold text-green-600 mt-2">${item.price.toFixed(2)}</p>
-                              {item.extras && item.extras.length > 0 && (
-                                <p className="text-xs text-purple-600 font-semibold mt-1">+ Extras available</p>
-                              )}
-                            </div>
-
-                            <div className="flex items-center gap-2 shrink-0">
-                              {!hasQuantity ? (
-                                <Button
-                                  onClick={() => handleAddItem(item)}
-                                  className="h-11 px-5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-full shadow-sm transition-all duration-200"
-                                >
-                                  + Add
-                                </Button>
-                              ) : (
-                                <>
-                                  <button
-                                    onClick={() => updateQuantity(item.name, -1)}
-                                    className="h-11 w-11 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-all duration-200 active:scale-95"
-                                  >
-                                    <Minus className="h-5 w-5" />
-                                  </button>
-                                  <span className="min-w-[2rem] text-center font-bold text-gray-900 text-lg">
-                                    {itemInCart.quantity}
-                                  </span>
-                                  <button
-                                    onClick={() => handleAddItem(item)}
-                                    className="h-11 w-11 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-all duration-200 active:scale-95 shadow-sm"
-                                  >
-                                    <Plus className="h-5 w-5" />
-                                  </button>
-                                </>
-                              )}
-                            </div>
+                  return (
+                    <div
+                      key={item.name}
+                      className={`relative bg-white rounded-2xl p-4 transition-all duration-300 ${
+                        hasQuantity
+                          ? "shadow-md ring-2 ring-indigo-500"
+                          : "shadow hover:shadow-md"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1">
+                            <h3 className="text-base font-bold text-gray-900 leading-tight">{item.name}</h3>
+                            <InfoTooltip description={item.description || ""} itemName={item.name} price={item.price} />
                           </div>
+                          {item.description && (
+                            <p className="text-sm text-gray-500 mt-1 line-clamp-2">{item.description}</p>
+                          )}
+                          <p className="text-lg font-bold text-green-600 mt-2">${item.price.toFixed(2)}</p>
+                          {item.extras && item.extras.length > 0 && (
+                            <p className="text-xs text-purple-600 font-semibold mt-1">+ Extras available</p>
+                          )}
                         </div>
-                      )
-                    })}
-                  </div>
-                </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          {!hasQuantity ? (
+                            <Button
+                              onClick={() => handleAddItem(item)}
+                              className="h-11 px-5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-full shadow-sm transition-all duration-200"
+                            >
+                              + Add
+                            </Button>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => updateQuantity(item.name, -1)}
+                                className="h-11 w-11 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-all duration-200 active:scale-95"
+                              >
+                                <Minus className="h-5 w-5" />
+                              </button>
+                              <span className="min-w-[2rem] text-center font-bold text-gray-900 text-lg">
+                                {itemInCart.quantity}
+                              </span>
+                              <button
+                                onClick={() => handleAddItem(item)}
+                                className="h-11 w-11 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-all duration-200 active:scale-95 shadow-sm"
+                              >
+                                <Plus className="h-5 w-5" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
 
         <div className="text-center py-4">
           <p className="text-sm text-foreground/60 italic font-medium">
@@ -577,25 +559,122 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
       </div>
 
       {getTotalItems() > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-primary p-6 z-[100] shadow-2xl">
-          <div className="max-w-2xl mx-auto">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-bold text-white/90 tracking-wide mb-1">Total Items: {getTotalItems()}</p>
-                <p className="text-4xl font-bold text-white">${getTotalPrice()}</p>
-              </div>
-              <Button
-                onClick={handleSubmit}
-                size="lg"
-                className="bg-white text-primary font-bold hover:bg-white/95 shadow-xl px-10 py-7 text-lg rounded-2xl"
-                disabled={submitStatus === "submitting"}
-              >
-                {submitStatus === "submitting" ? "Submitting..." : "Submit Order"}
-              </Button>
-            </div>
-          </div>
-        </div>
+        <button
+          onClick={() => setIsCartSheetOpen(true)}
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-4 rounded-full shadow-xl transition-all duration-200 flex items-center gap-3"
+        >
+          <ShoppingBag className="w-5 h-5" />
+          <span>View Order</span>
+          <span className="bg-white/20 px-2 py-0.5 rounded-full text-sm">
+            {getTotalItems()}
+          </span>
+          <span className="text-lg">${getTotalPrice().toFixed(2)}</span>
+        </button>
       )}
+
+      <Sheet open={isCartSheetOpen} onOpenChange={setIsCartSheetOpen}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>Your Order</SheetTitle>
+          </SheetHeader>
+          
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+            {Object.entries(menuItems).map(([category, items]) => {
+              const categoryItems = items.filter((item) => orderItems[item.name]?.quantity > 0)
+              
+              if (categoryItems.length === 0) return null
+              
+              return (
+                <div key={category}>
+                  <h3 className="text-sm font-bold text-indigo-700 uppercase tracking-wide mb-3">
+                    {category}
+                  </h3>
+                  <div className="space-y-3">
+                    {categoryItems.map((item) => {
+                      const orderItem = orderItems[item.name]
+                      let itemPrice = item.price
+                      
+                      orderItem.extras.forEach((extraId) => {
+                        const extra = item.extras?.find((e) => e.id === extraId)
+                        if (extra) {
+                          itemPrice += extra.price
+                        }
+                      })
+                      
+                      const subtotal = itemPrice * orderItem.quantity
+                      
+                      return (
+                        <div key={item.name} className="bg-gray-50 rounded-xl p-3">
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <div className="flex-1">
+                              <h4 className="font-bold text-gray-900">{item.name}</h4>
+                              {orderItem.extras.length > 0 && (
+                                <div className="text-xs text-gray-600 mt-1">
+                                  {orderItem.extras.map((extraId) => {
+                                    const extra = item.extras?.find((e) => e.id === extraId)
+                                    return extra ? (
+                                      <div key={extra.id}>+ {extra.name}</div>
+                                    ) : null
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-gray-900">${subtotal.toFixed(2)}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => updateQuantity(item.name, -1)}
+                              className="h-8 w-8 flex items-center justify-center bg-white hover:bg-gray-100 text-gray-700 rounded-full transition-all duration-200"
+                            >
+                              <Minus className="h-4 w-4" />
+                            </button>
+                            <span className="min-w-[2rem] text-center font-bold text-gray-900">
+                              {orderItem.quantity}
+                            </span>
+                            <button
+                              onClick={() => handleAddItem(item)}
+                              className="h-8 w-8 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-all duration-200"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          
+          <div className="border-t px-6 py-4 bg-white">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-lg font-bold text-gray-900">Total</span>
+              <span className="text-2xl font-bold text-indigo-600">${getTotalPrice().toFixed(2)}</span>
+            </div>
+            
+            <Button
+              onClick={(e) => {
+                setIsCartSheetOpen(false)
+                handleSubmit(e)
+              }}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-6 rounded-2xl shadow-lg"
+              disabled={!customerName || !phoneNumber || submitStatus === "submitting"}
+            >
+              {submitStatus === "submitting" ? "Placing Order..." : "Place Order"}
+            </Button>
+            
+            {(!customerName || !phoneNumber) && (
+              <p className="text-xs text-red-600 text-center mt-2">
+                Please fill in your name and phone number above
+              </p>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <Dialog open={!!selectedItemForExtras} onOpenChange={(open) => !open && setSelectedItemForExtras(null)}>
         <DialogContent className="border-2 border-purple-300 max-w-md">
