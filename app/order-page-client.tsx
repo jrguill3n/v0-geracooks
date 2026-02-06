@@ -54,7 +54,44 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
     const categories = Object.keys(menuItems)
     return { [categories[0]]: true }
   })
+  const [activeCategory, setActiveCategory] = useState<string>(() => Object.keys(menuItems)[0])
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const categoryNavRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const categories = Object.keys(menuItems)
+      let currentActive = categories[0]
+
+      for (const category of categories) {
+        const section = sectionRefs.current[category]
+        if (section) {
+          const rect = section.getBoundingClientRect()
+          if (rect.top <= 250 && rect.bottom > 250) {
+            currentActive = category
+            break
+          }
+        }
+      }
+
+      if (currentActive !== activeCategory) {
+        setActiveCategory(currentActive)
+        
+        // Auto-scroll the active pill into view
+        if (categoryNavRef.current) {
+          const activeButton = categoryNavRef.current.querySelector(`[data-category="${currentActive}"]`)
+          if (activeButton) {
+            activeButton.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+          }
+        }
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll() // Initial check
+    
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [menuItems, activeCategory])
 
   useEffect(() => {
     if (customerName.length >= 2 || phoneNumber.length >= 3) {
@@ -174,6 +211,14 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
     return Object.values(orderItems).reduce((sum, item) => sum + item.quantity, 0)
   }
 
+  const getCategoryItemCount = (category: string) => {
+    const items = menuItems[category]
+    if (!items) return 0
+    return items.reduce((sum, item) => {
+      return sum + (orderItems[item.name]?.quantity || 0)
+    }, 0)
+  }
+
   const getTotalPrice = () => {
     let total = 0
     Object.entries(orderItems).forEach(([itemName, orderItem]) => {
@@ -283,18 +328,33 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
         </div>
       </div>
 
-      <div className="sticky top-0 z-50 bg-white shadow-md border-b border-primary/10">
-        <div className="max-w-2xl mx-auto px-4 py-3 overflow-x-auto">
+      <div className="sticky top-0 z-50 bg-white shadow-md border-b border-indigo-100">
+        <div className="max-w-2xl mx-auto px-4 py-3 overflow-x-auto scrollbar-hide" ref={categoryNavRef}>
           <div className="flex gap-2 min-w-max">
-            {Object.keys(menuItems).map((category) => (
-              <button
-                key={category}
-                onClick={() => scrollToSection(category)}
-                className="px-4 py-2 rounded-full bg-primary/10 text-primary font-bold text-xs hover:bg-primary hover:text-white transition-all duration-200 whitespace-nowrap shadow-sm"
-              >
-                {category}
-              </button>
-            ))}
+            {Object.keys(menuItems).map((category) => {
+              const isActive = activeCategory === category
+              const itemCount = getCategoryItemCount(category)
+              
+              return (
+                <button
+                  key={category}
+                  data-category={category}
+                  onClick={() => scrollToSection(category)}
+                  className={`px-4 py-2 rounded-full font-bold text-xs transition-all duration-200 whitespace-nowrap shadow-sm relative ${
+                    isActive 
+                      ? 'bg-indigo-600 text-white' 
+                      : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                  }`}
+                >
+                  {category}
+                  {itemCount > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center px-1">
+                      {itemCount}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>
@@ -379,46 +439,67 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
                 }`}
               >
                 <div className="p-4">
-                  <div className="space-y-1">
-                    {items.map((item) => (
-                      <div
-                        key={item.name}
-                        className="flex items-center justify-between py-3 hover:bg-primary/5 px-3 -mx-3 rounded-2xl transition-all duration-200"
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center">
-                            <p className="text-foreground font-bold text-base">{item.name}</p>
-                            <InfoTooltip description={item.description || ""} itemName={item.name} price={item.price} />
+                  <div className="space-y-3">
+                    {items.map((item) => {
+                      const itemInCart = orderItems[item.name]
+                      const hasQuantity = itemInCart && itemInCart.quantity > 0
+
+                      return (
+                        <div
+                          key={item.name}
+                          className={`relative bg-white rounded-2xl p-4 transition-all duration-300 ${
+                            hasQuantity
+                              ? "shadow-md ring-2 ring-indigo-500"
+                              : "shadow hover:shadow-md"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1">
+                                <h3 className="text-base font-bold text-gray-900 leading-tight">{item.name}</h3>
+                                <InfoTooltip description={item.description || ""} itemName={item.name} price={item.price} />
+                              </div>
+                              {item.description && (
+                                <p className="text-sm text-gray-500 mt-1 line-clamp-2">{item.description}</p>
+                              )}
+                              <p className="text-lg font-bold text-green-600 mt-2">${item.price.toFixed(2)}</p>
+                              {item.extras && item.extras.length > 0 && (
+                                <p className="text-xs text-purple-600 font-semibold mt-1">+ Extras available</p>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              {!hasQuantity ? (
+                                <Button
+                                  onClick={() => handleAddItem(item)}
+                                  className="h-11 px-5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-full shadow-sm transition-all duration-200"
+                                >
+                                  + Add
+                                </Button>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => updateQuantity(item.name, -1)}
+                                    className="h-11 w-11 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-all duration-200 active:scale-95"
+                                  >
+                                    <Minus className="h-5 w-5" />
+                                  </button>
+                                  <span className="min-w-[2rem] text-center font-bold text-gray-900 text-lg">
+                                    {itemInCart.quantity}
+                                  </span>
+                                  <button
+                                    onClick={() => handleAddItem(item)}
+                                    className="h-11 w-11 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-all duration-200 active:scale-95 shadow-sm"
+                                  >
+                                    <Plus className="h-5 w-5" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           </div>
-                          <p className="text-lg font-bold text-[color:var(--teal)] mt-0.5">${item.price}</p>
-                          {item.extras && item.extras.length > 0 && (
-                            <p className="text-xs text-purple-600 font-semibold mt-1">+ Extras available</p>
-                          )}
                         </div>
-                        <div className="flex items-center gap-3">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateQuantity(item.name, -1)}
-                            disabled={!orderItems[item.name]}
-                            className="h-10 w-10 p-0 bg-primary/10 text-primary border-0 hover:bg-primary/20 disabled:opacity-30 disabled:bg-muted rounded-full font-bold shadow-sm"
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                          <span className="w-8 text-center font-bold text-foreground text-base">
-                            {orderItems[item.name]?.quantity || 0}
-                          </span>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleAddItem(item)}
-                            className="h-10 w-10 p-0 bg-primary text-white border-0 hover:bg-primary/90 rounded-full font-bold shadow-md"
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </div>
               </div>
