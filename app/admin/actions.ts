@@ -11,6 +11,12 @@ export async function logoutAction() {
 
 export async function updateOrderStatus(orderId: string, newStatus: string) {
   try {
+    // Only allow valid statuses
+    const validStatuses = ["new", "in_progress", "packed", "delivered"]
+    if (!validStatuses.includes(newStatus)) {
+      return { success: false, error: "Invalid status" }
+    }
+
     const supabase = await createClient()
 
     const { data, error } = await supabase.from("orders").update({ status: newStatus }).eq("id", orderId).select()

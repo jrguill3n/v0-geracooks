@@ -52,9 +52,9 @@ export function StatusSelect({ orderId, currentStatus, currentPaymentStatus = "u
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="new">New</SelectItem>
+          <SelectItem value="in_progress">In Progress</SelectItem>
           <SelectItem value="packed">Packed</SelectItem>
-          <SelectItem value="completed">Completed</SelectItem>
-          <SelectItem value="cancelled">Cancelled</SelectItem>
+          <SelectItem value="delivered">Delivered</SelectItem>
         </SelectContent>
       </Select>
 
