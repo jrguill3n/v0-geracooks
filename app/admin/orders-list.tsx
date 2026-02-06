@@ -387,8 +387,8 @@ export function OrdersList({
                       <Badge className={`text-xs px-2.5 py-1 border ${getStatusColor(order.status)}`}>
                         {order.status}
                       </Badge>
-                      <Badge className={`text-xs px-2.5 py-1 border ${getPaymentColor(order.payment_status || "unpaid")}`}>
-                        {order.payment_status === "paid" ? "Paid" : "Unpaid"}
+                      <Badge className={`text-xs px-2.5 py-1 border ${getPaymentColor(order.payment_status === "unpaid" ? "unpaid" : "paid")}`}>
+                        {order.payment_status === "unpaid" ? "Unpaid" : "Paid"}
                       </Badge>
                       {isCateringOrder && (
                         <Badge className="text-xs px-2.5 py-1 bg-purple-100 text-purple-700 border-purple-300">
@@ -417,7 +417,7 @@ export function OrdersList({
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
-                  <StatusSelect orderId={order.id} currentStatus={order.status} currentPaymentStatus={order.payment_status || "unpaid"} />
+                  <StatusSelect orderId={order.id} currentStatus={order.status} currentPaymentStatus={order.payment_status === "unpaid" ? "unpaid" : "paid"} />
                   <Button
                     size="sm"
                     onClick={() => {
