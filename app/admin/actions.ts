@@ -29,6 +29,30 @@ export async function updateOrderStatus(orderId: string, newStatus: string) {
   }
 }
 
+export async function updatePaymentStatus(orderId: string, newPaymentStatus: string) {
+  try {
+    console.log("[v0] Server action: updating order", orderId, "to payment_status:", newPaymentStatus)
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+      .from("orders")
+      .update({ payment_status: newPaymentStatus })
+      .eq("id", orderId)
+      .select()
+
+    if (error) {
+      console.error("[v0] Error updating payment status:", error)
+      return { success: false, error: error.message }
+    }
+
+    console.log("[v0] Successfully updated payment status:", data)
+    return { success: true }
+  } catch (error) {
+    console.error("[v0] Unexpected error updating payment status:", error)
+    return { success: false, error: "Failed to update payment status" }
+  }
+}
+
 export async function deleteOrder(orderId: string) {
   try {
     console.log("[v0] Server action: deleting order", orderId)
