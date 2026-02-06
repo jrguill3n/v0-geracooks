@@ -332,7 +332,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-white to-secondary/30 pb-24">
+    <div className="min-h-screen bg-white pb-24">
       <div className="bg-white">
         <div className="max-w-2xl mx-auto px-6 py-2">
           <div className="flex flex-col items-center text-center">
