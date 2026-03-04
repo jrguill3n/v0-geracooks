@@ -90,6 +90,14 @@ const CATEGORIES: CateringCategory[] = [
 
 const MIN_PER_UNIT = 20
 
+// Approximate piece equivalents for "serves X pax" items used in the calculator
+const PIECES_APPROX: Record<string, number> = {
+  a20: 30,  // Rosca de sushi 6-8 pax ≈ 30 piezas
+  a22: 100, // Platón de crudités 20 pax ≈ 100 piezas
+  a23: 100, // Tabla de charcutería 20 pax ≈ 100 piezas
+  b02: 100, // Waffle & pancake bar 20 pax ≈ 100 piezas
+}
+
 function isServesItem(item: CateringItem) {
   return !!item.servesLabel
 }
@@ -216,6 +224,14 @@ export function CateringQuoteClient() {
   const totalUnits = selectedItems.reduce((sum, { qty }) => sum + qty, 0)
 
   const suggestedPieces = people ? Number.parseInt(people, 10) * 5 : null
+
+  // For the calculator, count pieces using approximations for serves-items
+  const selectedPieces = selectedItems.reduce((sum, { item, qty }) => {
+    if (isServesItem(item)) {
+      return sum + (PIECES_APPROX[item.id] ?? 20) * qty
+    }
+    return sum + qty
+  }, 0)
 
   const canSubmit =
     nombre.trim().length > 0 &&
@@ -398,28 +414,82 @@ export function CateringQuoteClient() {
           </div>
 
           {/* People calculator */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-5 py-4">
-            <div className="flex items-center gap-2 mb-3">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-5 py-4 space-y-4">
+            <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-indigo-500" />
               <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Calculadora de porciones</h2>
             </div>
-            <div className="flex items-center gap-3">
-              <Input
-                type="number"
-                min={1}
-                placeholder="Número de personas"
-                value={people}
-                onChange={(e) => setPeople(e.target.value)}
-                className="flex-1 rounded-xl border-gray-200 focus:border-indigo-400 focus:ring-indigo-400/20 h-11"
-              />
-              {suggestedPieces !== null && !Number.isNaN(suggestedPieces) && (
-                <div className="text-right">
-                  <p className="text-xs text-gray-500">Sugerido</p>
-                  <p className="text-lg font-bold text-indigo-600">{suggestedPieces} pzas</p>
+
+            {/* People input */}
+            <Input
+              type="number"
+              min={1}
+              placeholder="Número de personas"
+              value={people}
+              onChange={(e) => setPeople(e.target.value)}
+              className="rounded-xl border-gray-200 focus:border-indigo-400 focus:ring-indigo-400/20 h-11"
+            />
+
+            {/* Live summary + progress — only when a valid people count is entered */}
+            {suggestedPieces !== null && !Number.isNaN(suggestedPieces) && suggestedPieces > 0 && (() => {
+              const pct = Math.min(100, Math.round((selectedPieces / suggestedPieces) * 100))
+              const remaining = suggestedPieces - selectedPieces
+              const peopleNum = Number.parseInt(people, 10)
+              return (
+                <div className="space-y-3">
+                  {/* Stats row */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-indigo-50 rounded-xl px-3 py-2.5 text-center">
+                      <p className="text-lg font-bold text-indigo-700 leading-none">{peopleNum}</p>
+                      <p className="text-[10px] text-indigo-500 mt-0.5 font-medium">personas</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl px-3 py-2.5 text-center">
+                      <p className="text-lg font-bold text-gray-700 leading-none">{suggestedPieces}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5 font-medium">sugeridas</p>
+                    </div>
+                    <div className={`rounded-xl px-3 py-2.5 text-center ${selectedPieces >= suggestedPieces ? "bg-green-50" : "bg-gray-50"}`}>
+                      <p className={`text-lg font-bold leading-none ${selectedPieces >= suggestedPieces ? "text-green-600" : "text-gray-700"}`}>
+                        {selectedPieces}
+                      </p>
+                      <p className={`text-[10px] mt-0.5 font-medium ${selectedPieces >= suggestedPieces ? "text-green-500" : "text-gray-400"}`}>
+                        seleccionadas
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs text-gray-500 font-medium">{selectedPieces} / {suggestedPieces} piezas</span>
+                      <span className={`text-xs font-bold ${pct >= 100 ? "text-green-600" : "text-indigo-600"}`}>{pct}%</span>
+                    </div>
+                    <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ease-out ${pct >= 100 ? "bg-gradient-to-r from-green-400 to-green-500" : "bg-gradient-to-r from-indigo-500 to-indigo-400"}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Guidance text */}
+                  {remaining > 0 ? (
+                    <p className="text-xs text-gray-500 leading-relaxed">
+                      Te faltan{" "}
+                      <span className="font-semibold text-indigo-600">{remaining} piezas</span>{" "}
+                      para la recomendación.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-green-600 font-semibold leading-relaxed">
+                      Perfecto para aproximadamente {peopleNum} personas.
+                    </p>
+                  )}
                 </div>
-              )}
-            </div>
-            <p className="text-xs text-gray-400 mt-2">Orientativo: 5 piezas por persona.</p>
+              )
+            })()}
+
+            {(!people || Number.isNaN(Number.parseInt(people, 10))) && (
+              <p className="text-xs text-gray-400">Orientativo: 5 piezas por persona.</p>
+            )}
           </div>
 
           {/* Categories */}
