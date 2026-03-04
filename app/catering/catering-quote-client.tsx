@@ -121,6 +121,7 @@ function fmt(n: number) {
 // ─── Auto-build types ─────────────────────────────────────────────────────────
 
 type AutoStyle = "ligero" | "estandar" | "abundante"
+type EventType = "reunion" | "cumpleanos" | "corporativo"
 
 const STYLE_PPP: Record<AutoStyle, number> = {
   ligero: 4,
@@ -128,62 +129,134 @@ const STYLE_PPP: Record<AutoStyle, number> = {
   abundante: 6,
 }
 
-// Curated per-unit items for auto-build (popular savory + salads)
-const AUTO_SAVORY = ["a01", "a02", "a03", "a07", "a08", "a10", "a13", "a14"]
-const AUTO_SALAD  = ["a16", "a17", "a18"]
-const AUTO_SWEET  = ["a19", "a28"]
-
 // Tray/pax item IDs
 const TRAY_TABLA   = "a23" // 20 pax
 const TRAY_CRUDITE = "a22" // 20 pax
 const TRAY_ROSCA   = "a20" // 6-8 pax
 
-function buildMenuCart(peopleNum: number, style: AutoStyle, baseCart: Cart = {}): Cart {
+// Item candidate pools by event type
+const POOLS: Record<EventType, {
+  trays: string[]
+  premium: string[]
+  hearty: string[]
+  light: string[]
+  dessert: string[]
+}> = {
+  corporativo: {
+    trays:   [TRAY_TABLA, TRAY_CRUDITE],
+    premium: ["a08", "a13", "a07", "a15", "a01"], // volován salmón, bruschetta, dátiles, prosciutto, caprese
+    hearty:  ["a03", "a04", "a05"],                // mini sandwiches as fallback
+    light:   ["a16", "a17", "a18"],                // ensaladas
+    dessert: ["a19"],                              // brocheta frutas
+  },
+  cumpleanos: {
+    trays:   [TRAY_CRUDITE, TRAY_TABLA],
+    premium: ["a10", "a11", "a02"],                // sliders carnitas, pulled pork, albóndigas
+    hearty:  ["a03", "a04", "a05", "a06"],         // mini sandwiches + papitas
+    light:   ["a16"],
+    dessert: ["a28", "a29"],                       // cupcakes vainilla + chocolate
+  },
+  reunion: {
+    trays:   [TRAY_ROSCA, TRAY_TABLA],
+    premium: ["a08", "a13", "a01"],                // balanced premium bites
+    hearty:  ["a03", "a10", "a02", "a14"],         // mix of hearty
+    light:   ["a16", "a17"],
+    dessert: ["a19", "a28"],
+  },
+}
+
+const ALL_POOL_IDS = [
+  ...new Set(Object.values(POOLS).flatMap((p) => [...p.trays, ...p.premium, ...p.hearty, ...p.light, ...p.dessert])),
+]
+
+function buildMenuCart(
+  peopleNum: number,
+  style: AutoStyle,
+  eventType: EventType,
+  baseCart: Cart = {},
+): Cart {
   const ppp = STYLE_PPP[style]
   const targetPieces = peopleNum * ppp
   const cart: Cart = { ...baseCart }
+  const pool = POOLS[eventType]
 
-  // Reset all auto-candidate items to 0 first (we set from scratch)
-  const allCandidates = [...AUTO_SAVORY, ...AUTO_SALAD, ...AUTO_SWEET, TRAY_TABLA, TRAY_CRUDITE, TRAY_ROSCA]
-  for (const id of allCandidates) cart[id] = 0
+  // Reset all auto-candidate items to 0
+  for (const id of ALL_POOL_IDS) cart[id] = 0
 
   let usedEquiv = 0
 
-  // 1) Tray items
-  if (peopleNum >= 20) {
-    cart[TRAY_TABLA] = 1
-    usedEquiv += 100 // 20 pax * 5
-    if (style === "abundante") {
+  // ── 1) Tray items ────────────────────────────────────────────────────────────
+  if (eventType === "corporativo") {
+    if (peopleNum >= 18) {
+      cart[TRAY_TABLA] = 1
+      usedEquiv += 100
+    }
+    if (peopleNum >= 20 && style !== "ligero") {
       cart[TRAY_CRUDITE] = 1
       usedEquiv += 100
     }
-  } else if (peopleNum >= 6) {
-    cart[TRAY_ROSCA] = 1
-    usedEquiv += 35 // 7 pax * 5
+  } else if (eventType === "cumpleanos") {
+    if (peopleNum >= 20 && style !== "ligero") {
+      cart[TRAY_CRUDITE] = 1
+      usedEquiv += 100
+    }
+  } else {
+    // reunion
+    if (peopleNum >= 20) {
+      cart[TRAY_TABLA] = 1
+      usedEquiv += 100
+    } else if (peopleNum >= 6) {
+      cart[TRAY_ROSCA] = 1
+      usedEquiv += 35
+    }
   }
 
-  // 2) Pick per-unit items to fill remaining pieces
   const remaining = Math.max(0, targetPieces - usedEquiv)
 
-  // Pick savory (60%), salad (20%), sweet (20%)
-  const savoryTarget = Math.round(remaining * 0.60)
-  const saladTarget  = Math.round(remaining * 0.20)
-  const sweetTarget  = remaining - savoryTarget - saladTarget
-
+  // Helper: distribute pieces evenly across selected ids, round up to 20-unit min
   const distribute = (ids: string[], totalPieces: number, count: number) => {
     if (totalPieces <= 0 || ids.length === 0) return
     const selected = ids.slice(0, count)
     const base = Math.floor(totalPieces / selected.length)
-    // Round up to nearest MIN_PER_UNIT (20)
     const rounded = Math.ceil(Math.max(base, MIN_PER_UNIT) / MIN_PER_UNIT) * MIN_PER_UNIT
-    for (const id of selected) {
-      cart[id] = rounded
-    }
+    for (const id of selected) cart[id] = rounded
   }
 
-  distribute(AUTO_SAVORY, savoryTarget, peopleNum <= 15 ? 3 : 5)
-  distribute(AUTO_SALAD,  saladTarget,  1)
-  distribute(AUTO_SWEET,  sweetTarget,  1)
+  // ── 2) Per-unit items ────────────────────────────────────────────────────────
+  if (eventType === "corporativo") {
+    const premiumTarget = Math.round(remaining * 0.65)
+    const lightTarget   = Math.round(remaining * 0.25)
+    const sweetTarget   = remaining - premiumTarget - lightTarget
+    // Avoid sliders unless Abundante or people >= 25
+    const premiumPool = (style === "abundante" || peopleNum >= 25)
+      ? pool.premium
+      : pool.premium.filter((id) => !["a10", "a11"].includes(id))
+    distribute(premiumPool,  premiumTarget, peopleNum <= 15 ? 3 : 4)
+    distribute(pool.light,   lightTarget,   1)
+    distribute(pool.dessert, sweetTarget,   1)
+  } else if (eventType === "cumpleanos") {
+    const heartyTarget  = Math.round(remaining * 0.65)
+    const lightTarget   = Math.round(remaining * 0.10)
+    const dessertTarget = remaining - heartyTarget - lightTarget
+    distribute(pool.premium, heartyTarget,  peopleNum <= 15 ? 2 : 3)
+    distribute(pool.hearty,  lightTarget,   1)
+    // Cupcakes: split 50/50 vanilla + chocolate
+    if (dessertTarget > 0) {
+      const cupcakeUnits = Math.max(MIN_PER_UNIT, Math.round(peopleNum * 0.6 / 2) * 2)
+      const half = Math.ceil(cupcakeUnits / 2 / MIN_PER_UNIT) * MIN_PER_UNIT
+      cart["a28"] = half  // vainilla
+      cart["a29"] = half  // chocolate
+    }
+  } else {
+    // reunion: balanced default
+    const savoryTarget = Math.round(remaining * 0.60)
+    const lightTarget  = Math.round(remaining * 0.20)
+    const sweetTarget  = remaining - savoryTarget - lightTarget
+    const savoryPool   = [...pool.premium, ...pool.hearty]
+    distribute(savoryPool,   savoryTarget, peopleNum <= 15 ? 3 : 5)
+    distribute(pool.light,   lightTarget,  1)
+    distribute(pool.dessert, sweetTarget,  1)
+  }
 
   return cart
 }
@@ -277,6 +350,7 @@ export function CateringQuoteClient() {
   const [showSummarySheet, setShowSummarySheet] = useState(false)
   const [calcMode, setCalcMode] = useState<"piezas" | "personas">("piezas")
   const [autoStyle, setAutoStyle] = useState<AutoStyle>("estandar")
+  const [eventType, setEventType] = useState<EventType>("reunion")
   const [showStylePicker, setShowStylePicker] = useState(false)
   const [showExplainer, setShowExplainer] = useState(false)
   const [showReplaceModal, setShowReplaceModal] = useState(false)
@@ -315,11 +389,12 @@ export function CateringQuoteClient() {
     const peopleNum = Number.parseInt(people, 10)
     if (!peopleNum || peopleNum < 1) return
     const base = mode === "add" ? cart : {}
-    const newCart = buildMenuCart(peopleNum, autoStyle, base)
+    const newCart = buildMenuCart(peopleNum, autoStyle, eventType, base)
     setCart(newCart)
+    const eventLabel = eventType === "reunion" ? "Reunión" : eventType === "cumpleanos" ? "Cumpleaños" : "Corporativo"
     toast({
       title: "Listo.",
-      description: `Generamos una sugerencia para ${peopleNum} personas. Puedes ajustar cantidades.`,
+      description: `Sugerencia para ${peopleNum} personas · ${eventLabel}. Puedes ajustar cantidades.`,
       duration: 4000,
     })
     // Scroll to first category section
@@ -330,7 +405,7 @@ export function CateringQuoteClient() {
         window.scrollTo({ top, behavior: "smooth" })
       }
     }, 100)
-  }, [people, autoStyle, cart, toast])
+  }, [people, autoStyle, eventType, cart, toast])
 
   const handleAutoGenerate = useCallback(() => {
     const peopleNum = Number.parseInt(people, 10)
@@ -689,6 +764,34 @@ export function CateringQuoteClient() {
                 </p>
               </div>
 
+              {/* Event type segmented control */}
+              <div className="space-y-1.5">
+                <p className="text-xs text-indigo-300 font-medium">Tipo de evento</p>
+                <div className="flex items-center bg-indigo-800/50 rounded-xl p-0.5 gap-0.5">
+                  {([
+                    { value: "reunion",      label: "Reunión" },
+                    { value: "cumpleanos",   label: "Cumpleaños" },
+                    { value: "corporativo",  label: "Corporativo" },
+                  ] as const).map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setEventType(value)}
+                      className={`flex-1 min-h-[36px] rounded-[10px] text-xs font-semibold transition-all duration-200 leading-tight px-1 ${
+                        eventType === value
+                          ? "bg-white text-indigo-700 shadow-sm"
+                          : "text-indigo-200 hover:text-white"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-indigo-300 leading-relaxed">
+                  Esto ajusta la selección sugerida (más ligero o más &quot;botana&quot; según el evento).
+                </p>
+              </div>
+
               {/* Style picker toggle */}
               <div>
                 <button
@@ -761,6 +864,7 @@ export function CateringQuoteClient() {
                     <div className="mt-2 bg-indigo-800/50 rounded-xl px-3 py-2.5 space-y-1.5 text-xs text-indigo-200 leading-relaxed">
                       <p>• <span className="text-white font-medium">{STYLE_PPP[autoStyle]} piezas por persona</span> (estilo {autoStyle === "estandar" ? "Estándar" : autoStyle})</p>
                       <p>• Objetivo total: <span className="text-white font-medium">{suggestedPieces} piezas</span> para {people} personas</p>
+                      <p>• Tipo de evento: <span className="text-white font-medium">{eventType === "reunion" ? "Reunión" : eventType === "cumpleanos" ? "Cumpleaños" : "Corporativo"}</span> (ajusta la mezcla sugerida).</p>
                       <p>• Los platones (tabla, crudités) equivalen a <span className="text-white font-medium">100 piezas</span> de referencia (20 personas × 5 pzas)</p>
                       <p>• La rosca de sushi equivale a <span className="text-white font-medium">35 piezas</span> de referencia (7 personas × 5 pzas)</p>
                       <p>• Los appetizers individuales tienen un mínimo de 20 unidades por item.</p>
