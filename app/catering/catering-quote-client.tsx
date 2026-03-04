@@ -9,6 +9,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { PhoneInput } from "@/components/phone-input"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+} from "@/components/ui/sheet"
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -589,9 +596,9 @@ export function CateringQuoteClient() {
         </aside>
       </div>
 
-      {/* Mobile floating button to open summary */}
+      {/* Mobile floating bar — visible only when items selected */}
       {selectedItems.length > 0 && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-gray-100 shadow-lg px-4 pt-2 pb-4">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-gray-100 shadow-lg px-4 pt-2 pb-4 safe-area-bottom">
           {selectedItems.some(({ item }) => item.priceUnknown) && (
             <p className="text-xs text-amber-600 text-center mb-1.5">
               Algunos artículos pueden tener precio a confirmar.
@@ -613,46 +620,131 @@ export function CateringQuoteClient() {
         </div>
       )}
 
-      {/* Mobile bottom sheet */}
-      {showSummarySheet && (
-        <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end">
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setShowSummarySheet(false)}
-          />
-          <div className="relative bg-white rounded-t-3xl shadow-2xl max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h2 className="text-base font-bold text-gray-900">Tu cotización</h2>
+      {/* Mobile bottom sheet — shadcn Sheet side="bottom" */}
+      <Sheet open={showSummarySheet} onOpenChange={setShowSummarySheet}>
+        <SheetContent
+          side="bottom"
+          className="lg:hidden h-[85vh] p-0 flex flex-col rounded-t-3xl overflow-hidden"
+        >
+          <SheetHeader className="px-5 py-4 border-b border-gray-100 shrink-0">
+            <SheetTitle className="text-base font-bold text-gray-900">Tu cotización</SheetTitle>
+          </SheetHeader>
+
+          {/* Scrollable items list */}
+          <div className="overflow-y-auto flex-1 px-5 py-4">
+            <QuoteSummaryItems
+              selectedItems={selectedItems}
+              totalUnits={totalUnits}
+              hasValidationErrors={hasValidationErrors}
+              canSubmit={canSubmit}
+              nombre={nombre}
+              phone={phone}
+            />
+          </div>
+
+          {/* Sticky footer */}
+          <SheetFooter className="px-5 py-4 border-t border-gray-100 bg-white shrink-0 flex-col gap-2">
+            {selectedItems.some(({ item }) => item.priceUnknown) && (
+              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1.5 leading-relaxed w-full">
+                Algunos artículos pueden tener precio a confirmar.
+              </p>
+            )}
+            <div className="flex items-center justify-between w-full mb-1">
+              <div>
+                <p className="text-xs text-gray-500">{totalUnits} piezas totales</p>
+                <p className="text-xs text-gray-400">Subtotal estimado</p>
+              </div>
+              <p className="text-2xl font-bold text-indigo-700">{fmt(subtotal)}</p>
+            </div>
+            {!canSubmit && (!nombre || !phone) && selectedItems.length > 0 && (
               <button
                 type="button"
-                onClick={() => setShowSummarySheet(false)}
-                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200"
+                onClick={() => {
+                  setShowSummarySheet(false)
+                  setTimeout(() => {
+                    const el = document.getElementById("contact-form")
+                    if (el) {
+                      const top = el.getBoundingClientRect().top + window.scrollY - 100
+                      window.scrollTo({ top, behavior: "smooth" })
+                    }
+                  }, 300)
+                }}
+                className="w-full text-sm text-indigo-600 font-semibold py-2 flex items-center justify-center gap-1 hover:text-indigo-800"
               >
-                <X className="w-4 h-4" />
+                <ChevronUp className="w-4 h-4" />
+                Completar datos de contacto
               </button>
+            )}
+            <button
+              type="button"
+              onClick={(e) => { handleSubmit(e); setShowSummarySheet(false) }}
+              disabled={!canSubmit || submitting}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-4 rounded-2xl shadow-lg transition-colors text-base"
+            >
+              {submitting ? "Enviando..." : "Solicitar cotización"}
+            </button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+    </div>
+  )
+}
+
+// ─── Quote Summary Items (used inside the bottom sheet scroll area) ───────────
+
+function QuoteSummaryItems({
+  selectedItems,
+  totalUnits,
+  hasValidationErrors,
+  canSubmit,
+  nombre,
+  phone,
+}: {
+  selectedItems: { item: CateringItem; qty: number }[]
+  totalUnits: number
+  hasValidationErrors: boolean
+  canSubmit: boolean
+  nombre: string
+  phone: string
+}) {
+  return (
+    <div className="space-y-3">
+      {selectedItems.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-sm text-gray-400">Aún no has seleccionado ningún item.</p>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          {selectedItems.map(({ item, qty }) => (
+            <div key={item.id} className="flex items-start justify-between gap-2 py-2.5 border-b border-gray-50 last:border-0">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-800 leading-snug">{item.name}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{qty} {item.servesLabel ? "unidad(es)" : "pzas"}</p>
+              </div>
+              <div className="text-right shrink-0">
+                {item.priceUnknown ? (
+                  <span className="text-xs text-amber-600 font-semibold whitespace-nowrap">Precio a confirmar</span>
+                ) : (
+                  <p className="text-sm font-bold text-indigo-700">{fmt(item.price * qty)}</p>
+                )}
+              </div>
             </div>
-            <div className="overflow-y-auto flex-1 px-5 py-4">
-              <QuoteSummary
-                selectedItems={selectedItems}
-                subtotal={subtotal}
-                totalUnits={totalUnits}
-                canSubmit={canSubmit}
-                submitting={submitting}
-                hasValidationErrors={hasValidationErrors}
-                onSubmit={handleSubmit}
-                nombre={nombre}
-                phone={phone}
-                inSheet
-              />
-            </div>
-          </div>
+          ))}
+        </div>
+      )}
+
+      {hasValidationErrors && (
+        <div className="bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+          <p className="text-xs text-red-600 font-medium">
+            Algunos items tienen cantidades inválidas. Corrige antes de enviar.
+          </p>
         </div>
       )}
     </div>
   )
 }
 
-// ─── Quote Summary component ──────────────────────────────────────────────────
+// ─── Quote Summary component (desktop sidebar) ────────────────────────────────
 
 function QuoteSummary({
   selectedItems,
