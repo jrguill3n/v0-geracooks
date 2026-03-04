@@ -591,7 +591,12 @@ export function CateringQuoteClient() {
 
       {/* Mobile floating button to open summary */}
       {selectedItems.length > 0 && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 p-4 bg-white/95 backdrop-blur-sm border-t border-gray-100 shadow-lg">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-gray-100 shadow-lg px-4 pt-2 pb-4">
+          {selectedItems.some(({ item }) => item.priceUnknown) && (
+            <p className="text-xs text-amber-600 text-center mb-1.5">
+              Algunos artículos pueden tener precio a confirmar.
+            </p>
+          )}
           <button
             type="button"
             onClick={() => setShowSummarySheet(true)}
@@ -705,7 +710,7 @@ function QuoteSummary({
                   </div>
                   <div className="text-right shrink-0">
                     {item.priceUnknown ? (
-                      <span className="text-xs text-amber-600 font-semibold">A confirmar</span>
+                      <span className="text-xs text-amber-600 font-semibold whitespace-nowrap">Precio a confirmar</span>
                     ) : (
                       <p className="text-sm font-bold text-indigo-700">{fmt(item.price * qty)}</p>
                     )}
@@ -714,15 +719,19 @@ function QuoteSummary({
               ))}
             </div>
 
-            <div className="border-t border-gray-100 pt-3 flex items-center justify-between">
-              <div>
+            <div className="border-t border-gray-100 pt-3 space-y-2">
+              <div className="flex items-center justify-between">
                 <p className="text-xs text-gray-500">{totalUnits} piezas totales</p>
-                <p className="text-xs text-gray-400">* Precios a confirmar excluidos</p>
+                <div className="text-right">
+                  <p className="text-xs text-gray-500">Subtotal estimado</p>
+                  <p className="text-xl font-bold text-indigo-700">{fmt(subtotal)}</p>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-gray-500">Subtotal estimado</p>
-                <p className="text-xl font-bold text-indigo-700">{fmt(subtotal)}</p>
-              </div>
+              {selectedItems.some(({ item }) => item.priceUnknown) && (
+                <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1.5 leading-relaxed">
+                  Algunos artículos pueden tener precio a confirmar.
+                </p>
+              )}
             </div>
           </>
         )}
