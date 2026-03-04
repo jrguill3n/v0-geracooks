@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import Image from "next/image"
-import { Minus, Plus, X, ChevronUp, Users } from "lucide-react"
+import { Minus, Plus, X, ChevronUp, Users, Sparkles, RotateCcw, ChevronDown, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -118,6 +118,76 @@ function fmt(n: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n)
 }
 
+// ─── Auto-build types ─────────────────────────────────────────────────────────
+
+type AutoStyle = "ligero" | "estandar" | "abundante"
+
+const STYLE_PPP: Record<AutoStyle, number> = {
+  ligero: 4,
+  estandar: 5,
+  abundante: 6,
+}
+
+// Curated per-unit items for auto-build (popular savory + salads)
+const AUTO_SAVORY = ["a01", "a02", "a03", "a07", "a08", "a10", "a13", "a14"]
+const AUTO_SALAD  = ["a16", "a17", "a18"]
+const AUTO_SWEET  = ["a19", "a28"]
+
+// Tray/pax item IDs
+const TRAY_TABLA   = "a23" // 20 pax
+const TRAY_CRUDITE = "a22" // 20 pax
+const TRAY_ROSCA   = "a20" // 6-8 pax
+
+function buildMenuCart(peopleNum: number, style: AutoStyle, baseCart: Cart = {}): Cart {
+  const ppp = STYLE_PPP[style]
+  const targetPieces = peopleNum * ppp
+  const cart: Cart = { ...baseCart }
+
+  // Reset all auto-candidate items to 0 first (we set from scratch)
+  const allCandidates = [...AUTO_SAVORY, ...AUTO_SALAD, ...AUTO_SWEET, TRAY_TABLA, TRAY_CRUDITE, TRAY_ROSCA]
+  for (const id of allCandidates) cart[id] = 0
+
+  let usedEquiv = 0
+
+  // 1) Tray items
+  if (peopleNum >= 20) {
+    cart[TRAY_TABLA] = 1
+    usedEquiv += 100 // 20 pax * 5
+    if (style === "abundante") {
+      cart[TRAY_CRUDITE] = 1
+      usedEquiv += 100
+    }
+  } else if (peopleNum >= 6) {
+    cart[TRAY_ROSCA] = 1
+    usedEquiv += 35 // 7 pax * 5
+  }
+
+  // 2) Pick per-unit items to fill remaining pieces
+  const remaining = Math.max(0, targetPieces - usedEquiv)
+
+  // Pick savory (60%), salad (20%), sweet (20%)
+  const savoryTarget = Math.round(remaining * 0.60)
+  const saladTarget  = Math.round(remaining * 0.20)
+  const sweetTarget  = remaining - savoryTarget - saladTarget
+
+  const distribute = (ids: string[], totalPieces: number, count: number) => {
+    if (totalPieces <= 0 || ids.length === 0) return
+    const selected = ids.slice(0, count)
+    const base = Math.floor(totalPieces / selected.length)
+    // Round up to nearest MIN_PER_UNIT (20)
+    const rounded = Math.ceil(Math.max(base, MIN_PER_UNIT) / MIN_PER_UNIT) * MIN_PER_UNIT
+    for (const id of selected) {
+      cart[id] = rounded
+    }
+  }
+
+  distribute(AUTO_SAVORY, savoryTarget, peopleNum <= 15 ? 3 : 5)
+  distribute(AUTO_SALAD,  saladTarget,  1)
+  distribute(AUTO_SWEET,  sweetTarget,  1)
+
+  return cart
+}
+
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 function QuantityStepper({
@@ -206,6 +276,11 @@ export function CateringQuoteClient() {
   const [submitted, setSubmitted] = useState(false)
   const [showSummarySheet, setShowSummarySheet] = useState(false)
   const [calcMode, setCalcMode] = useState<"piezas" | "personas">("piezas")
+  const [autoStyle, setAutoStyle] = useState<AutoStyle>("estandar")
+  const [showStylePicker, setShowStylePicker] = useState(false)
+  const [showExplainer, setShowExplainer] = useState(false)
+  const [showReplaceModal, setShowReplaceModal] = useState(false)
+  const [pendingGenerate, setPendingGenerate] = useState<"replace" | "add" | null>(null)
 
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const pillsRef = useRef<HTMLDivElement>(null)
@@ -232,7 +307,40 @@ export function CateringQuoteClient() {
 
   const totalUnits = selectedItems.reduce((sum, { qty }) => sum + qty, 0)
 
-  const suggestedPieces = people ? Number.parseInt(people, 10) * 5 : null
+  const suggestedPieces = people ? Number.parseInt(people, 10) * STYLE_PPP[autoStyle] : null
+
+  const hasExistingItems = Object.values(cart).some((q) => q > 0)
+
+  const applyGenerate = useCallback((mode: "replace" | "add") => {
+    const peopleNum = Number.parseInt(people, 10)
+    if (!peopleNum || peopleNum < 1) return
+    const base = mode === "add" ? cart : {}
+    const newCart = buildMenuCart(peopleNum, autoStyle, base)
+    setCart(newCart)
+    toast({
+      title: "Listo.",
+      description: `Generamos una sugerencia para ${peopleNum} personas. Puedes ajustar cantidades.`,
+      duration: 4000,
+    })
+    // Scroll to first category section
+    setTimeout(() => {
+      const firstSection = sectionRefs.current[CATEGORIES[0].name]
+      if (firstSection) {
+        const top = firstSection.getBoundingClientRect().top + window.scrollY - 120
+        window.scrollTo({ top, behavior: "smooth" })
+      }
+    }, 100)
+  }, [people, autoStyle, cart, toast])
+
+  const handleAutoGenerate = useCallback(() => {
+    const peopleNum = Number.parseInt(people, 10)
+    if (!peopleNum || peopleNum < 1) return
+    if (hasExistingItems) {
+      setShowReplaceModal(true)
+    } else {
+      applyGenerate("replace")
+    }
+  }, [people, hasExistingItems, applyGenerate])
 
   // For the calculator, count pieces using approximations for serves-items
   const selectedPieces = selectedItems.reduce((sum, { item, qty }) => {
@@ -571,7 +679,133 @@ export function CateringQuoteClient() {
                   : "Ingresa el número de invitados para estimar la cobertura."}
               </p>
             )}
+
+            {/* ── AUTO-BUILD BLOCK ── */}
+            <div className="rounded-2xl bg-gradient-to-br from-indigo-600 to-indigo-700 p-4 space-y-3">
+              <div>
+                <p className="text-sm font-bold text-white">Armar menú automáticamente</p>
+                <p className="text-xs text-indigo-200 mt-0.5 leading-relaxed">
+                  Te sugerimos una combinación balanceada según el número de personas.
+                </p>
+              </div>
+
+              {/* Style picker toggle */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowStylePicker((v) => !v)}
+                  className="flex items-center gap-1.5 text-xs text-indigo-200 hover:text-white transition-colors"
+                >
+                  <span>Ajustar estilo: <span className="font-semibold text-white capitalize">{autoStyle === "estandar" ? "Estándar" : autoStyle.charAt(0).toUpperCase() + autoStyle.slice(1)}</span></span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showStylePicker ? "rotate-180" : ""}`} />
+                </button>
+                {showStylePicker && (
+                  <div className="mt-2 flex gap-2">
+                    {(["ligero", "estandar", "abundante"] as const).map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => { setAutoStyle(s); setShowStylePicker(false) }}
+                        className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all duration-150 ${
+                          autoStyle === s
+                            ? "bg-white text-indigo-700 shadow-sm"
+                            : "bg-indigo-500/50 text-indigo-100 hover:bg-indigo-500"
+                        }`}
+                      >
+                        {s === "ligero" ? "Ligero" : s === "estandar" ? "Estándar" : "Abundante"}
+                        <span className="block text-[10px] font-normal opacity-80">{STYLE_PPP[s]} pzas/persona</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleAutoGenerate}
+                  disabled={!people || Number.isNaN(Number.parseInt(people, 10)) || Number.parseInt(people, 10) < 1}
+                  className="flex-1 min-h-[44px] flex items-center justify-center gap-2 bg-white text-indigo-700 font-bold text-sm rounded-xl shadow-sm hover:bg-indigo-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Generar sugerencia
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCart({})}
+                  title="Reiniciar selección"
+                  className="min-h-[44px] px-3.5 flex items-center justify-center bg-indigo-500/40 hover:bg-indigo-500/60 text-white rounded-xl transition-all active:scale-[0.98]"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+              </div>
+
+              {!people || Number.isNaN(Number.parseInt(people, 10)) ? (
+                <p className="text-xs text-indigo-300">Ingresa el número de personas para generar.</p>
+              ) : null}
+
+              {/* "Cómo lo calculamos" explainer */}
+              {suggestedPieces !== null && !Number.isNaN(suggestedPieces) && suggestedPieces > 0 && (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setShowExplainer((v) => !v)}
+                    className="flex items-center gap-1.5 text-xs text-indigo-300 hover:text-white transition-colors"
+                  >
+                    <Info className="w-3.5 h-3.5" />
+                    <span>Cómo lo calculamos</span>
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showExplainer ? "rotate-180" : ""}`} />
+                  </button>
+                  {showExplainer && (
+                    <div className="mt-2 bg-indigo-800/50 rounded-xl px-3 py-2.5 space-y-1.5 text-xs text-indigo-200 leading-relaxed">
+                      <p>• <span className="text-white font-medium">{STYLE_PPP[autoStyle]} piezas por persona</span> (estilo {autoStyle === "estandar" ? "Estándar" : autoStyle})</p>
+                      <p>• Objetivo total: <span className="text-white font-medium">{suggestedPieces} piezas</span> para {people} personas</p>
+                      <p>• Los platones (tabla, crudités) equivalen a <span className="text-white font-medium">100 piezas</span> de referencia (20 personas × 5 pzas)</p>
+                      <p>• La rosca de sushi equivale a <span className="text-white font-medium">35 piezas</span> de referencia (7 personas × 5 pzas)</p>
+                      <p>• Los appetizers individuales tienen un mínimo de 20 unidades por item.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* Replace-or-add modal */}
+          {showReplaceModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowReplaceModal(false)} />
+              <div className="relative bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 space-y-4">
+                <h3 className="text-base font-bold text-gray-900">¿Qué deseas hacer?</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">
+                  Ya tienes items en tu selección. ¿Deseas reemplazarlos con la nueva sugerencia o sumarla a lo que ya tienes?
+                </p>
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setShowReplaceModal(false); applyGenerate("replace") }}
+                    className="w-full min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl transition-colors"
+                  >
+                    Reemplazar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowReplaceModal(false); applyGenerate("add") }}
+                    className="w-full min-h-[44px] bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold rounded-2xl transition-colors"
+                  >
+                    Sumar a lo que tengo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowReplaceModal(false)}
+                    className="w-full text-sm text-gray-400 hover:text-gray-600 py-2"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Categories */}
           {CATEGORIES.map((cat) => (
