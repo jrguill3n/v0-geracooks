@@ -98,6 +98,14 @@ const PIECES_APPROX: Record<string, number> = {
   b02: 100, // Waffle & pancake bar 20 pax ≈ 100 piezas
 }
 
+// People equivalents per item (for Personas mode)
+const PAX_SERVES: Record<string, number> = {
+  a20: 7,  // Rosca de sushi 6-8 pax → 7 personas
+  a22: 20, // Platón de crudités 20 pax → 20 personas
+  a23: 20, // Tabla de charcutería 20 pax → 20 personas
+  b02: 20, // Waffle & pancake bar 20 pax → 20 personas
+}
+
 function isServesItem(item: CateringItem) {
   return !!item.servesLabel
 }
@@ -197,6 +205,7 @@ export function CateringQuoteClient() {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [showSummarySheet, setShowSummarySheet] = useState(false)
+  const [calcMode, setCalcMode] = useState<"piezas" | "personas">("piezas")
 
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const pillsRef = useRef<HTMLDivElement>(null)
@@ -232,6 +241,16 @@ export function CateringQuoteClient() {
     }
     return sum + qty
   }, 0)
+
+  // Personas mode: each regular piece = 0.2 person; pax items use PAX_SERVES map
+  const selectedPeople = Math.round(
+    selectedItems.reduce((sum, { item, qty }) => {
+      if (isServesItem(item)) {
+        return sum + (PAX_SERVES[item.id] ?? 1) * qty
+      }
+      return sum + qty * 0.2
+    }, 0)
+  )
 
   const canSubmit =
     nombre.trim().length > 0 &&
@@ -415,9 +434,29 @@ export function CateringQuoteClient() {
 
           {/* People calculator */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-5 py-4 space-y-4">
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-indigo-500" />
-              <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Calculadora de porciones</h2>
+            {/* Header + segmented toggle */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-indigo-500" />
+                <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Calculadora</h2>
+              </div>
+              {/* Segmented control */}
+              <div className="flex items-center bg-gray-100 rounded-xl p-0.5 gap-0.5">
+                {(["piezas", "personas"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setCalcMode(mode)}
+                    className={`px-3 py-1.5 rounded-[10px] text-xs font-semibold transition-all duration-200 ${
+                      calcMode === mode
+                        ? "bg-indigo-600 text-white shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* People input */}
@@ -430,14 +469,13 @@ export function CateringQuoteClient() {
               className="rounded-xl border-gray-200 focus:border-indigo-400 focus:ring-indigo-400/20 h-11"
             />
 
-            {/* Live summary + progress — only when a valid people count is entered */}
-            {suggestedPieces !== null && !Number.isNaN(suggestedPieces) && suggestedPieces > 0 && (() => {
+            {/* ── PIEZAS MODE ── */}
+            {calcMode === "piezas" && suggestedPieces !== null && !Number.isNaN(suggestedPieces) && suggestedPieces > 0 && (() => {
               const pct = Math.min(100, Math.round((selectedPieces / suggestedPieces) * 100))
               const remaining = suggestedPieces - selectedPieces
               const peopleNum = Number.parseInt(people, 10)
               return (
                 <div className="space-y-3">
-                  {/* Stats row */}
                   <div className="grid grid-cols-3 gap-2">
                     <div className="bg-indigo-50 rounded-xl px-3 py-2.5 text-center">
                       <p className="text-lg font-bold text-indigo-700 leading-none">{peopleNum}</p>
@@ -456,8 +494,6 @@ export function CateringQuoteClient() {
                       </p>
                     </div>
                   </div>
-
-                  {/* Progress bar */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-xs text-gray-500 font-medium">{selectedPieces} / {suggestedPieces} piezas</span>
@@ -470,8 +506,6 @@ export function CateringQuoteClient() {
                       />
                     </div>
                   </div>
-
-                  {/* Guidance text */}
                   {remaining > 0 ? (
                     <p className="text-xs text-gray-500 leading-relaxed">
                       Te faltan{" "}
@@ -487,8 +521,55 @@ export function CateringQuoteClient() {
               )
             })()}
 
+            {/* ── PERSONAS MODE ── */}
+            {calcMode === "personas" && suggestedPieces !== null && !Number.isNaN(suggestedPieces) && suggestedPieces > 0 && (() => {
+              const peopleNum = Number.parseInt(people, 10)
+              const pct = Math.min(100, Math.round((selectedPeople / peopleNum) * 100))
+              const sufficient = selectedPeople >= peopleNum
+              return (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-indigo-50 rounded-xl px-3 py-2.5 text-center">
+                      <p className="text-lg font-bold text-indigo-700 leading-none">{selectedPeople}</p>
+                      <p className="text-[10px] text-indigo-500 mt-0.5 font-medium">personas est.</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl px-3 py-2.5 text-center">
+                      <p className="text-lg font-bold text-gray-700 leading-none">{peopleNum}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5 font-medium">invitados</p>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs text-gray-500 font-medium">{selectedPeople} / {peopleNum} personas cubiertas</span>
+                      <span className={`text-xs font-bold ${sufficient ? "text-green-600" : "text-indigo-600"}`}>{pct}%</span>
+                    </div>
+                    <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ease-out ${sufficient ? "bg-gradient-to-r from-green-400 to-green-500" : "bg-gradient-to-r from-indigo-500 to-indigo-400"}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                  {sufficient ? (
+                    <p className="text-xs text-green-600 font-semibold leading-relaxed">
+                      La comida es suficiente para aproximadamente {selectedPeople} personas.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-500 leading-relaxed">
+                      La selección actual cubre aproximadamente{" "}
+                      <span className="font-semibold text-indigo-600">{selectedPeople} personas</span>.
+                    </p>
+                  )}
+                </div>
+              )
+            })()}
+
             {(!people || Number.isNaN(Number.parseInt(people, 10))) && (
-              <p className="text-xs text-gray-400">Orientativo: 5 piezas por persona.</p>
+              <p className="text-xs text-gray-400">
+                {calcMode === "piezas"
+                  ? "Orientativo: 5 piezas por persona."
+                  : "Ingresa el número de invitados para estimar la cobertura."}
+              </p>
             )}
           </div>
 
