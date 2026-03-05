@@ -81,7 +81,7 @@ const CATEGORIES: CateringCategory[] = [
 const MIN_PER_UNIT = 20
 
 const PIECES_APPROX: Record<string, number> = {
-  a20: 30,
+  a20: 35,
   a22: 100,
   a23: 100,
   b02: 100,
@@ -106,71 +106,130 @@ type EventType = "reunion" | "cumpleanos" | "corporativo"
 
 const STYLE_PPP: Record<AutoStyle, number> = { ligero: 4, estandar: 5, abundante: 6 }
 
-const TRAY_TABLA   = "a23"
-const TRAY_CRUDITE = "a22"
-const TRAY_ROSCA   = "a20"
+// Internal item categories for the algorithm
+const CAT_LIGHT: string[]    = ["a01", "a06", "a13", "a14", "a15"] // brochetas, papitas, bruschetta, tortilla, pinchito
+const CAT_SANDWICH: string[] = ["a03", "a04", "a05", "a10", "a11"] // mini sandwiches + sliders
+const CAT_PREMIUM: string[]  = ["a07", "a08", "a09", "a12", "a21", "a23"] // dátiles, volovanes, camarones, tabla
+const CAT_FRESH: string[]    = ["a16", "a17", "a18", "a19"]        // ensaladas + brocheta frutas
+const CAT_DESSERT: string[]  = ["a28", "a29"]                      // cupcakes
 
-const POOLS: Record<EventType, { trays: string[]; premium: string[]; hearty: string[]; light: string[]; dessert: string[] }> = {
-  corporativo: { trays: [TRAY_TABLA, TRAY_CRUDITE], premium: ["a08", "a13", "a07", "a15", "a01"], hearty: ["a03", "a04", "a05"], light: ["a16", "a17", "a18"], dessert: ["a19"] },
-  cumpleanos:  { trays: [TRAY_CRUDITE, TRAY_TABLA], premium: ["a10", "a11", "a02"], hearty: ["a03", "a04", "a05", "a06"], light: ["a16"], dessert: ["a28", "a29"] },
-  reunion:     { trays: [TRAY_ROSCA, TRAY_TABLA],   premium: ["a08", "a13", "a01"], hearty: ["a03", "a10", "a02", "a14"], light: ["a16", "a17"], dessert: ["a19", "a28"] },
+// Pax items and their piece equivalents
+const PAX_ITEMS: Record<string, { pieces: number }> = {
+  a20: { pieces: 35  }, // rosca sushi 6-8 pax
+  a22: { pieces: 100 }, // platón crudités 20 pax
+  a23: { pieces: 100 }, // tabla charcutería 20 pax
+  b02: { pieces: 100 }, // waffle bar 20 pax
 }
 
-const ALL_POOL_IDS = [...new Set(Object.values(POOLS).flatMap((p) => [...p.trays, ...p.premium, ...p.hearty, ...p.light, ...p.dessert]))]
+// All pool IDs (to reset when regenerating)
+const ALL_ALGO_IDS = [...new Set([...CAT_LIGHT, ...CAT_SANDWICH, ...CAT_PREMIUM, ...CAT_FRESH, ...CAT_DESSERT, "a20", "a22"])]
+
+// Ratios per event type: [light, sandwich, premium, fresh, dessert]
+const EVENT_RATIOS: Record<EventType, [number, number, number, number, number]> = {
+  reunion:     [0.50, 0.20, 0.15, 0.10, 0.05],
+  cumpleanos:  [0.35, 0.30, 0.15, 0.10, 0.10],
+  corporativo: [0.30, 0.25, 0.30, 0.10, 0.05],
+}
+
+// Shuffle an array using Fisher-Yates (seeded for determinism per people+style)
+function shuffle<T>(arr: T[], seed: number): T[] {
+  const a = [...arr]
+  let s = seed
+  for (let i = a.length - 1; i > 0; i--) {
+    s = (s * 1664525 + 1013904223) & 0xffffffff
+    const j = Math.abs(s) % (i + 1);
+    [a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
+// Pick 2–4 items from a pool, ensuring minimum variety
+function pickItems(pool: string[], count: number, seed: number): string[] {
+  const n = Math.max(2, Math.min(4, Math.min(count, pool.length)))
+  return shuffle(pool, seed).slice(0, n)
+}
+
+// Round qty up to nearest MIN_PER_UNIT multiple
+function roundUp(n: number): number {
+  return Math.ceil(Math.max(n, MIN_PER_UNIT) / MIN_PER_UNIT) * MIN_PER_UNIT
+}
 
 function buildMenuCart(peopleNum: number, style: AutoStyle, eventType: EventType, baseCart: Cart = {}): Cart {
   const ppp = STYLE_PPP[style]
-  const targetPieces = peopleNum * ppp
   const cart: Cart = { ...baseCart }
-  const pool = POOLS[eventType]
-  for (const id of ALL_POOL_IDS) cart[id] = 0
+  const seed = peopleNum * 31 + (style === "ligero" ? 1 : style === "estandar" ? 2 : 3) + (eventType === "reunion" ? 10 : eventType === "cumpleanos" ? 20 : 30)
 
+  // Reset all algo-managed items
+  for (const id of ALL_ALGO_IDS) cart[id] = 0
+
+  let targetPieces = peopleNum * ppp
   let usedEquiv = 0
-  if (eventType === "corporativo") {
-    if (peopleNum >= 18) { cart[TRAY_TABLA] = 1; usedEquiv += 100 }
-    if (peopleNum >= 20 && style !== "ligero") { cart[TRAY_CRUDITE] = 1; usedEquiv += 100 }
-  } else if (eventType === "cumpleanos") {
-    if (peopleNum >= 20 && style !== "ligero") { cart[TRAY_CRUDITE] = 1; usedEquiv += 100 }
-  } else {
-    if (peopleNum >= 20) { cart[TRAY_TABLA] = 1; usedEquiv += 100 }
-    else if (peopleNum >= 6) { cart[TRAY_ROSCA] = 1; usedEquiv += 35 }
-  }
 
-  const remaining = Math.max(0, targetPieces - usedEquiv)
-  const distribute = (ids: string[], totalPieces: number, count: number) => {
-    if (totalPieces <= 0 || ids.length === 0) return
-    const selected = ids.slice(0, count)
-    const base = Math.floor(totalPieces / selected.length)
-    const rounded = Math.ceil(Math.max(base, MIN_PER_UNIT) / MIN_PER_UNIT) * MIN_PER_UNIT
-    for (const id of selected) cart[id] = rounded
-  }
+  // ── 1) Pax items (max 2) ───────────────────────────────────────────────────
+  const paxAdded: string[] = []
 
-  if (eventType === "corporativo") {
-    const premiumTarget = Math.round(remaining * 0.65)
-    const lightTarget   = Math.round(remaining * 0.25)
-    const sweetTarget   = remaining - premiumTarget - lightTarget
-    const premiumPool   = (style === "abundante" || peopleNum >= 25) ? pool.premium : pool.premium.filter((id) => !["a10","a11"].includes(id))
-    distribute(premiumPool, premiumTarget, peopleNum <= 15 ? 3 : 4)
-    distribute(pool.light,   lightTarget, 1)
-    distribute(pool.dessert, sweetTarget, 1)
-  } else if (eventType === "cumpleanos") {
-    const heartyTarget  = Math.round(remaining * 0.65)
-    const lightTarget   = Math.round(remaining * 0.10)
-    const dessertTarget = remaining - heartyTarget - lightTarget
-    distribute(pool.premium, heartyTarget, peopleNum <= 15 ? 2 : 3)
-    distribute(pool.hearty,  lightTarget, 1)
-    if (dessertTarget > 0) {
-      const half = Math.ceil(Math.max(MIN_PER_UNIT, Math.round(peopleNum * 0.6 / 2) * 2) / 2 / MIN_PER_UNIT) * MIN_PER_UNIT
-      cart["a28"] = half; cart["a29"] = half
+  if (eventType === "corporativo" && peopleNum >= 18) {
+    cart["a23"] = 1 // tabla
+    usedEquiv += PAX_ITEMS["a23"].pieces
+    paxAdded.push("a23")
+    if (peopleNum >= 20 && style !== "ligero") {
+      cart["a22"] = 1 // crudités
+      usedEquiv += PAX_ITEMS["a22"].pieces
+      paxAdded.push("a22")
     }
-  } else {
-    const savoryTarget = Math.round(remaining * 0.60)
-    const lightTarget  = Math.round(remaining * 0.20)
-    const sweetTarget  = remaining - savoryTarget - lightTarget
-    distribute([...pool.premium, ...pool.hearty], savoryTarget, peopleNum <= 15 ? 3 : 5)
-    distribute(pool.light,   lightTarget, 1)
-    distribute(pool.dessert, sweetTarget, 1)
+  } else if (eventType === "reunion") {
+    if (peopleNum >= 20) {
+      cart["a23"] = 1
+      usedEquiv += PAX_ITEMS["a23"].pieces
+      paxAdded.push("a23")
+    } else if (peopleNum >= 6) {
+      cart["a20"] = 1
+      usedEquiv += PAX_ITEMS["a20"].pieces
+      paxAdded.push("a20")
+    }
+  } else if (eventType === "cumpleanos" && peopleNum >= 20 && style !== "ligero") {
+    cart["a22"] = 1
+    usedEquiv += PAX_ITEMS["a22"].pieces
+    paxAdded.push("a22")
   }
+
+  // ── 2) Distribute remaining pieces by category ratios ─────────────────────
+  const remaining = Math.max(0, targetPieces - usedEquiv)
+  const [rLight, rSandwich, rPremium, rFresh, rDessert] = EVENT_RATIOS[eventType]
+
+  const lightPieces   = Math.round(remaining * rLight)
+  const sandwichPieces = Math.round(remaining * rSandwich)
+  const premiumPieces = Math.round(remaining * rPremium)
+  const freshPieces   = Math.round(remaining * rFresh)
+  const dessertPieces = remaining - lightPieces - sandwichPieces - premiumPieces - freshPieces
+
+  // Filter pax items already added from premium pool
+  const premiumPool = CAT_PREMIUM.filter((id) => !paxAdded.includes(id))
+
+  const distributeCategory = (pool: string[], totalPieces: number, s: number) => {
+    if (totalPieces <= 0 || pool.length === 0) return
+    const count = Math.ceil(totalPieces / MIN_PER_UNIT)
+    const items = pickItems(pool, count, s)
+    const perItem = roundUp(Math.floor(totalPieces / items.length))
+    for (const id of items) cart[id] = perItem
+  }
+
+  distributeCategory(CAT_LIGHT,           lightPieces,    seed + 1)
+  distributeCategory(CAT_SANDWICH,        sandwichPieces, seed + 2)
+  distributeCategory(premiumPool,         premiumPieces,  seed + 3)
+  distributeCategory(CAT_FRESH,           freshPieces,    seed + 4)
+
+  // Desserts: for cumpleaños always split cupcakes vanilla + chocolate
+  if (dessertPieces > 0) {
+    if (eventType === "cumpleanos") {
+      const half = roundUp(Math.floor(dessertPieces / 2))
+      cart["a28"] = half
+      cart["a29"] = half
+    } else {
+      distributeCategory(CAT_DESSERT, dessertPieces, seed + 5)
+    }
+  }
+
   return cart
 }
 
