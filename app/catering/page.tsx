@@ -1,3 +1,4 @@
+// trigger commit: reopen PR
 import type { Metadata } from "next"
 import { CateringQuoteClient } from "./catering-quote-client"
 
