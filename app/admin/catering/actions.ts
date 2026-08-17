@@ -228,7 +228,8 @@ export async function updateCateringQuote(id: string, input: any) {
             customer_name: quote.customer_name,
             phone: quote.phone,
             total_price: quote.total,
-            status: "pending",
+            status: "new",
+            payment_status: "unpaid",
             source: "catering",
             catering_quote_id: id,
           })
@@ -540,7 +541,8 @@ export async function convertQuoteToOrder(quoteId: string) {
       customer_name: quote.customer_name,
       phone: quote.phone,
       total_price: quote.total,
-      status: "pending",
+      status: "new",
+      payment_status: "unpaid",
       source: "catering",
       catering_quote_id: quoteId,
     })

@@ -34,7 +34,7 @@ interface OrderItem {
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; pageSize?: string; status?: string; phone?: string }>
+  searchParams: Promise<{ page?: string; pageSize?: string; status?: string; phone?: string; payment?: string }>
 }) {
   const isAuthenticated = await checkAuth()
 
@@ -47,6 +47,7 @@ export default async function AdminPage({
   const pageSize = Number.parseInt(params.pageSize || "20")
   const statusFilter = params.status || ""
   const phoneFilter = params.phone || ""
+  const paymentFilter = params.payment || ""
 
   const supabase = await createClient()
 
@@ -58,6 +59,10 @@ export default async function AdminPage({
 
   if (phoneFilter) {
     countQuery = countQuery.ilike("customers.phone", `%${phoneFilter}%`)
+  }
+
+  if (paymentFilter) {
+    countQuery = countQuery.eq("payment_status", paymentFilter)
   }
 
   const { count: totalOrders } = await countQuery
@@ -76,11 +81,53 @@ export default async function AdminPage({
     ordersQuery = ordersQuery.ilike("customers.phone", `%${phoneFilter}%`)
   }
 
-  const { data: orders, error: ordersError } = await ordersQuery
+  if (paymentFilter) {
+    ordersQuery = ordersQuery.eq("payment_status", paymentFilter)
+  }
+
+  const { data: rawOrders, error: ordersError } = await ordersQuery
 
   if (ordersError) {
     console.error("Error fetching orders:", ordersError)
     return <div className="p-8">Error loading orders</div>
+  }
+
+  // Data normalization: map old statuses to new ones and delete cancelled orders
+  const cancelledOrderIds: string[] = []
+  const orders = (rawOrders || [])
+    .map((order) => {
+      let normalizedStatus = order.status
+
+      // Normalize statuses
+      if (order.status === "completed") {
+        normalizedStatus = "delivered"
+      } else if (!["new", "in_progress", "packed", "delivered"].includes(order.status)) {
+        // Unknown statuses become "new"
+        normalizedStatus = "new"
+      }
+
+      // Track cancelled orders for deletion
+      if (order.status === "cancelled") {
+        cancelledOrderIds.push(order.id)
+        return null // Will be filtered out
+      }
+
+      // Update status in database if it changed
+      if (normalizedStatus !== order.status) {
+        supabase.from("orders").update({ status: normalizedStatus }).eq("id", order.id)
+      }
+
+      return {
+        ...order,
+        status: normalizedStatus,
+      }
+    })
+    .filter((order): order is NonNullable<typeof order> => order !== null)
+
+  // Delete cancelled orders and their items
+  if (cancelledOrderIds.length > 0) {
+    await supabase.from("order_items").delete().in("order_id", cancelledOrderIds)
+    await supabase.from("orders").delete().in("id", cancelledOrderIds)
   }
 
   const orderIds = orders?.map((order) => order.id) || []
@@ -140,6 +187,7 @@ export default async function AdminPage({
           pageSize={pageSize}
           statusFilter={statusFilter}
           phoneFilter={phoneFilter}
+          paymentFilter={paymentFilter}
         />
       </div>
     </div>

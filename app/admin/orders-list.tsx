@@ -4,11 +4,13 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { SegmentedControl } from "@/components/ui/segmented-control"
 import { StatusSelect } from "./status-select"
 import { DeleteOrderButton } from "./delete-order-button"
 import { EditOrderModal } from "./edit-order-modal"
 import { useState } from "react"
 import { Pencil, MessageCircle } from "lucide-react"
+import { getOrderItemCount, formatItemCount } from "@/lib/get-order-item-count"
 
 interface Order {
   id: string
@@ -16,6 +18,7 @@ interface Order {
   phone: string
   total_price: number
   status: string
+  payment_status?: string
   created_at: string
   customers?: {
     phone: string
@@ -49,6 +52,7 @@ interface OrdersListProps {
   pageSize: number
   statusFilter: string
   phoneFilter: string
+  paymentFilter: string
 }
 
 function formatTimeAgo(date: Date): string {
@@ -76,6 +80,7 @@ export function OrdersList({
   pageSize,
   statusFilter,
   phoneFilter,
+  paymentFilter,
 }: OrdersListProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -111,6 +116,17 @@ export function OrdersList({
     router.push(`/admin?${params.toString()}`)
   }
 
+  const handlePaymentFilterChange = (payment: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (payment === "all") {
+      params.delete("payment")
+    } else {
+      params.set("payment", payment)
+    }
+    params.set("page", "1") // Reset to first page
+    router.push(`/admin?${params.toString()}`)
+  }
+
   const handlePhoneSearch = () => {
     const params = new URLSearchParams(searchParams.toString())
     if (phoneSearch.trim()) {
@@ -126,25 +142,47 @@ export function OrdersList({
     const params = new URLSearchParams(searchParams.toString())
     params.delete("status")
     params.delete("phone")
+    params.delete("payment")
     params.set("page", "1")
     setPhoneSearch("")
     setShowCateringOnly(false)
     router.push(`/admin?${params.toString()}`)
   }
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "new":
+        return "New"
+      case "in_progress":
+        return "In Progress"
+      case "packed":
+        return "Packed"
+      case "delivered":
+        return "Delivered"
+      default:
+        return status
+    }
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "pending":
+      case "new":
+        return "bg-gray-50 text-gray-700 border-gray-300"
+      case "in_progress":
         return "bg-amber-50 text-amber-700 border-amber-300"
       case "packed":
-        return "bg-blue-50 text-blue-700 border-blue-300"
+        return "bg-indigo-50 text-indigo-700 border-indigo-300"
       case "delivered":
-        return "bg-teal-50 text-teal-700 border-teal-300"
-      case "cancelled":
-        return "bg-gray-100 text-gray-700 border-gray-300"
+        return "bg-green-50 text-green-700 border-green-300"
       default:
         return "bg-gray-50 text-gray-600 border-gray-200"
     }
+  }
+
+  const getPaymentColor = (paymentStatus: string) => {
+    return paymentStatus === "paid"
+      ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+      : "bg-red-50 text-red-700 border-red-300"
   }
 
   const generateWhatsAppLink = (order: Order, items: OrderItem[]) => {
@@ -188,7 +226,10 @@ export function OrdersList({
     <div className="space-y-4">
       <Card className="p-4 sm:p-5 border border-gray-200 shadow-sm bg-white overflow-hidden">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
-          <h2 className="text-lg sm:text-xl font-bold text-gray-900">Recent Orders</h2>
+          <div>
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900">Orders</h2>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">Search and filter all orders</p>
+          </div>
           <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
             <span>
               Page {currentPage} of {totalPages}
@@ -199,27 +240,38 @@ export function OrdersList({
         </div>
 
         <div className="flex flex-col gap-3">
-          {/* Status filter row */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
-            <label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">Filter by status:</label>
-            <div className="flex items-center gap-2 flex-1">
+          {/* Status and Payment filter row */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-start gap-3 w-full">
+            {/* Status dropdown */}
+            <div className="flex flex-col gap-2">
+              <label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">Status:</label>
               <Select value={statusFilter || "all"} onValueChange={handleStatusFilterChange}>
                 <SelectTrigger className="w-full sm:w-[140px] h-9 text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Orders</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="new">New</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
                   <SelectItem value="packed">Packed</SelectItem>
                   <SelectItem value="delivered">Delivered</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
-              {statusFilter && (
-                <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 text-xs sm:text-sm">
-                  Clear
-                </Button>
-              )}
+            </div>
+
+            {/* Payment segmented control */}
+            <div className="flex flex-col gap-2">
+              <label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">Payment:</label>
+              <SegmentedControl
+                value={paymentFilter || "all"}
+                onValueChange={handlePaymentFilterChange}
+                options={[
+                  { value: "all", label: "All" },
+                  { value: "paid", label: "Paid" },
+                  { value: "unpaid", label: "Unpaid" },
+                ]}
+                className="w-full sm:w-auto"
+              />
             </div>
           </div>
 
@@ -238,7 +290,7 @@ export function OrdersList({
               <Button
                 onClick={handlePhoneSearch}
                 size="sm"
-                className="h-9 bg-teal-500 hover:bg-teal-600 text-white shrink-0"
+                className="h-9 bg-teal-500 hover:bg-teal-600 text-white shrink-0 w-full sm:w-auto"
               >
                 Search
               </Button>
@@ -276,7 +328,7 @@ export function OrdersList({
           </div>
         </div>
 
-        {(statusFilter || phoneFilter || showCateringOnly) && (
+        {(statusFilter || phoneFilter || paymentFilter || showCateringOnly) && (
           <div className="flex items-center gap-2 flex-wrap mt-3">
             <span className="text-sm text-gray-600">Active filters:</span>
             {statusFilter && (
@@ -286,6 +338,22 @@ export function OrdersList({
                   onClick={() => {
                     const params = new URLSearchParams(searchParams.toString())
                     params.delete("status")
+                    params.set("page", "1")
+                    router.push(`/admin?${params.toString()}`)
+                  }}
+                  className="ml-1 hover:opacity-70"
+                >
+                  ×
+                </button>
+              </Badge>
+            )}
+            {paymentFilter && (
+              <Badge className={`gap-1.5 text-sm px-3 py-1 font-semibold ${getPaymentColor(paymentFilter)}`}>
+                Payment: {paymentFilter}
+                <button
+                  onClick={() => {
+                    const params = new URLSearchParams(searchParams.toString())
+                    params.delete("payment")
                     params.set("page", "1")
                     router.push(`/admin?${params.toString()}`)
                   }}
@@ -340,7 +408,7 @@ export function OrdersList({
           <p className="text-sm text-gray-600">
             {showCateringOnly
               ? "No catering orders found"
-              : statusFilter || phoneFilter
+              : statusFilter || phoneFilter || paymentFilter
                 ? "No orders match your filters"
                 : "No orders yet"}
           </p>
@@ -377,7 +445,10 @@ export function OrdersList({
                         {customerNickname && <span className="text-teal-600 ml-2">({customerNickname})</span>}
                       </h3>
                       <Badge className={`text-xs px-2.5 py-1 border ${getStatusColor(order.status)}`}>
-                        {order.status}
+                        {getStatusLabel(order.status)}
+                      </Badge>
+                      <Badge className={`text-xs px-2.5 py-1 border ${getPaymentColor(order.payment_status === "unpaid" ? "unpaid" : "paid")}`}>
+                        {order.payment_status === "unpaid" ? "Unpaid" : "Paid"}
                       </Badge>
                       {isCateringOrder && (
                         <Badge className="text-xs px-2.5 py-1 bg-purple-100 text-purple-700 border-purple-300">
@@ -406,7 +477,7 @@ export function OrdersList({
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
-                  <StatusSelect orderId={order.id} currentStatus={order.status} />
+                  <StatusSelect orderId={order.id} currentStatus={order.status} currentPaymentStatus={order.payment_status === "unpaid" ? "unpaid" : "paid"} />
                   <Button
                     size="sm"
                     onClick={() => {
@@ -437,7 +508,12 @@ export function OrdersList({
               </div>
 
               <div className="border-t border-gray-100 pt-4 mt-4">
-                <p className="text-sm sm:text-base font-semibold mb-3 text-gray-700">Order Items:</p>
+                <p className="text-sm sm:text-base font-semibold mb-3 text-gray-700 flex items-center gap-2">
+                  Order Items
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800 border border-teal-200">
+                    {getOrderItemCount(items)} {getOrderItemCount(items) === 1 ? "item" : "items"}
+                  </span>
+                </p>
                 <div className="space-y-4">
                   {Object.entries(itemsBySection).map(([section, sectionItems]) => (
                     <div key={section}>
