@@ -138,11 +138,11 @@ export function PhoneInput({
   return (
     <div className="flex gap-2">
       {/* Country Code Dropdown */}
-      <div className="relative" ref={dropdownRef}>
+      <div className="relative min-w-0 shrink-0" ref={dropdownRef}>
         <Button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="w-40 px-3 py-2 bg-white border border-gray-300 rounded-md hover:border-teal-500 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 font-medium text-gray-900 flex items-center justify-between h-10"
+          className="w-auto min-w-[6.5rem] px-3 py-2 bg-white border border-gray-300 rounded-md hover:border-teal-500 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 font-medium text-gray-900 flex items-center justify-between h-10"
           variant="outline"
         >
           <span className="truncate">
@@ -152,7 +152,7 @@ export function PhoneInput({
         </Button>
 
         {isOpen && (
-          <div className="absolute top-full left-0 mt-1 w-80 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-96 overflow-hidden flex flex-col">
+          <div className="absolute top-full left-0 mt-1 w-[min(20rem,calc(100vw-2rem))] bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-96 overflow-hidden flex flex-col">
             <div className="p-2 border-b border-gray-200 bg-gray-50">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -202,7 +202,7 @@ export function PhoneInput({
         onChange={handlePhoneNumberChange}
         placeholder="5551234567"
         required={required}
-        className="flex-1 bg-white border border-gray-300 focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+        className="flex-1 min-w-0 bg-white border border-gray-300 focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
       />
     </div>
   )

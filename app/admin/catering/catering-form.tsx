@@ -471,7 +471,7 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
                   className="border border-gray-200 rounded-lg p-4 hover:border-purple-300 transition-colors"
                 >
                   <div className="flex gap-3 items-start">
-                    <div className="flex-1 relative">
+                    <div className="flex-1 min-w-0 relative">
                       <Label className="text-sm font-medium">Item Description *</Label>
                       <Input
                         value={item.label}
@@ -505,7 +505,7 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
                         </div>
                       )}
                     </div>
-                    <div className="w-32">
+                    <div className="w-24 sm:w-32 shrink-0">
                       <Label className="text-sm font-medium">Price *</Label>
                       <Input
                         type="text"
@@ -621,7 +621,7 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
                       className="border border-gray-200 rounded-lg p-4 hover:border-teal-300 transition-colors bg-teal-50/30"
                     >
                       <div className="flex gap-3 items-start">
-                        <div className="flex-1 relative">
+                        <div className="flex-1 min-w-0 relative">
                           <Label className="text-sm font-medium">Item Description *</Label>
                           <Input
                             value={item.label}
@@ -656,7 +656,7 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
                             </div>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 mt-6">
+                        <div className="flex items-center gap-2 mt-6 shrink-0">
                           <span className="text-sm text-teal-600 font-medium">Incluido</span>
                           <Button
                             type="button"

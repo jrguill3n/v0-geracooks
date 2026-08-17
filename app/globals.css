@@ -149,6 +149,11 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
@@ -161,4 +166,9 @@
   h6 {
     @apply font-sans font-bold tracking-tight;
   }
+}
+
+/* Ensures fixed/sticky bottom bars in the installed PWA clear the home indicator / gesture area */
+.pwa-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }

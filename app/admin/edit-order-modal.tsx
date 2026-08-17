@@ -239,13 +239,13 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
                 {editedItems.map((item, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                    className="flex items-center justify-between flex-wrap gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200"
                   >
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900">{item.item_name}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900 break-words">{item.item_name}</p>
                       <p className="text-sm text-gray-600">${item.unit_price} each</p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
                       <div className="flex items-center gap-2">
                         <Label htmlFor={`qty-${index}`} className="text-sm text-gray-600">
                           Qty:
@@ -263,7 +263,7 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
                         size="sm"
                         variant="destructive"
                         onClick={() => removeItem(index)}
-                        className="h-8 w-8 p-0 ml-2"
+                        className="h-9 w-9 sm:h-8 sm:w-8 p-0 ml-2"
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -283,9 +283,9 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
             {loadingMenu ? (
               <p className="text-sm text-gray-500">Loading menu...</p>
             ) : (
-              <div className="flex gap-3 mb-3">
+              <div className="flex flex-col sm:flex-row gap-3 mb-3">
                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="flex-1">
+                  <SelectTrigger className="w-full sm:flex-1">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -298,7 +298,7 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
                 </Select>
 
                 <Select value={selectedItem} onValueChange={setSelectedItem} disabled={!selectedCategory}>
-                  <SelectTrigger className="flex-1">
+                  <SelectTrigger className="w-full sm:flex-1">
                     <SelectValue placeholder="Select item" />
                   </SelectTrigger>
                   <SelectContent>
@@ -313,7 +313,11 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
                   </SelectContent>
                 </Select>
 
-                <Button onClick={addNewItem} disabled={!selectedItem} className="bg-teal-500 hover:bg-teal-600">
+                <Button
+                  onClick={addNewItem}
+                  disabled={!selectedItem}
+                  className="w-full sm:w-auto bg-teal-500 hover:bg-teal-600"
+                >
                   Add
                 </Button>
               </div>
@@ -325,8 +329,8 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
             <h3 className="text-lg font-bold mb-3 text-purple-900">Add Custom Item</h3>
             <p className="text-sm text-gray-600 mb-3">For special orders not in the menu</p>
             <div className="space-y-3">
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2">
                   <Label htmlFor="customName" className="text-sm font-medium text-gray-700">
                     Item Name
                   </Label>
@@ -353,8 +357,8 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
                   />
                 </div>
               </div>
-              <div className="flex gap-3">
-                <div className="flex-1">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1 min-w-0">
                   <Label htmlFor="customPrice" className="text-sm font-medium text-gray-700">
                     Price ($)
                   </Label>

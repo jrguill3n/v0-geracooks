@@ -413,7 +413,7 @@ export function OrdersList({
                       const whatsappLink = generateWhatsAppLink(order, items)
                       window.open(whatsappLink, "_blank")
                     }}
-                    className="h-9 text-xs sm:text-sm bg-green-600 hover:bg-green-700 text-white font-semibold shadow-sm"
+                    className="h-11 sm:h-9 text-xs sm:text-sm bg-green-600 hover:bg-green-700 text-white font-semibold shadow-sm"
                     disabled={!order.customers?.phone && !order.phone}
                     title="Send order to customer via WhatsApp"
                   >
@@ -423,7 +423,7 @@ export function OrdersList({
                   <Button
                     size="sm"
                     onClick={() => setEditingOrder({ id: order.id, name: order.customer_name, items })}
-                    className="h-9 text-xs sm:text-sm bg-teal-600 hover:bg-teal-700 text-white font-semibold shadow-sm"
+                    className="h-11 sm:h-9 text-xs sm:text-sm bg-teal-600 hover:bg-teal-700 text-white font-semibold shadow-sm"
                   >
                     <Pencil className="h-4 w-4 mr-1" />
                     Edit

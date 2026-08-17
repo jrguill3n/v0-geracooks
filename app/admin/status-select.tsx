@@ -30,7 +30,7 @@ export function StatusSelect({ orderId, currentStatus }: StatusSelectProps) {
 
   return (
     <Select value={currentStatus} onValueChange={handleStatusChange} disabled={isPending}>
-      <SelectTrigger className="w-[150px] h-9 text-sm">
+      <SelectTrigger className="w-[150px] h-11 sm:h-9 text-sm">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

@@ -123,7 +123,7 @@ export default async function AdminPage({
     .order("created_at", { ascending: false })
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-white to-secondary/30">
+    <div className="min-h-screen pwa-safe-bottom bg-gradient-to-br from-primary/5 via-white to-secondary/30">
       <PullToRefresh />
       <AdminNav title="GERA COOKS Admin" subtitle="Order Management Dashboard" />
 
