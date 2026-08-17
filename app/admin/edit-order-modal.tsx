@@ -36,8 +36,11 @@ interface EditOrderModalProps {
 
 export function EditOrderModal({ orderId, customerName, items, open, onOpenChange }: EditOrderModalProps) {
   const router = useRouter()
+  // Quantity is `number | ""` so the input can be temporarily empty while the user
+  // is retyping a value (e.g. selecting the digits and deleting them) without the
+  // item being removed from the order.
   const [editedItems, setEditedItems] = useState<
-    Array<{ id?: string; item_name: string; quantity: number; unit_price: number }>
+    Array<{ id?: string; item_name: string; quantity: number | ""; unit_price: number }>
   >(
     items.map((item) => ({
       id: item.id,
@@ -46,6 +49,7 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
       unit_price: item.unit_price,
     })),
   )
+  const [quantityErrors, setQuantityErrors] = useState<Record<number, boolean>>({})
   const [selectedCategory, setSelectedCategory] = useState<string>("")
   const [selectedItem, setSelectedItem] = useState<string>("")
   const [isSaving, setIsSaving] = useState(false)
@@ -82,21 +86,68 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
   }, [open])
 
   const removeItem = (index: number) => {
+    // Explicit removal only happens here (the Remove/Delete button), never as a
+    // side effect of editing the quantity field.
     setEditedItems((prev) => prev.filter((_, i) => i !== index))
+    setQuantityErrors((prev) => {
+      if (!(index in prev)) return prev
+      const next: Record<number, boolean> = {}
+      Object.entries(prev).forEach(([key, val]) => {
+        const i = Number(key)
+        if (i < index) next[i] = val
+        else if (i > index) next[i - 1] = val
+        // skip the removed index
+      })
+      return next
+    })
   }
 
   const updateItemQuantity = (index: number, value: string) => {
-    const quantity = Number.parseInt(value) || 0
-    if (quantity <= 0) {
-      // Remove item if quantity is 0 or invalid
-      removeItem(index)
-      return
+    // Keep the item visible while the user is typing, even if the field is
+    // temporarily empty or not yet a valid number (e.g. selecting the old
+    // value and deleting it before typing a new one).
+    if (value === "") {
+      setEditedItems((prev) => {
+        const newItems = [...prev]
+        newItems[index] = { ...newItems[index], quantity: "" }
+        return newItems
+      })
+    } else {
+      const parsed = Number.parseInt(value, 10)
+      setEditedItems((prev) => {
+        const newItems = [...prev]
+        newItems[index] = { ...newItems[index], quantity: Number.isNaN(parsed) ? "" : parsed }
+        return newItems
+      })
     }
 
-    setEditedItems((prev) => {
-      const newItems = [...prev]
-      newItems[index] = { ...newItems[index], quantity }
-      return newItems
+    // Clear any previously shown validation error as soon as the user edits the field again.
+    setQuantityErrors((prev) => {
+      if (!prev[index]) return prev
+      const next = { ...prev }
+      delete next[index]
+      return next
+    })
+  }
+
+  const isQuantityInvalid = (quantity: number | "") =>
+    quantity === "" || typeof quantity !== "number" || Number.isNaN(quantity) || quantity < 1
+
+  const handleQuantityBlur = (index: number) => {
+    setEditedItems((current) => {
+      const item = current[index]
+      if (!item) return current
+
+      setQuantityErrors((prev) => {
+        const invalid = isQuantityInvalid(item.quantity)
+        if (invalid === Boolean(prev[index])) return prev
+        if (invalid) return { ...prev, [index]: true }
+        const next = { ...prev }
+        delete next[index]
+        return next
+      })
+
+      return current
     })
   }
 
@@ -112,8 +163,18 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
       // Increase quantity of existing item
       setEditedItems((prev) => {
         const newItems = [...prev]
-        newItems[existingIndex] = { ...newItems[existingIndex], quantity: newItems[existingIndex].quantity + 1 }
+        const currentQuantity = newItems[existingIndex].quantity
+        newItems[existingIndex] = {
+          ...newItems[existingIndex],
+          quantity: (typeof currentQuantity === "number" && !Number.isNaN(currentQuantity) ? currentQuantity : 0) + 1,
+        }
         return newItems
+      })
+      setQuantityErrors((prev) => {
+        if (!prev[existingIndex]) return prev
+        const next = { ...prev }
+        delete next[existingIndex]
+        return next
       })
     } else {
       // Add new item
@@ -183,14 +244,42 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
   }
 
   const getTotalPrice = () => {
-    return editedItems.reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
+    return editedItems.reduce(
+      (sum, item) => sum + (typeof item.quantity === "number" ? item.quantity : 0) * item.unit_price,
+      0,
+    )
   }
 
   const handleSave = async () => {
+    // Validate every quantity before saving. Invalid quantities are surfaced inline
+    // instead of silently dropping the item or submitting bad data.
+    const errors: Record<number, boolean> = {}
+    editedItems.forEach((item, index) => {
+      if (isQuantityInvalid(item.quantity)) {
+        errors[index] = true
+      }
+    })
+
+    if (Object.keys(errors).length > 0) {
+      setQuantityErrors(errors)
+      toast({
+        title: "Cantidad inválida",
+        description: "Ingresa una cantidad válida",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Normalize to plain integers for the payload; unit_price/name/category are untouched.
+    const itemsToSave = editedItems.map((item) => ({
+      ...item,
+      quantity: Math.trunc(item.quantity as number),
+    }))
+
     setIsSaving(true)
     try {
-      console.log("[v0] Saving order with items:", editedItems)
-      const result = await updateOrderItems(orderId, editedItems)
+      console.log("[v0] Saving order with items:", itemsToSave)
+      const result = await updateOrderItems(orderId, itemsToSave)
       console.log("[v0] Save result:", result)
       if (result.success) {
         toast({
@@ -239,36 +328,44 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
                 {editedItems.map((item, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                    className="flex items-center justify-between flex-wrap gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200"
                   >
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900">{item.item_name}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900 break-words">{item.item_name}</p>
                       <p className="text-sm text-gray-600">${item.unit_price} each</p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor={`qty-${index}`} className="text-sm text-gray-600">
-                          Qty:
-                        </Label>
-                        <Input
-                          id={`qty-${index}`}
-                          type="number"
-                          min="1"
-                          value={item.quantity}
-                          onChange={(e) => updateItemQuantity(index, e.target.value)}
-                          className="w-20 text-center"
-                        />
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor={`qty-${index}`} className="text-sm text-gray-600">
+                            Qty:
+                          </Label>
+                          <Input
+                            id={`qty-${index}`}
+                            type="number"
+                            min="1"
+                            inputMode="numeric"
+                            value={item.quantity}
+                            onChange={(e) => updateItemQuantity(index, e.target.value)}
+                            onBlur={() => handleQuantityBlur(index)}
+                            aria-invalid={quantityErrors[index] || undefined}
+                            className={`w-20 text-center ${quantityErrors[index] ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                          />
+                        </div>
+                        {quantityErrors[index] && (
+                          <p className="text-xs text-red-600">Ingresa una cantidad válida</p>
+                        )}
                       </div>
                       <Button
                         size="sm"
                         variant="destructive"
                         onClick={() => removeItem(index)}
-                        className="h-8 w-8 p-0 ml-2"
+                        className="h-9 w-9 sm:h-8 sm:w-8 p-0 ml-2"
                       >
                         <X className="h-4 w-4" />
                       </Button>
                       <span className="ml-3 font-bold text-gray-900 w-20 text-right">
-                        ${(item.quantity * item.unit_price).toFixed(2)}
+                        ${((typeof item.quantity === "number" ? item.quantity : 0) * item.unit_price).toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -283,9 +380,9 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
             {loadingMenu ? (
               <p className="text-sm text-gray-500">Loading menu...</p>
             ) : (
-              <div className="flex gap-3 mb-3">
+              <div className="flex flex-col sm:flex-row gap-3 mb-3">
                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="flex-1">
+                  <SelectTrigger className="w-full sm:flex-1">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -298,7 +395,7 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
                 </Select>
 
                 <Select value={selectedItem} onValueChange={setSelectedItem} disabled={!selectedCategory}>
-                  <SelectTrigger className="flex-1">
+                  <SelectTrigger className="w-full sm:flex-1">
                     <SelectValue placeholder="Select item" />
                   </SelectTrigger>
                   <SelectContent>
@@ -313,7 +410,11 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
                   </SelectContent>
                 </Select>
 
-                <Button onClick={addNewItem} disabled={!selectedItem} className="bg-teal-500 hover:bg-teal-600">
+                <Button
+                  onClick={addNewItem}
+                  disabled={!selectedItem}
+                  className="w-full sm:w-auto bg-teal-500 hover:bg-teal-600"
+                >
                   Add
                 </Button>
               </div>
@@ -325,8 +426,8 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
             <h3 className="text-lg font-bold mb-3 text-purple-900">Add Custom Item</h3>
             <p className="text-sm text-gray-600 mb-3">For special orders not in the menu</p>
             <div className="space-y-3">
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2">
                   <Label htmlFor="customName" className="text-sm font-medium text-gray-700">
                     Item Name
                   </Label>
@@ -353,8 +454,8 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
                   />
                 </div>
               </div>
-              <div className="flex gap-3">
-                <div className="flex-1">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1 min-w-0">
                   <Label htmlFor="customPrice" className="text-sm font-medium text-gray-700">
                     Price ($)
                   </Label>

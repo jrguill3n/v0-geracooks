@@ -47,14 +47,16 @@ export function StatusSelect({ orderId, currentStatus, currentPaymentStatus = "u
   return (
     <div className="flex items-center gap-3">
       <Select value={currentStatus} onValueChange={handleStatusChange} disabled={isPending}>
-        <SelectTrigger className="w-[150px] h-9 text-sm">
+        <SelectTrigger className="w-[150px] h-11 sm:h-9 text-sm">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="new">New</SelectItem>
           <SelectItem value="in_progress">In Progress</SelectItem>
+          <SelectItem value="pending">Pending</SelectItem>
           <SelectItem value="packed">Packed</SelectItem>
           <SelectItem value="delivered">Delivered</SelectItem>
+          <SelectItem value="cancelled">Cancelled</SelectItem>
         </SelectContent>
       </Select>
 

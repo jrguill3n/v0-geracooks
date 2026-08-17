@@ -82,7 +82,7 @@ A full-stack order management and catering quote system for a food business, bui
 
 ## Environment Variables
 
-```env
+\`\`\`env
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
@@ -108,7 +108,7 @@ TWILIO_ACCOUNT_SID=
 TWILIO_AUTH_TOKEN=
 TWILIO_WHATSAPP_FROM=
 TWILIO_SMS_FROM=
-```
+\`\`\`
 
 ## Getting Started
 
@@ -120,35 +120,35 @@ TWILIO_SMS_FROM=
 
 1. Clone the repository
 2. Install dependencies:
-   ```bash
+   \`\`\`bash
    npm install
-   ```
+   \`\`\`
 
 3. Set up environment variables (copy from Supabase dashboard)
 
 4. Run database migrations in order:
-   ```bash
+   \`\`\`bash
    # Execute each SQL file in the scripts/ folder in numerical order
    scripts/001_create_orders_tables.sql
    scripts/002_update_order_statuses.sql
    # ... continue through 018
-   ```
+   \`\`\`
 
 5. Generate VAPID keys for push notifications:
-   ```bash
+   \`\`\`bash
    node scripts/generate-vapid-keys.js
-   ```
+   \`\`\`
 
 6. Start development server:
-   ```bash
+   \`\`\`bash
    npm run dev
-   ```
+   \`\`\`
 
 7. Open [http://localhost:3000](http://localhost:3000)
 
 ## Project Structure
 
-```
+\`\`\`
 app/
 ├── page.tsx                    # Customer order page
 ├── order-page-client.tsx       # Client-side order logic
@@ -193,7 +193,7 @@ lib/
 scripts/
 ├── 001-018_*.sql            # Database migrations
 └── generate-vapid-keys.js   # VAPID key generator
-```
+\`\`\`
 
 ## Key Workflows
 
