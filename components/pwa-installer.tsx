@@ -24,6 +24,40 @@ export function PWAInstaller() {
         })
     }
 
+    // Clear the app icon badge once the admin actually sees the app. Without
+    // this, notifications marked "seen" in the banner never clear the badge.
+    const clearAppBadge = async () => {
+      if (!("serviceWorker" in navigator)) return
+
+      try {
+        const registration = await navigator.serviceWorker.getRegistration()
+        if (!registration) return
+
+        // Dismiss any lingering notifications so they no longer count as unseen
+        const notifications = await registration.getNotifications()
+        notifications.forEach((notification) => notification.close())
+
+        if ("clearAppBadge" in navigator) {
+          await (navigator as any).clearAppBadge()
+        }
+      } catch (error) {
+        console.error("[PWA] Error clearing app badge:", error)
+      }
+    }
+
+    if (document.visibilityState === "visible") {
+      clearAppBadge()
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        clearAppBadge()
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+    window.addEventListener("focus", clearAppBadge)
+
     // Check if already installed
     const isStandalone = window.matchMedia("(display-mode: standalone)").matches
     if (isStandalone) {
@@ -46,6 +80,8 @@ export function PWAInstaller() {
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt)
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+      window.removeEventListener("focus", clearAppBadge)
     }
   }, [])
 
