@@ -73,7 +73,7 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
 
           // Extract unique sections
           const sections = [...new Set(data.map((item: MenuItem) => item.section))]
-          setMenuSections(sections)
+          setMenuSections(sections as string[])
         }
       } catch (error) {
         console.error("[v0] Error fetching menu:", error)

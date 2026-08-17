@@ -144,7 +144,7 @@ export default async function AdminPage({
     .in("name", itemNames)
 
   // Create a map of item name to section name
-  const sectionMap = new Map(menuItemsWithSections?.map((item) => [item.name, item.menu_sections?.name]) || [])
+  const sectionMap = new Map(menuItemsWithSections?.map((item) => [item.name, item.menu_sections?.[0]?.name]) || [])
 
   const itemsByOrder = (allItems || []).reduce(
     (acc, item) => {
