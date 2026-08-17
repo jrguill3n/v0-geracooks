@@ -11,6 +11,7 @@ export function PWAInstaller() {
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
+  const [notificationError, setNotificationError] = useState<string | null>(null)
 
   useEffect(() => {
     if ("serviceWorker" in navigator) {
@@ -100,56 +101,116 @@ export function PWAInstaller() {
   }
 
   const handleEnableNotifications = async () => {
+    setNotificationError(null)
+    const fail = (stage: string, message: string) => {
+      console.error(`[PWA] ${stage}: ${message}`)
+      setNotificationError(message)
+      alert(message)
+    }
+
     if (!("Notification" in window)) {
-      alert("This browser does not support notifications")
+      fail("Notification API", "Notifications are not supported in this browser")
       return
     }
 
     if (!("serviceWorker" in navigator)) {
-      alert("Service workers not supported")
+      fail("Service worker", "Service workers are not supported")
       return
     }
 
     try {
+      console.log("[PWA] Requesting notification permission", { permission: Notification.permission })
       const permission = await Notification.requestPermission()
+      console.log("[PWA] Notification permission result", { permission })
 
       if (permission !== "granted") {
-        alert("Notification permission denied")
+        fail("Permission", "Notification permission was not granted")
+        return
+      }
+
+      const registration = await navigator.serviceWorker.ready
+      console.log("[PWA] Service worker ready", {
+        scope: registration.scope,
+        scriptURL: registration.active?.scriptURL,
+        controllingScriptURL: navigator.serviceWorker.controller?.scriptURL,
+      })
+
+      if (!registration.active?.scriptURL.endsWith("/service-worker.js")) {
+        fail("Service worker", "The active service worker is not /service-worker.js")
+        return
+      }
+
+      if (!("pushManager" in registration) || !registration.pushManager) {
+        fail("Push support", "Push notifications are not supported")
+        return
+      }
+
+      if (!VAPID_PUBLIC_KEY) {
+        console.error("[PWA] NEXT_PUBLIC_VAPID_PUBLIC_KEY is missing")
+        fail("VAPID key", "VAPID key missing")
+        return
+      }
+
+      let applicationServerKey: Uint8Array
+      try {
+        applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        if (applicationServerKey.length !== 65 || applicationServerKey[0] !== 4) {
+          throw new Error(`Expected an uncompressed 65-byte public key, received ${applicationServerKey.length} bytes`)
+        }
+        console.log("[PWA] VAPID public key validated", { byteLength: applicationServerKey.length })
+      } catch (error) {
+        console.error("[PWA] VAPID key validation failed", error)
+        fail("VAPID key", "VAPID key invalid")
+        return
+      }
+
+      let subscription = await registration.pushManager.getSubscription()
+      console.log("[PWA] Existing push subscription inspected", {
+        exists: Boolean(subscription),
+        endpoint: subscription?.endpoint,
+      })
+
+      if (!subscription) {
+        try {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey,
+          })
+          console.log("[PWA] PushManager.subscribe succeeded", { endpoint: subscription.endpoint })
+        } catch (error) {
+          console.error("[PWA] PushManager.subscribe failed", {
+            name: error instanceof Error ? error.name : "UnknownError",
+            message: error instanceof Error ? error.message : String(error),
+          })
+          fail("Push subscription", "Push subscription failed")
+          return
+        }
+      } else {
+        console.log("[PWA] Reusing existing push subscription")
+      }
+
+      const response = await fetch("/api/subscribe-push", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscription: subscription.toJSON() }),
+      })
+      const responseBody = await response.text()
+      console.log("[PWA] /api/subscribe-push response", { status: response.status, body: responseBody })
+
+      if (!response.ok) {
+        fail("Save subscription", "Failed to save subscription")
         return
       }
 
       setNotificationsEnabled(true)
-
-      // Get service worker registration
-      const registration = await navigator.serviceWorker.ready
-
-      // Check if push is supported
-      if (!("pushManager" in registration)) {
-        alert("Push notifications not supported")
-        return
-      }
-
-      // Subscribe to push notifications
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-      })
-
-      // Send subscription to server
-      const response = await fetch("/api/subscribe-push", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subscription }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to save subscription")
-      }
-
       console.log("[PWA] Push subscription successful")
     } catch (error) {
-      console.error("[PWA] Error enabling notifications:", error)
-      alert("Failed to enable notifications. Please try again.")
+      console.error("[PWA] Error enabling notifications", {
+        name: error instanceof Error ? error.name : "UnknownError",
+        message: error instanceof Error ? error.message : String(error),
+        error,
+      })
+      fail("Push setup", "Failed to enable notifications")
     }
   }
 
@@ -202,6 +263,7 @@ export function PWAInstaller() {
             <div className="flex-1">
               <h3 className="font-bold text-foreground mb-1">Enable Push Notifications</h3>
               <p className="text-sm text-foreground/60 mb-3">Get instant alerts even when the app is closed</p>
+              {notificationError && <p className="mb-3 text-sm font-medium text-destructive">{notificationError}</p>}
               <Button onClick={handleEnableNotifications} size="sm" variant="default">
                 Enable Notifications
               </Button>

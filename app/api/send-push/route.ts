@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { createServiceClient } from "@/lib/supabase/server"
 import webpush from "web-push"
 
 // VAPID keys - Generate using: npx web-push generate-vapid-keys
@@ -10,17 +10,35 @@ const VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:admin@geracooks.com"
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)
+} else {
+  console.error("[API] VAPID configuration is incomplete", {
+    hasPublicKey: Boolean(VAPID_PUBLIC_KEY),
+    hasPrivateKey: Boolean(VAPID_PRIVATE_KEY),
+    hasSubject: Boolean(VAPID_SUBJECT),
+  })
 }
 
 export async function POST(request: Request) {
   try {
+    if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+      console.error("[API] Cannot send push: VAPID keys are missing")
+      return NextResponse.json({ success: false, message: "VAPID configuration missing" }, { status: 503 })
+    }
+
     const body = await request.json()
     const { orderId, customerName, total } = body
 
-    const supabase = await createClient()
+    const supabase = await createServiceClient()
 
-    // Get all push subscriptions
+    // Get all push subscriptions. This table has no client-facing RLS policies.
     const { data: subscriptions, error } = await supabase.from("push_subscriptions").select("*")
+
+    console.log("[API] Loaded push subscriptions", {
+      count: subscriptions?.length ?? 0,
+      queryError: error
+        ? { code: error.code, message: error.message, details: error.details, hint: error.hint }
+        : null,
+    })
 
     if (error || !subscriptions || subscriptions.length === 0) {
       console.log("[API] No push subscriptions found")
