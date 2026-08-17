@@ -45,7 +45,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
   const [customerSuggestions, setCustomerSuggestions] = useState<Customer[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1)
-  const suggestionTimeoutRef = useRef<NodeJS.Timeout>()
+  const suggestionTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
   const [orderItems, setOrderItems] = useState<Record<string, OrderItem>>({})
   const [orderSubmitted, setOrderSubmitted] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<"idle" | "submitting" | "success" | "error">("idle")

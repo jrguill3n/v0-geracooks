@@ -59,8 +59,8 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
 
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1)
-  const [showSuggestions, setShowSuggestions] = useState<number | null>(null)
-  const debounceTimerRef = useRef<NodeJS.Timeout>()
+  const [showSuggestions, setShowSuggestions] = useState<number | `included-${number}` | null>(null)
+  const debounceTimerRef = useRef<NodeJS.Timeout | undefined>(undefined)
 
   useEffect(() => {
     if (initialQuote?.status) {
@@ -308,12 +308,13 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
         toast.success("Quote created successfully", {
           description: `Status: ${statusLabel}`,
         })
-        if (!result.id) {
+        const createdId = "id" in result ? result.id : undefined
+        if (!createdId) {
           console.error("[v0] No ID returned from create, redirecting to list")
           router.push("/admin/catering")
         } else {
-          console.log("[v0] Redirecting to:", `/admin/catering/${result.id}`)
-          router.push(`/admin/catering/${result.id}`)
+          console.log("[v0] Redirecting to:", `/admin/catering/${createdId}`)
+          router.push(`/admin/catering/${createdId}`)
         }
       }
     } catch (error) {
@@ -757,7 +758,7 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
           </div>
           <div>
             <Label htmlFor="status">Status</Label>
-            <Select value={status} onValueChange={setStatus}>
+            <Select value={status}           onValueChange={(value) => setStatus(value as typeof status)}>
               <SelectTrigger id="status">
                 <SelectValue />
               </SelectTrigger>
