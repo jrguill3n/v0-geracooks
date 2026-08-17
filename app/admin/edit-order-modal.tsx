@@ -309,7 +309,7 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto border-2 border-teal-400">
+      <DialogContent className="w-full max-w-[calc(100vw-16px)] sm:max-w-2xl max-h-[90dvh] overflow-y-auto px-3 sm:px-6 border-2 border-teal-400">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-gray-900">Edit Order</DialogTitle>
           <DialogDescription className="text-gray-600">
@@ -328,45 +328,47 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
                 {editedItems.map((item, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between flex-wrap gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200"
+                    className="min-w-0 p-3 bg-gray-50 rounded-lg border border-gray-200"
                   >
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-900 break-words">{item.item_name}</p>
-                      <p className="text-sm text-gray-600">${item.unit_price} each</p>
-                    </div>
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                          <Label htmlFor={`qty-${index}`} className="text-sm text-gray-600">
-                            Qty:
-                          </Label>
-                          <Input
-                            id={`qty-${index}`}
-                            type="number"
-                            min="1"
-                            inputMode="numeric"
-                            value={item.quantity}
-                            onChange={(e) => updateItemQuantity(index, e.target.value)}
-                            onBlur={() => handleQuantityBlur(index)}
-                            aria-invalid={quantityErrors[index] || undefined}
-                            className={`w-20 text-center ${quantityErrors[index] ? "border-red-500 focus-visible:ring-red-500" : ""}`}
-                          />
-                        </div>
-                        {quantityErrors[index] && (
-                          <p className="text-xs text-red-600">Ingresa una cantidad válida</p>
-                        )}
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => removeItem(index)}
-                        className="h-9 w-9 sm:h-8 sm:w-8 p-0 ml-2"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                      <span className="ml-3 font-bold text-gray-900 w-20 text-right">
+                    <div className="flex items-start justify-between gap-3 min-w-0">
+                      <p className="min-w-0 flex-1 font-semibold text-gray-900 break-words">{item.item_name}</p>
+                      <span className="shrink-0 font-bold text-gray-900 text-right">
                         ${((typeof item.quantity === "number" ? item.quantity : 0) * item.unit_price).toFixed(2)}
                       </span>
+                    </div>
+                    <div className="flex items-start justify-between gap-3 mt-2 min-w-0">
+                      <p className="min-w-0 flex-1 text-sm text-gray-600">${item.unit_price} each</p>
+                      <div className="flex items-start gap-2 shrink-0">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <Label htmlFor={`qty-${index}`} className="text-sm text-gray-600">
+                              Qty:
+                            </Label>
+                            <Input
+                              id={`qty-${index}`}
+                              type="number"
+                              min="1"
+                              inputMode="numeric"
+                              value={item.quantity}
+                              onChange={(e) => updateItemQuantity(index, e.target.value)}
+                              onBlur={() => handleQuantityBlur(index)}
+                              aria-invalid={quantityErrors[index] || undefined}
+                              className={`w-[4.5rem] sm:w-20 text-center ${quantityErrors[index] ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                            />
+                          </div>
+                          {quantityErrors[index] && (
+                            <p className="text-xs text-red-600">Ingresa una cantidad válida</p>
+                          )}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => removeItem(index)}
+                          className="h-11 w-11 sm:h-8 sm:w-8 shrink-0 p-0"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}

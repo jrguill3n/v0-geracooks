@@ -8,7 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -52,9 +52,14 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
   const [selectedItemForExtras, setSelectedItemForExtras] = useState<MenuItem | null>(null)
   const [tempExtras, setTempExtras] = useState<string[]>([])
   const [isCartSheetOpen, setIsCartSheetOpen] = useState(false)
-  const [activeCategory, setActiveCategory] = useState<string>(() => Object.keys(menuItems)[0])
+  const categories = useMemo(() => Object.keys(menuItems), [menuItems])
+  const [activeCategory, setActiveCategory] = useState<string>(() => categories[0] || "")
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const categoryNavRef = useRef<HTMLDivElement | null>(null)
+  const programmaticScrollRef = useRef<{ category: string; timeoutId: ReturnType<typeof setTimeout> } | null>(null)
+
+  const getCategoryId = (category: string) =>
+    `category-${category.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`
 
   // Lock body scroll when cart sheet is open
   useEffect(() => {
@@ -79,40 +84,51 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
     }
   }, [isCartSheetOpen])
 
+  // Scroll spy only observes sections. Updating the active pill never scrolls the page.
   useEffect(() => {
-    const handleScroll = () => {
-      const categories = Object.keys(menuItems)
-      let currentActive = categories[0]
+    if (!categories.length) return
 
-      for (const category of categories) {
-        const section = sectionRefs.current[category]
-        if (section) {
-          const rect = section.getBoundingClientRect()
-          if (rect.top <= 250 && rect.bottom > 250) {
-            currentActive = category
-            break
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleEntries = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)
+
+        if (!visibleEntries.length) return
+
+        const visibleCategory = visibleEntries[0].target.getAttribute("data-category")
+        if (!visibleCategory) return
+
+        const programmaticScroll = programmaticScrollRef.current
+        if (programmaticScroll) {
+          if (visibleCategory === programmaticScroll.category) {
+            clearTimeout(programmaticScroll.timeoutId)
+            programmaticScrollRef.current = null
+          } else {
+            return
           }
         }
-      }
 
-      if (currentActive !== activeCategory) {
-        setActiveCategory(currentActive)
-        
-        // Auto-scroll the active pill into view
-        if (categoryNavRef.current) {
-          const activeButton = categoryNavRef.current.querySelector(`[data-category="${currentActive}"]`)
-          if (activeButton) {
-            activeButton.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
-          }
-        }
+        setActiveCategory((current) => (current === visibleCategory ? current : visibleCategory))
+      },
+      // The sticky category bar occupies roughly the top 80px. Shrink the
+      // observer's visible region so the section underneath it is not selected.
+      { rootMargin: "-80px 0px -45% 0px", threshold: [0.1, 0.25, 0.5] },
+    )
+
+    categories.forEach((category) => {
+      const section = sectionRefs.current[category]
+      if (section) observer.observe(section)
+    })
+
+    return () => {
+      observer.disconnect()
+      if (programmaticScrollRef.current) {
+        clearTimeout(programmaticScrollRef.current.timeoutId)
+        programmaticScrollRef.current = null
       }
     }
-
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    handleScroll() // Initial check
-    
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [menuItems, activeCategory])
+  }, [categories])
 
   useEffect(() => {
     if (customerName.length >= 2 || phoneNumber.length >= 3) {
@@ -176,10 +192,31 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
 
   const scrollToSection = (category: string) => {
     const section = sectionRefs.current[category]
-    if (section) {
-      const offset = 200
-      const top = section.offsetTop - offset
-      window.scrollTo({ top, behavior: "smooth" })
+    if (!section) return
+
+    if (programmaticScrollRef.current) {
+      clearTimeout(programmaticScrollRef.current.timeoutId)
+    }
+
+    setActiveCategory(category)
+    const timeoutId = setTimeout(() => {
+      programmaticScrollRef.current = null
+    }, 1200)
+    programmaticScrollRef.current = { category, timeoutId }
+
+    // scroll-margin-top accounts for the sticky category bar. This moves the
+    // document only for an explicit pill click, never as a result of the spy.
+    section.scrollIntoView({ behavior: "smooth", block: "start" })
+
+    // Keep only the horizontal pill strip in view; block: nearest avoids
+    // accidentally scrolling the document while centering the active pill.
+    const button = categoryNavRef.current?.querySelector<HTMLButtonElement>(
+      `[data-category="${CSS.escape(category)}"]`,
+    )
+    if (button && categoryNavRef.current) {
+      const container = categoryNavRef.current
+      const targetLeft = button.offsetLeft - (container.clientWidth - button.offsetWidth) / 2
+      container.scrollTo({ left: Math.max(0, targetLeft), behavior: "smooth" })
     }
   }
 
@@ -430,7 +467,9 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
           return (
             <div
               key={category}
-              className="mb-6"
+              id={getCategoryId(category)}
+              data-category={category}
+              className="mb-6 scroll-mt-24"
               ref={(el) => {
                 sectionRefs.current[category] = el
               }}
