@@ -8,8 +8,13 @@ self.addEventListener("install", (event) => {
 
 // Activate service worker
 self.addEventListener("activate", (event) => {
-  console.log("[Service Worker] Activating...")
-  event.waitUntil(clients.claim())
+  console.log("[Service Worker] Activating /service-worker.js...")
+  event.waitUntil(
+    (async () => {
+      await clients.claim()
+      console.log("[Service Worker] Activated and claimed clients", { scriptURL: self.location.href })
+    })(),
+  )
 })
 
 // Update the app icon badge to reflect how many notifications haven't been seen yet
