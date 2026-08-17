@@ -45,29 +45,18 @@ export function StatusSelect({ orderId, currentStatus, currentPaymentStatus = "u
   const isPaid = currentPaymentStatus === "paid"
 
   return (
-<<<<<<< HEAD
-    <Select value={currentStatus} onValueChange={handleStatusChange} disabled={isPending}>
-      <SelectTrigger className="w-[150px] h-11 sm:h-9 text-sm">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="pending">Pending</SelectItem>
-        <SelectItem value="packed">Packed</SelectItem>
-        <SelectItem value="delivered">Delivered</SelectItem>
-        <SelectItem value="cancelled">Cancelled</SelectItem>
-      </SelectContent>
-    </Select>
-=======
     <div className="flex items-center gap-3">
       <Select value={currentStatus} onValueChange={handleStatusChange} disabled={isPending}>
-        <SelectTrigger className="w-[150px] h-9 text-sm">
+        <SelectTrigger className="w-[150px] h-11 sm:h-9 text-sm">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="new">New</SelectItem>
           <SelectItem value="in_progress">In Progress</SelectItem>
+          <SelectItem value="pending">Pending</SelectItem>
           <SelectItem value="packed">Packed</SelectItem>
           <SelectItem value="delivered">Delivered</SelectItem>
+          <SelectItem value="cancelled">Cancelled</SelectItem>
         </SelectContent>
       </Select>
 
@@ -82,6 +71,5 @@ export function StatusSelect({ orderId, currentStatus, currentPaymentStatus = "u
         />
       </div>
     </div>
->>>>>>> 3162feb5ca5724b4f00ba9e228e62c1f45ac66a2
   )
 }

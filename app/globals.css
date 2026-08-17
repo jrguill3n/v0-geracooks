@@ -168,11 +168,11 @@
   }
 }
 
-<<<<<<< HEAD
 /* Ensures fixed/sticky bottom bars in the installed PWA clear the home indicator / gesture area */
 .pwa-safe-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
-=======
+}
+
 @layer utilities {
   .scrollbar-hide {
     -ms-overflow-style: none;
@@ -181,5 +181,4 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
->>>>>>> 3162feb5ca5724b4f00ba9e228e62c1f45ac66a2
 }
