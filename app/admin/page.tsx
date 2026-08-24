@@ -7,6 +7,7 @@ import { AdminNav } from "@/components/admin-nav"
 import { PWAInstaller } from "@/components/pwa-installer"
 import { PullToRefresh } from "@/components/pull-to-refresh"
 import { OrdersSummaryCards } from "./orders-summary-cards"
+import { getSectionName } from "@/lib/get-section-name"
 
 interface Order {
   id: string
@@ -144,7 +145,7 @@ export default async function AdminPage({
     .in("name", itemNames)
 
   // Create a map of item name to section name
-  const sectionMap = new Map(menuItemsWithSections?.map((item) => [item.name, item.menu_sections?.[0]?.name]) || [])
+  const sectionMap = new Map(menuItemsWithSections?.map((item) => [item.name, getSectionName(item.menu_sections)]) || [])
 
   const itemsByOrder = (allItems || []).reduce(
     (acc, item) => {

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
+import { getSectionName } from "@/lib/get-section-name"
 
 export async function GET() {
   try {
@@ -28,7 +29,7 @@ export async function GET() {
         id: item.id,
         name: item.name,
         price: item.price,
-        section: item.menu_sections?.name || "Unknown",
+        section: getSectionName(item.menu_sections) || "Unknown",
       })) || []
 
     console.log("[v0] Fetched menu items:", transformedItems.length)
