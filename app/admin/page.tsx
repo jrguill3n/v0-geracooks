@@ -66,8 +66,6 @@ export default async function AdminPage({
     countQuery = countQuery.eq("payment_status", paymentFilter)
   }
 
-  const { count: totalOrders } = await countQuery
-
   let ordersQuery = supabase
     .from("orders")
     .select("*, customers(phone, nickname)")
@@ -86,7 +84,17 @@ export default async function AdminPage({
     ordersQuery = ordersQuery.eq("payment_status", paymentFilter)
   }
 
-  const { data: rawOrders, error: ordersError } = await ordersQuery
+  // The summary cards only need the current year (week/month/year buckets),
+  // so bound the stats query instead of pulling the entire orders table.
+  const statsYearStart = new Date(new Date().getFullYear(), 0, 1).toISOString()
+  const statsQuery = supabase
+    .from("orders")
+    .select("id, total_price, created_at")
+    .gte("created_at", statsYearStart)
+
+  // These three queries are independent of each other, so run them in parallel.
+  const [{ count: totalOrders }, { data: rawOrders, error: ordersError }, { data: allOrdersForStats }] =
+    await Promise.all([countQuery, ordersQuery, statsQuery])
 
   if (ordersError) {
     console.error("Error fetching orders:", ordersError)
@@ -164,11 +172,6 @@ export default async function AdminPage({
     },
     {} as Record<string, OrderItem[]>,
   )
-
-  const { data: allOrdersForStats } = await supabase
-    .from("orders")
-    .select("id, total_price, created_at")
-    .order("created_at", { ascending: false })
 
   return (
     <div className="min-h-screen pwa-safe-bottom bg-gradient-to-br from-primary/5 via-white to-secondary/30">

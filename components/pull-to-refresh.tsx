@@ -1,111 +1,134 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
+
+const THRESHOLD = 80 // Distance (px) the indicator must travel before refresh triggers
+const MAX_PULL = 120 // Maximum visual travel of the indicator
 
 export function PullToRefresh() {
   const router = useRouter()
   const [pullDistance, setPullDistance] = useState(0)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const touchStartY = useRef(0)
-  const isPulling = useRef(false)
-  const containerRef = useRef<HTMLDivElement>(null)
 
-  const threshold = 100 // Distance to pull before refresh triggers
-  const maxPullDistance = 140 // Maximum visual pull distance
+  // Refs hold the live gesture state so the touch listeners can stay attached
+  // once for the component's lifetime instead of re-subscribing every frame.
+  const startY = useRef(0)
+  const startX = useRef(0)
+  const isPulling = useRef(false)
+  const pullRef = useRef(0)
+  const refreshingRef = useRef(false)
+
+  const setPull = useCallback((distance: number) => {
+    pullRef.current = distance
+    setPullDistance(distance)
+  }, [])
 
   useEffect(() => {
     const handleTouchStart = (e: TouchEvent) => {
-      if (window.scrollY === 0 && !isRefreshing) {
-        touchStartY.current = e.touches[0].clientY
-        isPulling.current = true
-      }
+      // Only arm the gesture when the page is scrolled to the very top.
+      if (window.scrollY > 0 || refreshingRef.current) return
+      startY.current = e.touches[0].clientY
+      startX.current = e.touches[0].clientX
+      isPulling.current = true
     }
 
     const handleTouchMove = (e: TouchEvent) => {
       if (!isPulling.current) return
 
-      const touchY = e.touches[0].clientY
-      const distance = touchY - touchStartY.current
+      const dy = e.touches[0].clientY - startY.current
+      const dx = e.touches[0].clientX - startX.current
 
-      if (distance > 0 && window.scrollY === 0) {
-        const dampingFactor = 0.5
-        const dampenedDistance = Math.pow(distance, dampingFactor) * 10
-        setPullDistance(Math.min(dampenedDistance, maxPullDistance))
-
-        if (distance > 5) {
-          e.preventDefault()
-        }
-      } else if (distance < 0) {
+      // Cancel if the gesture is mostly horizontal (carousel/swipe) or upward.
+      if (dy <= 0 || Math.abs(dx) > Math.abs(dy)) {
         isPulling.current = false
-        setPullDistance(0)
+        if (pullRef.current !== 0) setPull(0)
+        return
       }
+
+      if (window.scrollY > 0) {
+        isPulling.current = false
+        if (pullRef.current !== 0) setPull(0)
+        return
+      }
+
+      // Rubber-band resistance: the further you pull, the slower it moves.
+      const resisted = MAX_PULL * (1 - Math.exp(-dy / MAX_PULL))
+      setPull(resisted)
+
+      // Prevent the browser's native overscroll/refresh once we've committed.
+      if (dy > 6 && e.cancelable) e.preventDefault()
     }
 
-    const handleTouchEnd = async () => {
+    const handleTouchEnd = () => {
       if (!isPulling.current) return
-
-      const currentPullDistance = pullDistance
       isPulling.current = false
 
-      if (currentPullDistance >= threshold && !isRefreshing) {
+      if (pullRef.current >= THRESHOLD && !refreshingRef.current) {
+        refreshingRef.current = true
         setIsRefreshing(true)
+        setPull(THRESHOLD)
 
-        try {
-          await router.refresh()
-        } catch (error) {
-          console.error("[v0] Refresh error:", error)
+        if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+          navigator.vibrate(10)
         }
 
-        setTimeout(() => {
+        router.refresh()
+
+        // router.refresh() resolves before the server components finish
+        // streaming, so hold the spinner briefly for a stable feel.
+        window.setTimeout(() => {
+          refreshingRef.current = false
           setIsRefreshing(false)
-          setPullDistance(0)
-        }, 800)
+          setPull(0)
+        }, 700)
       } else {
-        setPullDistance(0)
+        setPull(0)
       }
     }
 
     document.addEventListener("touchstart", handleTouchStart, { passive: true })
     document.addEventListener("touchmove", handleTouchMove, { passive: false })
-    document.addEventListener("touchend", handleTouchEnd)
+    document.addEventListener("touchend", handleTouchEnd, { passive: true })
+    document.addEventListener("touchcancel", handleTouchEnd, { passive: true })
 
     return () => {
       document.removeEventListener("touchstart", handleTouchStart)
       document.removeEventListener("touchmove", handleTouchMove)
       document.removeEventListener("touchend", handleTouchEnd)
+      document.removeEventListener("touchcancel", handleTouchEnd)
     }
-  }, [pullDistance, router])
+  }, [router, setPull])
 
-  const progress = Math.min(pullDistance / threshold, 1)
-  const rotation = isRefreshing ? 0 : progress * 180
-
-  const shouldShow = pullDistance > 20 || isRefreshing
+  const progress = Math.min(pullDistance / THRESHOLD, 1)
+  const rotation = isRefreshing ? 0 : progress * 270
+  const shouldShow = pullDistance > 4 || isRefreshing
+  const armed = progress >= 1
 
   return (
     <div
-      ref={containerRef}
       className="fixed top-0 left-0 right-0 z-50 flex flex-col items-center justify-start pointer-events-none"
       style={{
-        transform: `translateY(${isRefreshing ? 70 : pullDistance * 0.6}px)`,
-        transition: isPulling.current ? "none" : "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+        transform: `translateY(${isRefreshing ? 64 : pullDistance * 0.7}px)`,
+        transition: isPulling.current ? "none" : "transform 0.3s cubic-bezier(0.22, 1, 0.36, 1)",
       }}
+      aria-hidden={!shouldShow}
     >
       <div
-        className="bg-primary rounded-full p-4 shadow-2xl"
+        className="bg-primary rounded-full p-3.5 shadow-2xl"
         style={{
-          opacity: shouldShow ? Math.min(progress, 1) : 0,
-          transform: `scale(${shouldShow ? Math.min(0.7 + progress * 0.3, 1) : 0.5})`,
+          opacity: shouldShow ? Math.max(progress, isRefreshing ? 1 : 0.25) : 0,
+          transform: `scale(${shouldShow ? Math.min(0.6 + progress * 0.4, 1) : 0.5})`,
           transition: isPulling.current
-            ? "opacity 0.15s ease, transform 0.15s ease"
-            : "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+            ? "opacity 0.12s ease, transform 0.12s ease"
+            : "all 0.3s cubic-bezier(0.22, 1, 0.36, 1)",
         }}
       >
         <svg
-          className="w-7 h-7 text-white"
+          className="w-6 h-6 text-white"
           style={{
             transform: `rotate(${rotation}deg)`,
-            transition: isRefreshing ? "none" : "transform 0.2s ease-out",
+            transition: isRefreshing || isPulling.current ? "none" : "transform 0.2s ease-out",
           }}
           fill="none"
           stroke="currentColor"
@@ -121,14 +144,8 @@ export function PullToRefresh() {
         </svg>
       </div>
 
-      {pullDistance >= threshold && !isRefreshing && (
-        <div
-          className="mt-3 px-4 py-2 bg-primary/10 backdrop-blur-sm rounded-full text-sm font-semibold text-primary"
-          style={{
-            opacity: progress >= 1 ? 1 : 0,
-            transition: "opacity 0.2s ease",
-          }}
-        >
+      {armed && !isRefreshing && (
+        <div className="mt-2.5 px-3.5 py-1.5 bg-primary/10 backdrop-blur-sm rounded-full text-xs font-semibold text-primary">
           Release to refresh
         </div>
       )}
