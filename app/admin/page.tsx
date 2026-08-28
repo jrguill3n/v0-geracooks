@@ -92,9 +92,18 @@ export default async function AdminPage({
     .select("id, total_price, created_at")
     .gte("created_at", statsYearStart)
 
-  // These three queries are independent of each other, so run them in parallel.
-  const [{ count: totalOrders }, { data: rawOrders, error: ordersError }, { data: allOrdersForStats }] =
-    await Promise.all([countQuery, ordersQuery, statsQuery])
+  // The menu_items table is small and its section mapping doesn't depend on the
+  // orders result, so fetch it in the same parallel batch instead of waiting for
+  // the order items to come back first (removes a serial round-trip).
+  const menuSectionsQuery = supabase.from("menu_items").select("name, menu_sections(name)")
+
+  // These queries are independent of each other, so run them in parallel.
+  const [
+    { count: totalOrders },
+    { data: rawOrders, error: ordersError },
+    { data: allOrdersForStats },
+    { data: menuItemsWithSections },
+  ] = await Promise.all([countQuery, ordersQuery, statsQuery, menuSectionsQuery])
 
   if (ordersError) {
     console.error("Error fetching orders:", ordersError)
@@ -146,13 +155,7 @@ export default async function AdminPage({
     console.error("Error fetching order items:", itemsError)
   }
 
-  const itemNames = [...new Set(allItems?.map((item) => item.item_name) || [])]
-  const { data: menuItemsWithSections } = await supabase
-    .from("menu_items")
-    .select("name, menu_sections(name)")
-    .in("name", itemNames)
-
-  // Create a map of item name to section name
+  // Create a map of item name to section name (menu fetched in the parallel batch above)
   const sectionMap = new Map(menuItemsWithSections?.map((item) => [item.name, getSectionName(item.menu_sections)]) || [])
 
   const itemsByOrder = (allItems || []).reduce(

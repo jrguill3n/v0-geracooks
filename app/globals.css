@@ -154,6 +154,13 @@
     max-width: 100%;
     overflow-x: hidden;
   }
+  /* This is a light-only app (the `.dark` class is never applied). Pin the
+     color scheme and paint the root background so a dark-mode phone never
+     flashes a black canvas while the installed PWA cold-starts. */
+  html {
+    color-scheme: light;
+    background-color: var(--background);
+  }
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
