@@ -1,11 +1,11 @@
 "use client"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Pencil, Trash2, UserPlus, Phone, User, Tag, FileText } from "lucide-react"
+import { Pencil, Trash2, UserPlus, Phone, User, Tag, FileText, ChevronRight, ArrowLeft, CalendarDays } from "lucide-react"
 import { updateCustomer, deleteCustomer, createCustomer } from "./actions"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -17,7 +17,7 @@ interface Customer {
   nickname: string | null
   notes: string | null
   created_at: string
-  orders: { count: number }[]
+  orders: { id: string; created_at: string; total_price: number; status: string; order_items: { quantity: number; item_name?: string }[] }[]
 }
 
 interface CustomersManagerProps {
@@ -32,6 +32,9 @@ export function CustomersManager({ customers: initialCustomers }: CustomersManag
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [search, setSearch] = useState("")
+  const [openedCustomer, setOpenedCustomer] = useState<Customer | null>(null)
+  const [openedOrder, setOpenedOrder] = useState<string | null>(null)
 
   // Form state
   const [formData, setFormData] = useState({
@@ -156,9 +159,18 @@ export function CustomersManager({ customers: initialCustomers }: CustomersManag
     }
   }
 
-  const orderCount = (customer: Customer) => {
-    return customer.orders?.[0]?.count || 0
-  }
+  const orderCount = (customer: Customer) => customer.orders?.length || 0
+  const normalizePhone = (value: string) => value.replace(/[^0-9]/g, "")
+  const filteredCustomers = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    if (!term) return customers
+    const phoneTerm = normalizePhone(term)
+    return customers.filter((customer) =>
+      customer.name.toLowerCase().includes(term) ||
+      (phoneTerm.length > 0 && normalizePhone(customer.phone).includes(phoneTerm)),
+    )
+  }, [customers, search])
+  const lastOrder = (customer: Customer) => customer.orders?.[0]
 
   return (
     <div className="space-y-6">
@@ -178,7 +190,46 @@ export function CustomersManager({ customers: initialCustomers }: CustomersManag
         </div>
       </Card>
 
-      {customers.length === 0 ? (
+      <Card className="p-4 border-2 border-primary/20 bg-white rounded-3xl">
+        <Input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search by name or phone..."
+          aria-label="Search customers by name or phone"
+          className="h-12 rounded-2xl border-2 text-base"
+        />
+      </Card>
+
+      {openedCustomer ? (
+        <Card className="p-5 border-2 border-primary/20 bg-white rounded-3xl">
+          <div className="flex items-start gap-3 mb-6">
+            <Button variant="outline" size="icon" onClick={() => { setOpenedCustomer(null); setOpenedOrder(null) }} aria-label="Back to customers" className="rounded-xl shrink-0">
+              <ArrowLeft />
+            </Button>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">{openedCustomer.name}</h2>
+              <p className="text-gray-600">{openedCustomer.phone} · {orderCount(openedCustomer)} orders</p>
+            </div>
+          </div>
+          <h3 className="text-sm font-bold tracking-wider text-gray-500 mb-3">ORDER HISTORY</h3>
+          <div className="flex flex-col gap-3">
+            {openedCustomer.orders.length === 0 && <p className="text-gray-500 py-6">No orders yet.</p>}
+            {openedCustomer.orders.map((order) => {
+              const expanded = openedOrder === order.id
+              const itemCount = order.order_items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 0
+              return <div key={order.id} className="rounded-2xl border-2 border-gray-200 overflow-hidden">
+                <button type="button" onClick={() => setOpenedOrder(expanded ? null : order.id)} className="w-full text-left p-4 min-h-20 hover:bg-gray-50">
+                  <div className="flex items-start justify-between gap-3">
+                    <div><p className="font-bold text-gray-900"><CalendarDays className="inline size-4 mr-2 text-primary" />{new Date(order.created_at).toLocaleString()}</p><p className="text-sm text-gray-600 mt-1">{order.status} · {itemCount} items</p></div>
+                    <div className="text-right"><p className="font-bold text-lg text-primary">${Number(order.total_price).toFixed(2)}</p><ChevronRight className={`inline transition-transform ${expanded ? "rotate-90" : ""}`} /></div>
+                  </div>
+                </button>
+                {expanded && <div className="border-t bg-gray-50 p-4 flex flex-col gap-2">{order.order_items?.map((item, index) => <p key={`${order.id}-${index}`} className="text-gray-800">{item.quantity} × {item.item_name || "Order item"}</p>)}</div>}
+              </div>
+            })}
+          </div>
+        </Card>
+      ) : customers.length === 0 ? (
         <Card className="p-12 text-center border-2 border-dashed border-gray-300 bg-white rounded-3xl">
           <div className="max-w-sm mx-auto">
             <User className="h-16 w-16 text-gray-400 mx-auto mb-4" />
@@ -197,10 +248,10 @@ export function CustomersManager({ customers: initialCustomers }: CustomersManag
         </Card>
       ) : (
         <div className="grid gap-4">
-          {customers.map((customer) => (
+          {filteredCustomers.map((customer) => (
             <Card
               key={customer.id}
-              className="p-6 border-2 border-gray-200 hover:border-primary/40 transition-all bg-white rounded-3xl shadow-sm hover:shadow-md"
+              className="p-6 border-2 border-gray-200 hover:border-primary/40 transition-all bg-white rounded-3xl shadow-sm hover:shadow-md cursor-pointer" onClick={() => setOpenedCustomer(customer)}
             >
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                 <div className="flex-1 space-y-3">
@@ -233,7 +284,7 @@ export function CustomersManager({ customers: initialCustomers }: CustomersManag
                 <div className="flex gap-2">
                   <Button
                     size="sm"
-                    onClick={() => handleEdit(customer)}
+                    onClick={(event) => { event.stopPropagation(); handleEdit(customer) }}
                     className="bg-primary/10 hover:bg-primary/20 text-primary font-bold rounded-xl px-4 border-2 border-primary/20"
                   >
                     <Pencil className="h-4 w-4 mr-1.5" />
@@ -242,7 +293,7 @@ export function CustomersManager({ customers: initialCustomers }: CustomersManag
                   <Button
                     size="sm"
                     variant="destructive"
-                    onClick={() => handleDelete(customer)}
+                    onClick={(event) => { event.stopPropagation(); handleDelete(customer) }}
                     className="bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl px-4 border-2 border-red-200"
                   >
                     <Trash2 className="h-4 w-4" />

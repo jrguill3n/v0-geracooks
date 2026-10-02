@@ -39,7 +39,7 @@ interface OrderItem {
 }
 
 interface FilterTag {
-  type: "status" | "phone"
+  type: "status"
   value: string
   label: string
 }
@@ -80,16 +80,16 @@ export function OrdersList({
   pageSize,
   statusFilter,
   phoneFilter,
-  paymentFilter,
+  paymentFilter
 }: OrdersListProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const totalPages = Math.ceil(totalOrders / pageSize)
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null)
   const [editingOrder, setEditingOrder] = useState<{ id: string; name: string; items: OrderItem[] } | null>(null)
-  const [phoneSearch, setPhoneSearch] = useState(phoneFilter)
   const [showCateringOnly, setShowCateringOnly] = useState(false)
   const [showMoreFilters, setShowMoreFilters] = useState(false)
+  const [phoneSearch, setPhoneSearch] = useState(phoneFilter)
 
   const filteredOrders = showCateringOnly ? orders.filter((order: any) => order.source === "catering") : orders
 
@@ -145,7 +145,6 @@ export function OrdersList({
     params.delete("phone")
     params.delete("payment")
     params.set("page", "1")
-    setPhoneSearch("")
     setShowCateringOnly(false)
     router.push(`/admin?${params.toString()}`)
   }

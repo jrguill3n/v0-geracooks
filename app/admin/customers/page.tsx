@@ -16,7 +16,7 @@ export default async function CustomersPage() {
   // Get all customers with their order count
   const { data: customers, error } = await supabase
     .from("customers")
-    .select("*, orders(count)")
+    .select("*, orders(id, created_at, total_price, status, order_items(quantity, item_name))")
     .order("created_at", { ascending: false })
 
   if (error) {

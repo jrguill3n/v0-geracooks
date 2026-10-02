@@ -49,7 +49,6 @@ export default async function AdminPage({
   const statusFilter = params.status || ""
   const phoneFilter = params.phone || ""
   const paymentFilter = params.payment || ""
-
   const supabase = await createClient()
 
   let countQuery = supabase.from("orders").select("*, customers!inner(phone, nickname)", { count: "exact", head: true })
@@ -58,9 +57,6 @@ export default async function AdminPage({
     countQuery = countQuery.eq("status", statusFilter)
   }
 
-  if (phoneFilter) {
-    countQuery = countQuery.ilike("customers.phone", `%${phoneFilter}%`)
-  }
 
   if (paymentFilter) {
     countQuery = countQuery.eq("payment_status", paymentFilter)
@@ -76,9 +72,6 @@ export default async function AdminPage({
     ordersQuery = ordersQuery.eq("status", statusFilter)
   }
 
-  if (phoneFilter) {
-    ordersQuery = ordersQuery.ilike("customers.phone", `%${phoneFilter}%`)
-  }
 
   if (paymentFilter) {
     ordersQuery = ordersQuery.eq("payment_status", paymentFilter)
