@@ -34,7 +34,7 @@ interface OrderItem {
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; pageSize?: string; status?: string; phone?: string }>
+  searchParams: Promise<{ page?: string; pageSize?: string; status?: string }>
 }) {
   const isAuthenticated = await checkAuth()
 
@@ -46,8 +46,6 @@ export default async function AdminPage({
   const currentPage = Number.parseInt(params.page || "1")
   const pageSize = Number.parseInt(params.pageSize || "20")
   const statusFilter = params.status || ""
-  const phoneFilter = params.phone || ""
-
   const supabase = await createClient()
 
   let countQuery = supabase.from("orders").select("*, customers!inner(phone, nickname)", { count: "exact", head: true })
@@ -56,9 +54,6 @@ export default async function AdminPage({
     countQuery = countQuery.eq("status", statusFilter)
   }
 
-  if (phoneFilter) {
-    countQuery = countQuery.ilike("customers.phone", `%${phoneFilter}%`)
-  }
 
   const { count: totalOrders } = await countQuery
 
@@ -72,9 +67,6 @@ export default async function AdminPage({
     ordersQuery = ordersQuery.eq("status", statusFilter)
   }
 
-  if (phoneFilter) {
-    ordersQuery = ordersQuery.ilike("customers.phone", `%${phoneFilter}%`)
-  }
 
   const { data: orders, error: ordersError } = await ordersQuery
 
@@ -139,7 +131,6 @@ export default async function AdminPage({
           currentPage={currentPage}
           pageSize={pageSize}
           statusFilter={statusFilter}
-          phoneFilter={phoneFilter}
         />
       </div>
     </div>

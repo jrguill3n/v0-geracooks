@@ -36,7 +36,7 @@ interface OrderItem {
 }
 
 interface FilterTag {
-  type: "status" | "phone"
+  type: "status"
   value: string
   label: string
 }
@@ -48,7 +48,6 @@ interface OrdersListProps {
   currentPage: number
   pageSize: number
   statusFilter: string
-  phoneFilter: string
 }
 
 function formatTimeAgo(date: Date): string {
@@ -75,14 +74,12 @@ export function OrdersList({
   currentPage,
   pageSize,
   statusFilter,
-  phoneFilter,
 }: OrdersListProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const totalPages = Math.ceil(totalOrders / pageSize)
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null)
   const [editingOrder, setEditingOrder] = useState<{ id: string; name: string; items: OrderItem[] } | null>(null)
-  const [phoneSearch, setPhoneSearch] = useState(phoneFilter)
   const [showCateringOnly, setShowCateringOnly] = useState(false)
 
   const filteredOrders = showCateringOnly ? orders.filter((order: any) => order.source === "catering") : orders
@@ -111,23 +108,10 @@ export function OrdersList({
     router.push(`/admin?${params.toString()}`)
   }
 
-  const handlePhoneSearch = () => {
-    const params = new URLSearchParams(searchParams.toString())
-    if (phoneSearch.trim()) {
-      params.set("phone", phoneSearch.trim())
-    } else {
-      params.delete("phone")
-    }
-    params.set("page", "1")
-    router.push(`/admin?${params.toString()}`)
-  }
-
   const clearFilters = () => {
     const params = new URLSearchParams(searchParams.toString())
     params.delete("status")
-    params.delete("phone")
     params.set("page", "1")
-    setPhoneSearch("")
     setShowCateringOnly(false)
     router.push(`/admin?${params.toString()}`)
   }
@@ -223,28 +207,6 @@ export function OrdersList({
             </div>
           </div>
 
-          {/* Phone search row */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
-            <label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">Search by phone:</label>
-            <div className="flex items-center gap-2 flex-1">
-              <input
-                type="text"
-                value={phoneSearch}
-                onChange={(e) => setPhoneSearch(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handlePhoneSearch()}
-                placeholder="Enter phone number"
-                className="h-9 px-3 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 flex-1 min-w-0"
-              />
-              <Button
-                onClick={handlePhoneSearch}
-                size="sm"
-                className="h-9 bg-teal-500 hover:bg-teal-600 text-white shrink-0"
-              >
-                Search
-              </Button>
-            </div>
-          </div>
-
           {/* Per page selector row */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
             <label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">Per page:</label>
@@ -276,7 +238,7 @@ export function OrdersList({
           </div>
         </div>
 
-        {(statusFilter || phoneFilter || showCateringOnly) && (
+        {(statusFilter || showCateringOnly) && (
           <div className="flex items-center gap-2 flex-wrap mt-3">
             <span className="text-sm text-gray-600">Active filters:</span>
             {statusFilter && (
@@ -287,23 +249,6 @@ export function OrdersList({
                     const params = new URLSearchParams(searchParams.toString())
                     params.delete("status")
                     params.set("page", "1")
-                    router.push(`/admin?${params.toString()}`)
-                  }}
-                  className="ml-1 hover:opacity-70"
-                >
-                  ×
-                </button>
-              </Badge>
-            )}
-            {phoneFilter && (
-              <Badge className="gap-1.5 text-sm px-3 py-1 font-semibold bg-teal-50 text-teal-700 border-teal-300">
-                Phone: {phoneFilter}
-                <button
-                  onClick={() => {
-                    const params = new URLSearchParams(searchParams.toString())
-                    params.delete("phone")
-                    params.set("page", "1")
-                    setPhoneSearch("")
                     router.push(`/admin?${params.toString()}`)
                   }}
                   className="ml-1 hover:opacity-70"
