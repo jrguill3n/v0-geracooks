@@ -17,7 +17,13 @@ interface Customer {
   nickname: string | null
   notes: string | null
   created_at: string
-  orders: { id: string; created_at: string; total_price: number; status: string; order_items: { quantity: number; item_name?: string }[] }[]
+  orders: {
+    id: string
+    created_at: string
+    total_price: number
+    status: string
+    order_items: { quantity: number; item_name?: string; unit_price?: number | null; total_price?: number | null }[]
+  }[]
 }
 
 interface CustomersManagerProps {
@@ -224,7 +230,37 @@ export function CustomersManager({ customers: initialCustomers }: CustomersManag
                     <div className="text-right"><p className="font-bold text-lg text-primary">${Number(order.total_price).toFixed(2)}</p><ChevronRight className={`inline transition-transform ${expanded ? "rotate-90" : ""}`} /></div>
                   </div>
                 </button>
-                {expanded && <div className="border-t bg-gray-50 p-4 flex flex-col gap-2">{order.order_items?.map((item, index) => <p key={`${order.id}-${index}`} className="text-gray-800">{item.quantity} × {item.item_name || "Order item"}</p>)}</div>}
+                {expanded && (
+                  <div className="border-t bg-gray-50 p-4 flex flex-col gap-4">
+                    {order.order_items?.map((item, index) => {
+                      const quantity = Number(item.quantity || 0)
+                      const lineTotal = Number(item.total_price ?? 0)
+                      const unitPrice = item.unit_price != null
+                        ? Number(item.unit_price)
+                        : quantity > 0
+                          ? lineTotal / quantity
+                          : 0
+
+                      return (
+                        <div key={`${order.id}-${index}`} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-1">
+                          <p className="min-w-0 break-words font-semibold text-gray-900">
+                            {quantity} × {item.item_name || "Order item"}
+                          </p>
+                          <p className="shrink-0 text-right font-semibold text-gray-900">
+                            ${lineTotal.toFixed(2)}
+                          </p>
+                          <p className="min-w-0 text-sm text-gray-600">
+                            ${unitPrice.toFixed(2)} each
+                          </p>
+                        </div>
+                      )
+                    })}
+                    <div className="flex items-center justify-between gap-4 border-t border-gray-200 pt-3 font-bold text-gray-900">
+                      <span>Order total</span>
+                      <span className="shrink-0 text-right text-primary">${Number(order.total_price).toFixed(2)}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             })}
           </div>
