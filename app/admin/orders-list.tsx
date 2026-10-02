@@ -4,11 +4,13 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { SegmentedControl } from "@/components/ui/segmented-control"
 import { StatusSelect } from "./status-select"
 import { DeleteOrderButton } from "./delete-order-button"
 import { EditOrderModal } from "./edit-order-modal"
 import { useState } from "react"
-import { Pencil, MessageCircle } from "lucide-react"
+import { Pencil, MessageCircle, Search, ChevronDown } from "lucide-react"
+import { getOrderItemCount, formatItemCount } from "@/lib/get-order-item-count"
 
 interface Order {
   id: string
@@ -16,6 +18,7 @@ interface Order {
   phone: string
   total_price: number
   status: string
+  payment_status?: string
   created_at: string
   customers?: {
     phone: string
@@ -48,6 +51,8 @@ interface OrdersListProps {
   currentPage: number
   pageSize: number
   statusFilter: string
+  phoneFilter: string
+  paymentFilter: string
 }
 
 function formatTimeAgo(date: Date): string {
@@ -74,6 +79,8 @@ export function OrdersList({
   currentPage,
   pageSize,
   statusFilter,
+  phoneFilter,
+  paymentFilter
 }: OrdersListProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -81,6 +88,8 @@ export function OrdersList({
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null)
   const [editingOrder, setEditingOrder] = useState<{ id: string; name: string; items: OrderItem[] } | null>(null)
   const [showCateringOnly, setShowCateringOnly] = useState(false)
+  const [showMoreFilters, setShowMoreFilters] = useState(false)
+  const [phoneSearch, setPhoneSearch] = useState(phoneFilter)
 
   const filteredOrders = showCateringOnly ? orders.filter((order: any) => order.source === "catering") : orders
 
@@ -108,27 +117,72 @@ export function OrdersList({
     router.push(`/admin?${params.toString()}`)
   }
 
+  const handlePaymentFilterChange = (payment: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (payment === "all") {
+      params.delete("payment")
+    } else {
+      params.set("payment", payment)
+    }
+    params.set("page", "1") // Reset to first page
+    router.push(`/admin?${params.toString()}`)
+  }
+
+  const handlePhoneSearch = () => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (phoneSearch.trim()) {
+      params.set("phone", phoneSearch.trim())
+    } else {
+      params.delete("phone")
+    }
+    params.set("page", "1")
+    router.push(`/admin?${params.toString()}`)
+  }
+
   const clearFilters = () => {
     const params = new URLSearchParams(searchParams.toString())
     params.delete("status")
+    params.delete("phone")
+    params.delete("payment")
     params.set("page", "1")
     setShowCateringOnly(false)
     router.push(`/admin?${params.toString()}`)
   }
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "new":
+        return "New"
+      case "in_progress":
+        return "In Progress"
+      case "packed":
+        return "Packed"
+      case "delivered":
+        return "Delivered"
+      default:
+        return status
+    }
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "pending":
+      case "new":
+        return "bg-gray-50 text-gray-700 border-gray-300"
+      case "in_progress":
         return "bg-amber-50 text-amber-700 border-amber-300"
       case "packed":
-        return "bg-blue-50 text-blue-700 border-blue-300"
+        return "bg-indigo-50 text-indigo-700 border-indigo-300"
       case "delivered":
-        return "bg-teal-50 text-teal-700 border-teal-300"
-      case "cancelled":
-        return "bg-gray-100 text-gray-700 border-gray-300"
+        return "bg-green-50 text-green-700 border-green-300"
       default:
         return "bg-gray-50 text-gray-600 border-gray-200"
     }
+  }
+
+  const getPaymentColor = (paymentStatus: string) => {
+    return paymentStatus === "paid"
+      ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+      : "bg-red-50 text-red-700 border-red-300"
   }
 
   const generateWhatsAppLink = (order: Order, items: OrderItem[]) => {
@@ -170,79 +224,103 @@ export function OrdersList({
 
   return (
     <div className="space-y-4">
-      <Card className="p-4 sm:p-5 border border-gray-200 shadow-sm bg-white overflow-hidden">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
-          <h2 className="text-lg sm:text-xl font-bold text-gray-900">Recent Orders</h2>
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
-            <span>
-              Page {currentPage} of {totalPages}
-            </span>
-            <span>•</span>
-            <span>{totalOrders} total</span>
+      <Card className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm sm:p-5">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-baseline gap-2">
+            <h2 className="text-lg font-bold text-gray-900 sm:text-xl">Orders</h2>
+            <span className="truncate text-xs text-gray-500 sm:text-sm">{totalOrders} orders</span>
           </div>
         </div>
 
-        <div className="flex flex-col gap-3">
-          {/* Status filter row */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
-            <label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">Filter by status:</label>
-            <div className="flex items-center gap-2 flex-1">
+        <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-2.5 sm:grid sm:grid-cols-[minmax(140px,180px)_minmax(220px,1fr)_auto] sm:items-end sm:gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-gray-600">Status</label>
               <Select value={statusFilter || "all"} onValueChange={handleStatusFilterChange}>
-                <SelectTrigger className="w-full sm:w-[140px] h-9 text-sm">
+                <SelectTrigger className="h-11 w-full text-sm sm:h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Orders</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="new">New</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
                   <SelectItem value="packed">Packed</SelectItem>
                   <SelectItem value="delivered">Delivered</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
-              {statusFilter && (
-                <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 text-xs sm:text-sm">
-                  Clear
-                </Button>
-              )}
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-gray-600">Payment</label>
+              <SegmentedControl
+                value={paymentFilter || "all"}
+                onValueChange={handlePaymentFilterChange}
+                options={[
+                  { value: "all", label: "All" },
+                  { value: "paid", label: "Paid" },
+                  { value: "unpaid", label: "Unpaid" },
+                ]}
+                className="h-11 w-full sm:h-9"
+              />
+            </div>
+
+            <div className="flex min-w-0 items-center gap-2 sm:col-span-3">
+              <label className="sr-only" htmlFor="phone-search">Search by phone</label>
+              <input
+                id="phone-search"
+                type="tel"
+                inputMode="tel"
+                value={phoneSearch}
+                onChange={(e) => setPhoneSearch(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handlePhoneSearch()}
+                placeholder="Search phone number..."
+                className="h-11 min-w-0 flex-1 rounded-lg border border-gray-300 px-3 text-base focus:outline-none focus:ring-2 focus:ring-teal-500 sm:h-9 sm:text-sm"
+              />
+              <Button
+                onClick={handlePhoneSearch}
+                size="sm"
+                aria-label="Search phone number"
+                className="h-11 w-11 shrink-0 bg-teal-500 p-0 text-white hover:bg-teal-600 sm:h-9 sm:w-auto sm:px-4"
+              >
+                <Search className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Search</span>
+              </Button>
             </div>
           </div>
 
-          {/* Per page selector row */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
-            <label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">Per page:</label>
-            <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
-              <SelectTrigger className="w-full sm:w-[100px] h-9 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="20">20</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-                <SelectItem value="100">100</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowMoreFilters((open) => !open)}
+            className="flex min-h-10 w-full items-center justify-between rounded-lg px-1 text-sm font-medium text-gray-600 hover:bg-gray-50 sm:hidden"
+            aria-expanded={showMoreFilters}
+          >
+            <span>More filters</span>
+            <ChevronDown className={`h-4 w-4 transition-transform ${showMoreFilters ? "rotate-180" : ""}`} />
+          </button>
 
-          {/* Catering filter toggle */}
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="cateringFilter"
-              checked={showCateringOnly}
-              onChange={(e) => setShowCateringOnly(e.target.checked)}
-              className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-            />
-            <label htmlFor="cateringFilter" className="text-sm text-gray-700 cursor-pointer select-none">
+          <div className={`${showMoreFilters ? "flex" : "hidden"} flex-col gap-3 rounded-lg bg-gray-50/70 p-2 sm:flex sm:flex-row sm:items-center sm:gap-4 sm:bg-transparent sm:p-0`}>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600 whitespace-nowrap">Per page:</label>
+              <Select value={pageSize.toString()} onValueChange={handlePageSizeChange}>
+                <SelectTrigger className="h-9 w-[90px] text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem><SelectItem value="20">20</SelectItem><SelectItem value="50">50</SelectItem><SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+              <input type="checkbox" id="cateringFilter" checked={showCateringOnly} onChange={(e) => setShowCateringOnly(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
               Show Catering only
             </label>
           </div>
+
         </div>
 
-        {(statusFilter || showCateringOnly) && (
-          <div className="flex items-center gap-2 flex-wrap mt-3">
-            <span className="text-sm text-gray-600">Active filters:</span>
+        {(statusFilter || phoneFilter || paymentFilter || showCateringOnly) && (
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            <span className="sr-only">Active filters:</span>
             {statusFilter && (
-              <Badge className={`gap-1.5 text-sm px-3 py-1 font-semibold ${getStatusColor(statusFilter)}`}>
+              <Badge className={`gap-1 text-xs px-2 py-1 font-semibold ${getStatusColor(statusFilter)}`}>
                 Status: {statusFilter}
                 <button
                   onClick={() => {
@@ -257,8 +335,41 @@ export function OrdersList({
                 </button>
               </Badge>
             )}
+            {paymentFilter && (
+              <Badge className={`gap-1 text-xs px-2 py-1 font-semibold ${getPaymentColor(paymentFilter)}`}>
+                Payment: {paymentFilter}
+                <button
+                  onClick={() => {
+                    const params = new URLSearchParams(searchParams.toString())
+                    params.delete("payment")
+                    params.set("page", "1")
+                    router.push(`/admin?${params.toString()}`)
+                  }}
+                  className="ml-1 hover:opacity-70"
+                >
+                  ×
+                </button>
+              </Badge>
+            )}
+            {phoneFilter && (
+              <Badge className="gap-1 text-xs px-2 py-1 font-semibold bg-teal-50 text-teal-700 border-teal-300">
+                Phone: {phoneFilter}
+                <button
+                  onClick={() => {
+                    const params = new URLSearchParams(searchParams.toString())
+                    params.delete("phone")
+                    params.set("page", "1")
+                    setPhoneSearch("")
+                    router.push(`/admin?${params.toString()}`)
+                  }}
+                  className="ml-1 hover:opacity-70"
+                >
+                  ×
+                </button>
+              </Badge>
+            )}
             {showCateringOnly && (
-              <Badge className="gap-1.5 text-sm px-3 py-1 font-semibold bg-purple-100 text-purple-700 border-purple-300">
+              <Badge className="gap-1 text-xs px-2 py-1 font-semibold bg-purple-100 text-purple-700 border-purple-300">
                 Catering
                 <button
                   onClick={() => {
@@ -274,7 +385,7 @@ export function OrdersList({
               </Badge>
             )}
             <Button variant="ghost" size="sm" onClick={clearFilters} className="h-7 text-xs">
-              Clear All
+              Clear all
             </Button>
           </div>
         )}
@@ -285,7 +396,7 @@ export function OrdersList({
           <p className="text-sm text-gray-600">
             {showCateringOnly
               ? "No catering orders found"
-              : statusFilter || phoneFilter
+              : statusFilter || phoneFilter || paymentFilter
                 ? "No orders match your filters"
                 : "No orders yet"}
           </p>
@@ -309,20 +420,23 @@ export function OrdersList({
           return (
             <Card
               key={order.id}
-              className={`p-4 sm:p-5 border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-300 overflow-hidden ${
+              className={`p-3 sm:p-5 border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-300 overflow-hidden ${
                 isDeleting ? "opacity-0 scale-95 -translate-x-4" : "opacity-100 scale-100 translate-x-0"
               } ${isCateringOrder ? "bg-purple-50/30" : "bg-white"}`}
             >
-              <div className="flex flex-col gap-3 mb-4">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+              <div className="flex flex-col gap-2.5 mb-3">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 break-words">
+                      <h3 className="text-base sm:text-xl font-bold text-gray-900 break-words">
                         {order.customer_name}
                         {customerNickname && <span className="text-teal-600 ml-2">({customerNickname})</span>}
                       </h3>
                       <Badge className={`text-xs px-2.5 py-1 border ${getStatusColor(order.status)}`}>
-                        {order.status}
+                        {getStatusLabel(order.status)}
+                      </Badge>
+                      <Badge className={`text-xs px-2.5 py-1 border ${getPaymentColor(order.payment_status === "unpaid" ? "unpaid" : "paid")}`}>
+                        {order.payment_status === "unpaid" ? "Unpaid" : "Paid"}
                       </Badge>
                       {isCateringOrder && (
                         <Badge className="text-xs px-2.5 py-1 bg-purple-100 text-purple-700 border-purple-300">
@@ -330,10 +444,10 @@ export function OrdersList({
                         </Badge>
                       )}
                     </div>
-                    <p className="text-xs sm:text-sm text-gray-700 mb-1 break-all">
+                    <p className="text-xs sm:text-sm text-gray-700 mb-0.5 break-all">
                       📞 {order.customers?.phone || order.phone || "No phone"}
                     </p>
-                    <p className="text-xs text-gray-500 mb-3">{formatTimeAgo(new Date(order.created_at))}</p>
+                    <p className="text-xs text-gray-500 mb-2">{formatTimeAgo(new Date(order.created_at))}</p>
                     {order.catering_quote_id && (
                       <a
                         href={`/admin/catering/${order.catering_quote_id}`}
@@ -351,14 +465,14 @@ export function OrdersList({
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
-                  <StatusSelect orderId={order.id} currentStatus={order.status} />
+                  <StatusSelect orderId={order.id} currentStatus={order.status} currentPaymentStatus={order.payment_status === "unpaid" ? "unpaid" : "paid"} />
                   <Button
                     size="sm"
                     onClick={() => {
                       const whatsappLink = generateWhatsAppLink(order, items)
                       window.open(whatsappLink, "_blank")
                     }}
-                    className="h-9 text-xs sm:text-sm bg-green-600 hover:bg-green-700 text-white font-semibold shadow-sm"
+                    className="h-11 sm:h-9 text-xs sm:text-sm bg-green-600 hover:bg-green-700 text-white font-semibold shadow-sm"
                     disabled={!order.customers?.phone && !order.phone}
                     title="Send order to customer via WhatsApp"
                   >
@@ -368,7 +482,7 @@ export function OrdersList({
                   <Button
                     size="sm"
                     onClick={() => setEditingOrder({ id: order.id, name: order.customer_name, items })}
-                    className="h-9 text-xs sm:text-sm bg-teal-600 hover:bg-teal-700 text-white font-semibold shadow-sm"
+                    className="h-11 sm:h-9 text-xs sm:text-sm bg-teal-600 hover:bg-teal-700 text-white font-semibold shadow-sm"
                   >
                     <Pencil className="h-4 w-4 mr-1" />
                     Edit
@@ -382,7 +496,12 @@ export function OrdersList({
               </div>
 
               <div className="border-t border-gray-100 pt-4 mt-4">
-                <p className="text-sm sm:text-base font-semibold mb-3 text-gray-700">Order Items:</p>
+                <p className="text-sm sm:text-base font-semibold mb-3 text-gray-700 flex items-center gap-2">
+                  Order Items
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800 border border-teal-200">
+                    {getOrderItemCount(items)} {getOrderItemCount(items) === 1 ? "item" : "items"}
+                  </span>
+                </p>
                 <div className="space-y-4">
                   {Object.entries(itemsBySection).map(([section, sectionItems]) => (
                     <div key={section}>
@@ -429,11 +548,10 @@ export function OrdersList({
       )}
 
       {totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
-          <p className="text-sm text-gray-600">
-            Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, totalOrders)} of{" "}
-            {totalOrders} orders
-          </p>
+<div className="flex flex-col items-center justify-between gap-2 pt-1 sm:flex-row sm:gap-4">
+              <p className="text-xs text-gray-500">
+                Page {currentPage} of {totalPages} · Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, totalOrders)} of {totalOrders}
+              </p>
 
           <div className="flex items-center gap-2">
             <Button
@@ -457,7 +575,7 @@ export function OrdersList({
 
             <div className="flex items-center gap-1">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum
+                let pageNum: number
                 if (totalPages <= 5) {
                   pageNum = i + 1
                 } else if (currentPage <= 3) {

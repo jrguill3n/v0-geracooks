@@ -56,7 +56,7 @@ export default async function MenuPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-white to-secondary/30">
+    <div className="min-h-screen pwa-safe-bottom bg-gradient-to-br from-primary/5 via-white to-secondary/30">
       <AdminNav title="Menu Management" subtitle="Add, edit, and organize menu items" />
 
       <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6">

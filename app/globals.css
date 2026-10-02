@@ -149,6 +149,18 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  /* This is a light-only app (the `.dark` class is never applied). Pin the
+     color scheme and paint the root background so a dark-mode phone never
+     flashes a black canvas while the installed PWA cold-starts. */
+  html {
+    color-scheme: light;
+    background-color: var(--background);
+  }
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
@@ -160,5 +172,20 @@
   h5,
   h6 {
     @apply font-sans font-bold tracking-tight;
+  }
+}
+
+/* Ensures fixed/sticky bottom bars in the installed PWA clear the home indicator / gesture area */
+.pwa-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }

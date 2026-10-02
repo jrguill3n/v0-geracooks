@@ -59,8 +59,8 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
 
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1)
-  const [showSuggestions, setShowSuggestions] = useState<number | null>(null)
-  const debounceTimerRef = useRef<NodeJS.Timeout>()
+  const [showSuggestions, setShowSuggestions] = useState<number | `included-${number}` | null>(null)
+  const debounceTimerRef = useRef<NodeJS.Timeout | undefined>(undefined)
 
   useEffect(() => {
     if (initialQuote?.status) {
@@ -308,12 +308,13 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
         toast.success("Quote created successfully", {
           description: `Status: ${statusLabel}`,
         })
-        if (!result.id) {
+        const createdId = "id" in result ? result.id : undefined
+        if (!createdId) {
           console.error("[v0] No ID returned from create, redirecting to list")
           router.push("/admin/catering")
         } else {
-          console.log("[v0] Redirecting to:", `/admin/catering/${result.id}`)
-          router.push(`/admin/catering/${result.id}`)
+          console.log("[v0] Redirecting to:", `/admin/catering/${createdId}`)
+          router.push(`/admin/catering/${createdId}`)
         }
       }
     } catch (error) {
@@ -471,7 +472,7 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
                   className="border border-gray-200 rounded-lg p-4 hover:border-purple-300 transition-colors"
                 >
                   <div className="flex gap-3 items-start">
-                    <div className="flex-1 relative">
+                    <div className="flex-1 min-w-0 relative">
                       <Label className="text-sm font-medium">Item Description *</Label>
                       <Input
                         value={item.label}
@@ -505,7 +506,7 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
                         </div>
                       )}
                     </div>
-                    <div className="w-32">
+                    <div className="w-24 sm:w-32 shrink-0">
                       <Label className="text-sm font-medium">Price *</Label>
                       <Input
                         type="text"
@@ -621,7 +622,7 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
                       className="border border-gray-200 rounded-lg p-4 hover:border-teal-300 transition-colors bg-teal-50/30"
                     >
                       <div className="flex gap-3 items-start">
-                        <div className="flex-1 relative">
+                        <div className="flex-1 min-w-0 relative">
                           <Label className="text-sm font-medium">Item Description *</Label>
                           <Input
                             value={item.label}
@@ -656,7 +657,7 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
                             </div>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 mt-6">
+                        <div className="flex items-center gap-2 mt-6 shrink-0">
                           <span className="text-sm text-teal-600 font-medium">Incluido</span>
                           <Button
                             type="button"
@@ -757,7 +758,7 @@ export function CateringForm({ initialQuote, initialItems = [] }: CateringFormPr
           </div>
           <div>
             <Label htmlFor="status">Status</Label>
-            <Select value={status} onValueChange={setStatus}>
+            <Select value={status}           onValueChange={(value) => setStatus(value as typeof status)}>
               <SelectTrigger id="status">
                 <SelectValue />
               </SelectTrigger>

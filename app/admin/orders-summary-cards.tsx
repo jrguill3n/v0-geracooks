@@ -1,7 +1,6 @@
 "use client"
 
 import { Card } from "@/components/ui/card"
-import { useRouter } from "next/navigation"
 import { useMemo } from "react"
 
 interface Order {
@@ -50,8 +49,6 @@ function formatMonth(date: Date): string {
 }
 
 export function OrdersSummaryCards({ orders, isLoading }: OrdersSummaryCardsProps) {
-  const router = useRouter()
-
   const { weekStats, monthStats, yearStats } = useMemo(() => {
     const now = new Date()
     const weekStart = getWeekStart(now)
@@ -151,8 +148,7 @@ export function OrdersSummaryCards({ orders, isLoading }: OrdersSummaryCardsProp
       {cards.map((card) => (
         <Card
           key={card.title}
-          onClick={() => router.push(`/admin/analytics?range=${card.filter}`)}
-          className="px-3 py-2.5 border-0 shadow-sm hover:shadow-md bg-white rounded-xl cursor-pointer transition-all duration-150 hover:bg-gray-50/80 active:scale-[0.98] h-[88px] flex flex-col justify-between"
+          className="px-3 py-2.5 border-0 shadow-sm bg-white rounded-xl h-[88px] flex flex-col justify-between"
         >
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-semibold text-foreground/50 uppercase tracking-wider">{card.title}</p>
@@ -164,7 +160,6 @@ export function OrdersSummaryCards({ orders, isLoading }: OrdersSummaryCardsProp
             <p className="text-2xl font-bold text-foreground leading-none">{card.orders}</p>
             <p className="text-sm font-medium text-success">{formatCurrency(card.revenue)}</p>
           </div>
-          <p className="text-[10px] text-gray-400 hover:text-primary transition-colors">View details →</p>
         </Card>
       ))}
     </div>

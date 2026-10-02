@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { getSectionName } from "@/lib/get-section-name"
 
 export async function POST(request: Request) {
   try {
@@ -47,7 +48,8 @@ export async function POST(request: Request) {
         customer_name: customerName,
         phone: phone,
         total_price: totalPrice,
-        status: "pending",
+        status: "new",
+        payment_status: "unpaid",
       })
       .select()
       .single()
@@ -62,7 +64,9 @@ export async function POST(request: Request) {
     const { data: extrasData } = await supabase.from("menu_item_extras").select("*")
 
     const priceMap = new Map(menuItemsData?.map((item) => [item.name, Number(item.price)]) || [])
-    const sectionMap = new Map(menuItemsData?.map((item) => [item.name, item.menu_sections?.name || "Other"]) || [])
+    const sectionMap = new Map(
+      menuItemsData?.map((item) => [item.name, getSectionName(item.menu_sections) || "Other"]) || [],
+    )
     const itemIdMap = new Map(menuItemsData?.map((item) => [item.name, item.id]) || [])
 
     const orderItemsData = Object.entries(orderItems).map(([itemName, orderItem]) => {
