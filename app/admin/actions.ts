@@ -83,7 +83,11 @@ export async function deleteOrder(orderId: string) {
 export async function updateOrderItems(
   orderId: string,
   items: Array<{ id?: string; item_name: string; quantity: number; unit_price: number }>,
+  discountPercent = 0,
 ) {
+  if (!Number.isFinite(discountPercent) || discountPercent < 0 || discountPercent > 100) {
+    return { success: false, error: "Discount must be between 0 and 100" }
+  }
   try {
     console.log("[v0] Server action: updating order items for", orderId)
     const supabase = await createClient()
@@ -113,8 +117,12 @@ export async function updateOrderItems(
     }
 
     // Update order total price
-    const totalPrice = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
-    const { error: updateError } = await supabase.from("orders").update({ total_price: totalPrice }).eq("id", orderId)
+    const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
+    const totalPrice = Math.round((subtotal * (1 - discountPercent / 100)) * 100) / 100
+    const { error: updateError } = await supabase
+      .from("orders")
+      .update({ total_price: totalPrice, discount_percent: discountPercent })
+      .eq("id", orderId)
 
     if (updateError) {
       console.error("[v0] Error updating order total:", updateError)

@@ -17,6 +17,7 @@ interface OrderItem {
   quantity: number
   unit_price: number
   total_price: number
+  discount_percent?: number
 }
 
 interface MenuItem {
@@ -30,11 +31,12 @@ interface EditOrderModalProps {
   orderId: string
   customerName: string
   items: OrderItem[]
+  discountPercent?: number
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-export function EditOrderModal({ orderId, customerName, items, open, onOpenChange }: EditOrderModalProps) {
+export function EditOrderModal({ orderId, customerName, items, discountPercent = 0, open, onOpenChange }: EditOrderModalProps) {
   const router = useRouter()
   // Quantity is `number | ""` so the input can be temporarily empty while the user
   // is retyping a value (e.g. selecting the digits and deleting them) without the
@@ -50,6 +52,8 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
     })),
   )
   const [quantityErrors, setQuantityErrors] = useState<Record<number, boolean>>({})
+  const [discountInput, setDiscountInput] = useState(discountPercent ? String(discountPercent) : "")
+  const [discountError, setDiscountError] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<string>("")
   const [selectedItem, setSelectedItem] = useState<string>("")
   const [isSaving, setIsSaving] = useState(false)
@@ -243,14 +247,25 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
     })
   }
 
-  const getTotalPrice = () => {
-    return editedItems.reduce(
+  const getSubtotal = () =>
+    editedItems.reduce(
       (sum, item) => sum + (typeof item.quantity === "number" ? item.quantity : 0) * item.unit_price,
       0,
     )
-  }
+
+  const parsedDiscount = discountInput === "" ? 0 : Number(discountInput)
+  const isDiscountValid = discountInput === "" || (Number.isFinite(parsedDiscount) && parsedDiscount >= 0 && parsedDiscount <= 100)
+  const getDiscountAmount = () => Math.round(getSubtotal() * (parsedDiscount / 100) * 100) / 100
+  const getFinalTotal = () => Math.round((getSubtotal() - getDiscountAmount()) * 100) / 100
 
   const handleSave = async () => {
+    if (!isDiscountValid) {
+      setDiscountError(true)
+      toast({ title: "Invalid discount", description: "Enter a percentage from 0 to 100", variant: "destructive" })
+      return
+    }
+
+    setDiscountError(false)
     // Validate every quantity before saving. Invalid quantities are surfaced inline
     // instead of silently dropping the item or submitting bad data.
     const errors: Record<number, boolean> = {}
@@ -279,7 +294,7 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
     setIsSaving(true)
     try {
       console.log("[v0] Saving order with items:", itemsToSave)
-      const result = await updateOrderItems(orderId, itemsToSave)
+      const result = await updateOrderItems(orderId, itemsToSave, parsedDiscount)
       console.log("[v0] Save result:", result)
       if (result.success) {
         toast({
@@ -481,10 +496,33 @@ export function EditOrderModal({ orderId, customerName, items, open, onOpenChang
             </div>
           </div>
 
-          {/* Total */}
-          <div className="border-t border-gray-200 pt-4 flex justify-between items-center">
-            <span className="text-xl font-bold text-gray-900">Total:</span>
-            <span className="text-3xl font-bold text-teal-600">${getTotalPrice().toFixed(2)}</span>
+          {/* Discount and totals */}
+          <div className="border-t border-gray-200 pt-4 space-y-3">
+            <div className="flex items-center justify-between gap-4">
+              <Label htmlFor="order-discount" className="font-semibold text-gray-900">Discount (%)</Label>
+              <Input
+                id="order-discount"
+                type="text"
+                inputMode="decimal"
+                value={discountInput}
+                onChange={(event) => {
+                  const value = event.target.value
+                  if (value === "" || /^\\d{0,3}(\\.\\d{0,2})?$/.test(value)) {
+                    setDiscountInput(value)
+                    setDiscountError(false)
+                  }
+                }}
+                aria-invalid={discountError || undefined}
+                className={`w-28 text-base sm:text-sm ${discountError ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                placeholder="0"
+              />
+            </div>
+            {discountError && <p className="text-right text-xs text-red-600">Enter a percentage from 0 to 100.</p>}
+            <div className="space-y-1 text-right">
+              <div className="flex justify-between gap-4 text-gray-700"><span>Subtotal</span><span>${getSubtotal().toFixed(2)}</span></div>
+              {parsedDiscount > 0 && <div className="flex justify-between gap-4 text-gray-700"><span>Discount ({parsedDiscount}%)</span><span>-${getDiscountAmount().toFixed(2)}</span></div>}
+              <div className="flex justify-between gap-4 border-t border-gray-200 pt-3 text-xl font-bold text-gray-900"><span>Total</span><span className="text-3xl text-teal-600">${getFinalTotal().toFixed(2)}</span></div>
+            </div>
           </div>
 
           {/* Actions */}
