@@ -507,7 +507,7 @@ export function EditOrderModal({ orderId, customerName, items, discountPercent =
                 value={discountInput}
                 onChange={(event) => {
                   const value = event.target.value
-                  if (value === "" || /^\\d{0,3}(\\.\\d{0,2})?$/.test(value)) {
+                  if (value === "" || /^\d{0,3}(\.\d{0,2})?$/.test(value)) {
                     setDiscountInput(value)
                     setDiscountError(false)
                   }
