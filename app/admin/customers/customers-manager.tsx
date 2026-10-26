@@ -21,6 +21,7 @@ interface Customer {
     id: string
     created_at: string
     total_price: number
+    discount_percent?: number
     status: string
     order_items: { quantity: number; item_name?: string; unit_price?: number | null; total_price?: number | null }[]
   }[]
@@ -255,6 +256,16 @@ export function CustomersManager({ customers: initialCustomers }: CustomersManag
                         </div>
                       )
                     })}
+                    {Number(order.discount_percent || 0) > 0 && (() => {
+                      const subtotal = order.order_items.reduce((sum, item) => sum + Number(item.total_price ?? 0), 0)
+                      const discountAmount = Math.round(subtotal * Number(order.discount_percent) / 100 * 100) / 100
+                      return (
+                        <div className="space-y-1 border-t border-gray-200 pt-3 text-sm text-gray-700">
+                          <div className="flex justify-between gap-4"><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
+                          <div className="flex justify-between gap-4"><span>Discount ({Number(order.discount_percent)}%)</span><span>-${discountAmount.toFixed(2)}</span></div>
+                        </div>
+                      )
+                    })()}
                     <div className="flex items-center justify-between gap-4 border-t border-gray-200 pt-3 font-bold text-gray-900">
                       <span>Order total</span>
                       <span className="shrink-0 text-right text-primary">${Number(order.total_price).toFixed(2)}</span>

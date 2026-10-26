@@ -17,6 +17,7 @@ interface Order {
   customer_name: string
   phone: string
   total_price: number
+  discount_percent?: number
   status: string
   payment_status?: string
   created_at: string
@@ -86,7 +87,7 @@ export function OrdersList({
   const searchParams = useSearchParams()
   const totalPages = Math.ceil(totalOrders / pageSize)
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null)
-  const [editingOrder, setEditingOrder] = useState<{ id: string; name: string; items: OrderItem[] } | null>(null)
+  const [editingOrder, setEditingOrder] = useState<{ id: string; name: string; items: OrderItem[]; discountPercent: number } | null>(null)
   const [showCateringOnly, setShowCateringOnly] = useState(false)
   const [showMoreFilters, setShowMoreFilters] = useState(false)
   const [phoneSearch, setPhoneSearch] = useState(phoneFilter)
@@ -214,6 +215,13 @@ export function OrdersList({
     })
 
     message += `─────────────────\n`
+    const discountPercent = Number(order.discount_percent || 0)
+    if (discountPercent > 0) {
+      const subtotal = items.reduce((sum, item) => sum + Number(item.total_price || 0), 0)
+      const discountAmount = Math.round(subtotal * (discountPercent / 100) * 100) / 100
+      message += `Subtotal: $${subtotal.toFixed(2)}\n`
+      message += `Descuento (${discountPercent}%): -$${discountAmount.toFixed(2)}\n`
+    }
     message += `💰 *Total: $${Number(order.total_price).toFixed(2)}*\n\n`
     message += `We'll contact you soon to confirm delivery details. Thank you for your order! 🙏`
 
@@ -458,6 +466,12 @@ export function OrdersList({
                     )}
                   </div>
                   <div className="sm:text-right shrink-0">
+                    {Number(order.discount_percent || 0) > 0 && (
+                      <>
+                        <p className="text-xs text-gray-500">Subtotal: ${items.reduce((sum, item) => sum + Number(item.total_price || 0), 0).toFixed(2)}</p>
+                        <p className="text-xs text-gray-500">Discount ({Number(order.discount_percent)}%): -${(items.reduce((sum, item) => sum + Number(item.total_price || 0), 0) * Number(order.discount_percent) / 100).toFixed(2)}</p>
+                      </>
+                    )}
                     <p className="text-2xl sm:text-3xl font-bold text-gray-900">
                       ${Number(order.total_price).toFixed(2)}
                     </p>
@@ -481,7 +495,7 @@ export function OrdersList({
                   </Button>
                   <Button
                     size="sm"
-                    onClick={() => setEditingOrder({ id: order.id, name: order.customer_name, items })}
+                    onClick={() => setEditingOrder({ id: order.id, name: order.customer_name, items, discountPercent: Number(order.discount_percent || 0) })}
                     className="h-11 sm:h-9 text-xs sm:text-sm bg-teal-600 hover:bg-teal-700 text-white font-semibold shadow-sm"
                   >
                     <Pencil className="h-4 w-4 mr-1" />
@@ -627,6 +641,7 @@ export function OrdersList({
           orderId={editingOrder.id}
           customerName={editingOrder.name}
           items={editingOrder.items}
+          discountPercent={editingOrder.discountPercent}
           open={!!editingOrder}
           onOpenChange={(open) => !open && setEditingOrder(null)}
         />
