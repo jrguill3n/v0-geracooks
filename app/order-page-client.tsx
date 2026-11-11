@@ -12,7 +12,7 @@ import { useState, useRef, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
-import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react"
+import { Minus, Plus, Search, ShoppingBag, Trash2, X } from "lucide-react"
 import { PhoneInput } from "@/components/phone-input"
 
 interface MenuItem {
@@ -55,9 +55,38 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
   const [isCartSheetOpen, setIsCartSheetOpen] = useState(false)
   const categories = useMemo(() => Object.keys(menuItems), [menuItems])
   const [activeCategory, setActiveCategory] = useState<string>(() => categories[0] || "")
+  const [menuSearchQuery, setMenuSearchQuery] = useState("")
+  const filteredMenuItems = useMemo(() => {
+    const query = menuSearchQuery.trim().toLocaleLowerCase()
+    return Object.fromEntries(
+      Object.entries(menuItems).map(([category, items]) => [
+        category,
+        items.filter((item) => {
+          const searchableText = [
+            category,
+            item.name,
+            item.description || "",
+            ...(item.extras || []).map((extra) => extra.name),
+          ].join(" ").toLocaleLowerCase()
+          return !query || searchableText.includes(query)
+        }),
+      ]),
+    ) as Record<string, MenuItem[]>
+  }, [menuItems, menuSearchQuery])
+  const visibleCategories = useMemo(
+    () => categories.filter((category) => filteredMenuItems[category]?.length > 0),
+    [categories, filteredMenuItems],
+  )
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const categoryNavRef = useRef<HTMLDivElement | null>(null)
   const programmaticScrollRef = useRef<{ category: string; timeoutId: ReturnType<typeof setTimeout> } | null>(null)
+
+  useEffect(() => {
+    if (!visibleCategories.length) return
+    setActiveCategory((current) =>
+      visibleCategories.includes(current) ? current : visibleCategories[0],
+    )
+  }, [visibleCategories])
 
   const getCategoryId = (category: string) =>
     `category-${category.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`
@@ -87,7 +116,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
 
   // Scroll spy only observes sections. Updating the active pill never scrolls the page.
   useEffect(() => {
-    if (!categories.length) return
+    if (!visibleCategories.length) return
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -112,12 +141,12 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
 
         setActiveCategory((current) => (current === visibleCategory ? current : visibleCategory))
       },
-      // The sticky category bar occupies roughly the top 80px. Shrink the
-      // observer's visible region so the section underneath it is not selected.
-      { rootMargin: "-80px 0px -45% 0px", threshold: [0.1, 0.25, 0.5] },
+      // The sticky search and category controls occupy roughly the top 116px.
+      // Shrink the observer's visible region so the section under them is not selected.
+      { rootMargin: "-116px 0px -45% 0px", threshold: [0.1, 0.25, 0.5] },
     )
 
-    categories.forEach((category) => {
+    visibleCategories.forEach((category) => {
       const section = sectionRefs.current[category]
       if (section) observer.observe(section)
     })
@@ -129,7 +158,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
         programmaticScrollRef.current = null
       }
     }
-  }, [categories])
+  }, [visibleCategories])
 
   useEffect(() => {
     if (customerName.length >= 2 || phoneNumber.length >= 3) {
@@ -393,90 +422,92 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
         </div>
       </div>
 
-      <div className="sticky top-0 z-50 bg-white">
-        <div className="max-w-2xl mx-auto px-4 py-2">
-          <div className="overflow-x-auto overflow-y-visible scrollbar-hide -mx-4 px-4 pt-2 pb-3" ref={categoryNavRef}>
-            <div className="flex gap-2 min-w-max">
-              {Object.keys(menuItems).map((category) => {
-                const isActive = activeCategory === category
-                const itemCount = getCategoryItemCount(category)
-                
-                return (
-                  <button
-                    key={category}
-                    data-category={category}
-                    onClick={() => scrollToSection(category)}
-                    className={`px-4 py-2 rounded-full font-bold text-xs transition-all duration-200 whitespace-nowrap shadow-sm relative overflow-visible ${
-                      isActive 
-                        ? 'bg-indigo-600 text-white' 
-                        : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                    }`}
-                  >
-                    {category}
-                    {itemCount > 0 && (
-                      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center px-1">
-                        {itemCount}
-                      </span>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
+      <div className="sticky top-0 z-50 border-b border-gray-100 bg-white/95 shadow-sm backdrop-blur">
+        <div className="max-w-2xl mx-auto px-4 pt-3 pb-2">
+          <div className="relative mb-3" role="search">
+            <Search
+              className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+              aria-hidden="true"
+            />
+            <Input
+              type="search"
+              value={menuSearchQuery}
+              onChange={(event) => setMenuSearchQuery(event.target.value)}
+              placeholder="Search dishes or ingredients"
+              aria-label="Search menu"
+              className="h-11 rounded-2xl border-gray-200 bg-gray-50 pl-10 pr-10 text-sm focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
+            />
+            {menuSearchQuery && (
+              <button
+                type="button"
+                onClick={() => setMenuSearchQuery("")}
+                aria-label="Clear menu search"
+                className="absolute right-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-200 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              >
+                <X className="size-4" aria-hidden="true" />
+              </button>
+            )}
           </div>
+          {visibleCategories.length > 0 ? (
+            <div className="overflow-x-auto overflow-y-visible scrollbar-hide -mx-4 px-4 pb-1" ref={categoryNavRef}>
+              <div className="flex min-w-max gap-2">
+                {visibleCategories.map((category) => {
+                  const isActive = activeCategory === category
+                  const itemCount = getCategoryItemCount(category)
+
+                  return (
+                    <button
+                      key={category}
+                      type="button"
+                      data-category={category}
+                      onClick={() => scrollToSection(category)}
+                      aria-current={isActive ? "true" : undefined}
+                      className={`relative whitespace-nowrap rounded-full px-4 py-2 text-xs font-bold shadow-sm transition-colors ${
+                        isActive
+                          ? "bg-indigo-600 text-white"
+                          : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                      }`}
+                    >
+                      {category}
+                      {itemCount > 0 && (
+                        <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                          {itemCount}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ) : menuSearchQuery ? (
+            <p className="pb-1 text-center text-xs text-gray-500" role="status">
+              No dishes match “{menuSearchQuery}”. Try another search.
+            </p>
+          ) : null}
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-6 py-4">
-        <div className="bg-white border-0 rounded-3xl shadow-lg p-6 mb-4">
-          <h2 className="text-xl font-bold mb-4 text-foreground">Your Information</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold mb-2 text-foreground/70 tracking-wide">Name</label>
-              <Input
-                type="text"
-                name="name"
-                autoComplete="name"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onFocus={() => customerSuggestions.length > 0 && setShowSuggestions(true)}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                placeholder="Enter your name"
-                className="w-full bg-muted/50 border-0 focus:bg-white focus:ring-2 focus:ring-primary/20 h-12 rounded-2xl text-sm shadow-sm"
-              />
-              {showSuggestions && customerSuggestions.length > 0 && (
-                <div className="absolute z-50 w-full mt-2 bg-white border border-primary/20 rounded-2xl shadow-xl max-h-60 overflow-y-auto">
-                  {customerSuggestions.map((customer, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => selectSuggestion(customer)}
-                      className={`w-full text-left px-4 py-3 hover:bg-primary/5 transition-colors first:rounded-t-2xl last:rounded-b-2xl ${
-                        index === selectedSuggestionIndex ? "bg-primary/10" : ""
-                      }`}
-                    >
-                      <div className="font-bold text-foreground">{customer.name}</div>
-                      <div className="text-xs text-foreground/60 mt-0.5">
-                        {customer.country_code} {customer.phone_number}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div>
-              <label className="block text-xs font-bold mb-2 text-foreground/70 tracking-wide">Phone Number</label>
-              <PhoneInput
-                countryCode={countryCode}
-                phoneNumber={phoneNumber}
-                onCountryCodeChange={setCountryCode}
-                onPhoneNumberChange={setPhoneNumber}
-              />
-            </div>
+        {menuSearchQuery && visibleCategories.length > 0 && (
+          <p className="mb-3 text-xs text-gray-500" role="status" aria-live="polite">
+            {visibleCategories.reduce((count, category) => count + filteredMenuItems[category].length, 0)} results for “{menuSearchQuery}”
+          </p>
+        )}
+        {visibleCategories.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center">
+            <h2 className="font-semibold text-gray-900">No dishes found</h2>
+            <p className="mt-1 text-sm text-gray-500">Try another name, ingredient, or category.</p>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setMenuSearchQuery("")}
+              className="mt-4 rounded-full border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+            >
+              Clear search
+            </Button>
           </div>
-        </div>
-
-        {Object.entries(menuItems).map(([category, items]) => {
+        ) : visibleCategories.map((category) => {
+          const items = filteredMenuItems[category]
           const categoryItemCount = getCategoryItemCount(category)
           
           return (
@@ -484,7 +515,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
               key={category}
               id={getCategoryId(category)}
               data-category={category}
-              className="mb-6 scroll-mt-24"
+              className="mb-6 scroll-mt-32"
               ref={(el) => {
                 sectionRefs.current[category] = el
               }}
@@ -572,6 +603,58 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
           <p className="text-sm text-foreground/60 italic font-medium">
             Nuestros empaques son de 1 libra y sirven aproximadamente 2 porciones.
           </p>
+        </div>
+
+        <div className="bg-white border-0 rounded-3xl shadow-lg p-6 mb-6">
+          <h2 className="text-xl font-bold mb-1 text-foreground">Your Information</h2>
+          <p className="mb-4 text-sm text-muted-foreground">Add your contact details when you&apos;re ready to place the order.</p>
+          <div className="space-y-4">
+            <div className="relative">
+              <label htmlFor="customer-name" className="block text-xs font-bold mb-2 text-foreground/70 tracking-wide">Name</label>
+              <Input
+                id="customer-name"
+                type="text"
+                name="name"
+                autoComplete="name"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onFocus={() => customerSuggestions.length > 0 && setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                placeholder="Enter your name"
+                className="w-full bg-muted/50 border-0 focus:bg-white focus:ring-2 focus:ring-primary/20 h-12 rounded-2xl text-sm shadow-sm"
+              />
+              {showSuggestions && customerSuggestions.length > 0 && (
+                <div className="absolute z-50 w-full mt-2 bg-white border border-primary/20 rounded-2xl shadow-xl max-h-60 overflow-y-auto">
+                  {customerSuggestions.map((customer, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => selectSuggestion(customer)}
+                      className={`w-full text-left px-4 py-3 hover:bg-primary/5 transition-colors first:rounded-t-2xl last:rounded-b-2xl ${
+                        index === selectedSuggestionIndex ? "bg-primary/10" : ""
+                      }`}
+                    >
+                      <div className="font-bold text-foreground">{customer.name}</div>
+                      <div className="text-xs text-foreground/60 mt-0.5">
+                        {customer.country_code} {customer.phone_number}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div>
+              <label htmlFor="customer-phone" className="block text-xs font-bold mb-2 text-foreground/70 tracking-wide">Phone Number</label>
+              <PhoneInput
+                inputId="customer-phone"
+                countryCode={countryCode}
+                phoneNumber={phoneNumber}
+                onCountryCodeChange={setCountryCode}
+                onPhoneNumberChange={setPhoneNumber}
+              />
+            </div>
+          </div>
         </div>
 
         <div className="bg-white border-0 rounded-3xl shadow-lg p-6 mt-6">
