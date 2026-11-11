@@ -435,7 +435,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
               onChange={(event) => setMenuSearchQuery(event.target.value)}
               placeholder="Search dishes or ingredients"
               aria-label="Search menu"
-              className="h-11 rounded-2xl border-gray-200 bg-gray-50 pl-10 pr-10 text-sm focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
+              className="h-11 rounded-2xl border-gray-200 bg-gray-50 pl-10 pr-10 text-base focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
             />
             {menuSearchQuery && (
               <button
@@ -622,7 +622,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
                 onFocus={() => customerSuggestions.length > 0 && setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                 placeholder="Enter your name"
-                className="w-full bg-muted/50 border-0 focus:bg-white focus:ring-2 focus:ring-primary/20 h-12 rounded-2xl text-sm shadow-sm"
+                className="w-full bg-muted/50 border-0 focus:bg-white focus:ring-2 focus:ring-primary/20 h-12 rounded-2xl text-base shadow-sm"
               />
               {showSuggestions && customerSuggestions.length > 0 && (
                 <div className="absolute z-50 w-full mt-2 bg-white border border-primary/20 rounded-2xl shadow-xl max-h-60 overflow-y-auto">

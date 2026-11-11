@@ -163,7 +163,7 @@ export function PhoneInput({
                   placeholder="Search country or code..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 bg-white border-gray-300 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 text-sm"
+                  className="pl-9 bg-white border-gray-300 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 text-base md:text-base"
                   autoFocus
                 />
               </div>
@@ -205,7 +205,7 @@ export function PhoneInput({
         onChange={handlePhoneNumberChange}
         placeholder="5551234567"
         required={required}
-        className="flex-1 min-w-0 bg-white border border-gray-300 focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+        className="flex-1 min-w-0 bg-white border border-gray-300 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 text-base md:text-base"
       />
     </div>
   )
