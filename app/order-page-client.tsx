@@ -12,7 +12,7 @@ import { useState, useRef, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
-import { Minus, Plus, ShoppingBag } from "lucide-react"
+import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react"
 import { PhoneInput } from "@/components/phone-input"
 
 interface MenuItem {
@@ -234,6 +234,14 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
     } else {
       updateQuantity(item.name, 1, [])
     }
+  }
+
+  const removeOrderLine = (lineKey: string) => {
+    setOrderItems((prev) => {
+      const next = { ...prev }
+      delete next[lineKey]
+      return next
+    })
   }
 
   const updateQuantity = (itemName: string, change: number, extras?: string[]) => {
@@ -708,6 +716,14 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
                             >
                               <Plus className="h-4 w-4" />
                             </button>
+                            <button
+                              onClick={() => removeOrderLine(lineKey)}
+                              aria-label={`Remove all ${orderItem.quantity} ${item.name}${orderItem.extras.length ? " with extras" : " without extras"} from order`}
+                              title="Remove this item"
+                              className="ml-auto h-9 w-9 flex items-center justify-center rounded-lg border border-red-200 bg-white text-red-700 transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2"
+                            >
+                              <Trash2 className="h-4 w-4" aria-hidden="true" />
+                            </button>
                           </div>
                         </div>
                       )
@@ -752,9 +768,10 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
           <div className="space-y-4">
             <p className="text-sm text-gray-600">Select optional extras for this item:</p>
             {selectedItemForExtras?.extras?.map((extra) => (
-              <div key={extra.id} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50">
+              <div key={extra.id} className="flex items-center gap-3 rounded-lg border border-indigo-200 bg-white p-3 transition-colors hover:border-indigo-400 hover:bg-indigo-50">
                 <Checkbox
                   id={extra.id}
+                  className="size-5 border-2 border-indigo-700 bg-white data-[state=checked]:border-indigo-700 data-[state=checked]:bg-indigo-700 data-[state=checked]:text-white focus-visible:ring-indigo-500"
                   checked={tempExtras.includes(extra.id)}
                   onCheckedChange={(checked) => {
                     setTempExtras((prev) => (checked ? [...prev, extra.id] : prev.filter((id) => id !== extra.id)))
