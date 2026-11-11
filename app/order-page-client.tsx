@@ -141,9 +141,9 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
 
         setActiveCategory((current) => (current === visibleCategory ? current : visibleCategory))
       },
-      // The sticky search and category controls occupy roughly the top 116px.
-      // Shrink the observer's visible region so the section under them is not selected.
-      { rootMargin: "-116px 0px -45% 0px", threshold: [0.1, 0.25, 0.5] },
+      // The sticky search bar occupies roughly the top 72px.
+      // Shrink the observer's visible region so the section under it is not selected.
+      { rootMargin: "-80px 0px -45% 0px", threshold: [0.1, 0.25, 0.5] },
     )
 
     visibleCategories.forEach((category) => {
@@ -234,20 +234,9 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
     }, 1200)
     programmaticScrollRef.current = { category, timeoutId }
 
-    // scroll-margin-top accounts for the sticky category bar. This moves the
+    // scroll-margin-top accounts for the sticky search bar. This moves the
     // document only for an explicit pill click, never as a result of the spy.
     section.scrollIntoView({ behavior: "smooth", block: "start" })
-
-    // Keep only the horizontal pill strip in view; block: nearest avoids
-    // accidentally scrolling the document while centering the active pill.
-    const button = categoryNavRef.current?.querySelector<HTMLButtonElement>(
-      `[data-category="${CSS.escape(category)}"]`,
-    )
-    if (button && categoryNavRef.current) {
-      const container = categoryNavRef.current
-      const targetLeft = button.offsetLeft - (container.clientWidth - button.offsetWidth) / 2
-      container.scrollTo({ left: Math.max(0, targetLeft), behavior: "smooth" })
-    }
   }
 
   const getOrderLineKey = (itemName: string, extras: string[]) =>
@@ -424,7 +413,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
 
       <div className="sticky top-0 z-50 border-b border-gray-100 bg-white/95 shadow-sm backdrop-blur">
         <div className="max-w-2xl mx-auto px-4 pt-3 pb-2">
-          <div className="relative mb-3" role="search">
+          <div className="relative" role="search">
             <Search
               className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
               aria-hidden="true"
@@ -448,44 +437,41 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
               </button>
             )}
           </div>
-          {visibleCategories.length > 0 ? (
-            <div className="overflow-x-auto overflow-y-visible scrollbar-hide -mx-4 px-4 pb-1" ref={categoryNavRef}>
-              <div className="flex min-w-max gap-2">
-                {visibleCategories.map((category) => {
-                  const isActive = activeCategory === category
-                  const itemCount = getCategoryItemCount(category)
-
-                  return (
-                    <button
-                      key={category}
-                      type="button"
-                      data-category={category}
-                      onClick={() => scrollToSection(category)}
-                      aria-current={isActive ? "true" : undefined}
-                      className={`relative whitespace-nowrap rounded-full px-4 py-2 text-xs font-bold shadow-sm transition-colors ${
-                        isActive
-                          ? "bg-indigo-600 text-white"
-                          : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
-                      }`}
-                    >
-                      {category}
-                      {itemCount > 0 && (
-                        <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-                          {itemCount}
-                        </span>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          ) : menuSearchQuery ? (
-            <p className="pb-1 text-center text-xs text-gray-500" role="status">
-              No dishes match “{menuSearchQuery}”. Try another search.
-            </p>
-          ) : null}
         </div>
       </div>
+
+      {visibleCategories.length > 0 && (
+        <nav aria-label="Menu categories" className="max-w-2xl mx-auto px-4 pt-3" ref={categoryNavRef}>
+          <div className="flex flex-wrap gap-x-2 gap-y-3">
+            {visibleCategories.map((category) => {
+              const isActive = activeCategory === category
+              const itemCount = getCategoryItemCount(category)
+
+              return (
+                <button
+                  key={category}
+                  type="button"
+                  data-category={category}
+                  onClick={() => scrollToSection(category)}
+                  aria-current={isActive ? "true" : undefined}
+                  className={`relative rounded-full px-3.5 py-2 text-xs font-bold shadow-sm transition-colors ${
+                    isActive
+                      ? "bg-indigo-600 text-white"
+                      : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                  }`}
+                >
+                  {category}
+                  {itemCount > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                      {itemCount}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </nav>
+      )}
 
       <div className="max-w-2xl mx-auto px-6 py-4">
         {menuSearchQuery && visibleCategories.length > 0 && (
@@ -515,7 +501,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
               key={category}
               id={getCategoryId(category)}
               data-category={category}
-              className="mb-6 scroll-mt-32"
+              className="mb-6 scroll-mt-20"
               ref={(el) => {
                 sectionRefs.current[category] = el
               }}
@@ -603,58 +589,6 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
           <p className="text-sm text-foreground/60 italic font-medium">
             Nuestros empaques son de 1 libra y sirven aproximadamente 2 porciones.
           </p>
-        </div>
-
-        <div className="bg-white border-0 rounded-3xl shadow-lg p-6 mb-6">
-          <h2 className="text-xl font-bold mb-1 text-foreground">Your Information</h2>
-          <p className="mb-4 text-sm text-muted-foreground">Add your contact details when you&apos;re ready to place the order.</p>
-          <div className="space-y-4">
-            <div className="relative">
-              <label htmlFor="customer-name" className="block text-xs font-bold mb-2 text-foreground/70 tracking-wide">Name</label>
-              <Input
-                id="customer-name"
-                type="text"
-                name="name"
-                autoComplete="name"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onFocus={() => customerSuggestions.length > 0 && setShowSuggestions(true)}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                placeholder="Enter your name"
-                className="w-full bg-muted/50 border-0 focus:bg-white focus:ring-2 focus:ring-primary/20 h-12 rounded-2xl text-base shadow-sm"
-              />
-              {showSuggestions && customerSuggestions.length > 0 && (
-                <div className="absolute z-50 w-full mt-2 bg-white border border-primary/20 rounded-2xl shadow-xl max-h-60 overflow-y-auto">
-                  {customerSuggestions.map((customer, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => selectSuggestion(customer)}
-                      className={`w-full text-left px-4 py-3 hover:bg-primary/5 transition-colors first:rounded-t-2xl last:rounded-b-2xl ${
-                        index === selectedSuggestionIndex ? "bg-primary/10" : ""
-                      }`}
-                    >
-                      <div className="font-bold text-foreground">{customer.name}</div>
-                      <div className="text-xs text-foreground/60 mt-0.5">
-                        {customer.country_code} {customer.phone_number}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div>
-              <label htmlFor="customer-phone" className="block text-xs font-bold mb-2 text-foreground/70 tracking-wide">Phone Number</label>
-              <PhoneInput
-                inputId="customer-phone"
-                countryCode={countryCode}
-                phoneNumber={phoneNumber}
-                onCountryCodeChange={setCountryCode}
-                onPhoneNumberChange={setPhoneNumber}
-              />
-            </div>
-          </div>
         </div>
 
         <div className="bg-white border-0 rounded-3xl shadow-lg p-6 mt-6">
@@ -815,6 +749,60 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
                 </div>
               )
             })}
+
+            <section aria-labelledby="checkout-details-heading" className="border-t pt-5">
+              <h3 id="checkout-details-heading" className="text-sm font-bold text-indigo-700 uppercase tracking-wide mb-1">
+                Your details
+              </h3>
+              <p className="mb-4 text-sm text-gray-500">So we can contact you about your delivery.</p>
+              <div className="flex flex-col gap-4">
+                <div className="relative">
+                  <label htmlFor="customer-name" className="block text-xs font-bold mb-2 text-gray-700 tracking-wide">Name</label>
+                  <Input
+                    id="customer-name"
+                    type="text"
+                    name="name"
+                    autoComplete="name"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    onFocus={() => customerSuggestions.length > 0 && setShowSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                    placeholder="Enter your name"
+                    className="w-full bg-gray-50 border-gray-200 focus:bg-white h-12 rounded-2xl text-base shadow-sm"
+                  />
+                  {showSuggestions && customerSuggestions.length > 0 && (
+                    <div className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto">
+                      {customerSuggestions.map((customer, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => selectSuggestion(customer)}
+                          className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors first:rounded-t-2xl last:rounded-b-2xl ${
+                            index === selectedSuggestionIndex ? "bg-gray-100" : ""
+                          }`}
+                        >
+                          <div className="font-bold text-gray-900">{customer.name}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            {customer.country_code} {customer.phone_number}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label htmlFor="customer-phone" className="block text-xs font-bold mb-2 text-gray-700 tracking-wide">Phone Number</label>
+                  <PhoneInput
+                    inputId="customer-phone"
+                    countryCode={countryCode}
+                    phoneNumber={phoneNumber}
+                    onCountryCodeChange={setCountryCode}
+                    onPhoneNumberChange={setPhoneNumber}
+                  />
+                </div>
+              </div>
+            </section>
           </div>
           
           <div className="border-t px-6 py-4 bg-white" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
@@ -836,7 +824,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
             
             {(!customerName || !phoneNumber) && (
               <p className="text-xs text-red-600 text-center mt-2">
-                Please fill in your name and phone number above
+                Add your name and phone number above to place your order
               </p>
             )}
           </div>
