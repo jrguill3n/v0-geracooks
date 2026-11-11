@@ -404,9 +404,16 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
   return (
     <div className="min-h-screen bg-white pb-24">
       <div className="bg-white">
-        <div className="max-w-2xl mx-auto px-6 py-0">
+        <div className="max-w-2xl mx-auto px-6 py-1">
           <div className="flex flex-col items-center text-center">
-            <Image src="/gera-logo.png" alt="GERA COOKS" width={220} height={220} className="object-contain" />
+            <Image
+              src="/gera-logo.png"
+              alt="GERA COOKS"
+              width={220}
+              height={220}
+              priority
+              className="size-24 object-contain sm:size-32"
+            />
           </div>
         </div>
       </div>
