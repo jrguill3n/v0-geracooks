@@ -404,9 +404,16 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
   return (
     <div className="min-h-screen bg-white pb-24">
       <div className="bg-white">
-        <div className="max-w-2xl mx-auto px-6 py-0">
+        <div className="max-w-2xl mx-auto px-6 pt-3 pb-2">
           <div className="flex flex-col items-center text-center">
-            <Image src="/gera-logo.png" alt="GERA COOKS" width={220} height={220} className="object-contain" />
+            <Image
+              src="/gera-logo-compact.png"
+              alt="GERA COOKS"
+              width={569}
+              height={391}
+              priority
+              className="h-16 w-auto sm:h-24"
+            />
           </div>
         </div>
       </div>
@@ -669,7 +676,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
       )}
 
       <Sheet open={isCartSheetOpen} onOpenChange={setIsCartSheetOpen}>
-        <SheetContent>
+        <SheetContent className="w-[92%] gap-0 sm:max-w-md">
           <SheetHeader>
             <SheetTitle>Your Order</SheetTitle>
           </SheetHeader>
@@ -750,14 +757,16 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
               )
             })}
 
-            <section aria-labelledby="checkout-details-heading" className="border-t pt-5">
-              <h3 id="checkout-details-heading" className="text-sm font-bold text-indigo-700 uppercase tracking-wide mb-1">
+          </div>
+
+          <div className="shrink-0 border-t bg-white px-6 pt-4 pb-3">
+            <section aria-labelledby="checkout-details-heading">
+              <h3 id="checkout-details-heading" className="text-sm font-bold text-indigo-700 uppercase tracking-wide mb-3">
                 Your details
               </h3>
-              <p className="mb-4 text-sm text-gray-500">So we can contact you about your delivery.</p>
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3">
                 <div className="relative">
-                  <label htmlFor="customer-name" className="block text-xs font-bold mb-2 text-gray-700 tracking-wide">Name</label>
+                  <label htmlFor="customer-name" className="block text-xs font-bold mb-1 text-gray-700 tracking-wide">Name</label>
                   <Input
                     id="customer-name"
                     type="text"
@@ -769,10 +778,10 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
                     onFocus={() => customerSuggestions.length > 0 && setShowSuggestions(true)}
                     onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                     placeholder="Enter your name"
-                    className="w-full bg-gray-50 border-gray-200 focus:bg-white h-12 rounded-2xl text-base shadow-sm"
+                    className="w-full bg-gray-50 border-gray-200 focus:bg-white h-11 rounded-2xl text-base shadow-sm"
                   />
                   {showSuggestions && customerSuggestions.length > 0 && (
-                    <div className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto">
+                    <div className="absolute bottom-full z-50 w-full mb-2 bg-white border border-gray-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto">
                       {customerSuggestions.map((customer, index) => (
                         <button
                           key={index}
@@ -792,7 +801,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
                   )}
                 </div>
                 <div>
-                  <label htmlFor="customer-phone" className="block text-xs font-bold mb-2 text-gray-700 tracking-wide">Phone Number</label>
+                  <label htmlFor="customer-phone" className="block text-xs font-bold mb-1 text-gray-700 tracking-wide">Phone Number</label>
                   <PhoneInput
                     inputId="customer-phone"
                     countryCode={countryCode}
@@ -805,8 +814,8 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
             </section>
           </div>
           
-          <div className="border-t px-6 py-4 bg-white" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
-            <div className="flex items-center justify-between mb-4">
+          <div className="shrink-0 bg-white px-6 pb-4" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+            <div className="flex items-center justify-between mb-3">
               <span className="text-lg font-bold text-gray-900">Total</span>
               <span className="text-2xl font-bold text-indigo-600">${getTotalPrice().toFixed(2)}</span>
             </div>
