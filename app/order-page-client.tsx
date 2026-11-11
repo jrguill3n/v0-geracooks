@@ -5,6 +5,7 @@ import Image from "next/image"
 import { InfoTooltip } from "@/components/info-tooltip"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { ScrollHintArea } from "@/components/scroll-hint-area"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 
@@ -681,7 +682,8 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
             <SheetTitle>Your Order</SheetTitle>
           </SheetHeader>
           
-          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+          <ScrollHintArea className="px-4 py-2 sm:px-6">
+            <div className="flex flex-col gap-4 pb-8">
             {Object.entries(menuItems).map(([category, items]) => {
               const categoryLines = items.flatMap((item) =>
                 getItemOrderLines(item.name).map(([lineKey, orderItem]) => ({ item, lineKey, orderItem })),
@@ -691,10 +693,10 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
 
               return (
                 <div key={category}>
-                  <h3 className="text-sm font-bold text-indigo-700 uppercase tracking-wide mb-3">
+                  <h3 className="text-xs font-bold text-indigo-700 uppercase tracking-wide mb-1.5">
                     {category}
                   </h3>
-                  <div className="space-y-3">
+                  <div className="flex flex-col gap-2">
                     {categoryLines.map(({ item, lineKey, orderItem }) => {
                       const extrasPrice = orderItem.extras.reduce((sum, extraId) => {
                         return sum + (item.extras?.find((extra) => extra.id === extraId)?.price || 0)
@@ -702,52 +704,48 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
                       const subtotal = (item.price + extrasPrice) * orderItem.quantity
 
                       return (
-                        <div key={lineKey} className="bg-gray-50 rounded-xl p-3">
-                          <div className="flex items-start justify-between gap-3 mb-2">
-                            <div className="flex-1">
-                              <h4 className="font-bold text-gray-900">{item.name}</h4>
-                              {orderItem.extras.length > 0 ? (
-                                <div className="text-xs text-gray-600 mt-1">
-                                  {orderItem.extras.map((extraId) => {
-                                    const extra = item.extras?.find((candidate) => candidate.id === extraId)
-                                    return extra ? <div key={extra.id}>+ {extra.name}</div> : null
-                                  })}
-                                </div>
-                              ) : (
-                                <p className="text-xs text-gray-500 mt-1">No extras</p>
-                              )}
+                        <div key={lineKey} className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-baseline justify-between gap-2">
+                              <h4 className="truncate text-sm font-bold text-gray-900">{item.name}</h4>
+                              <p className="shrink-0 text-sm font-bold text-gray-900">${subtotal.toFixed(2)}</p>
                             </div>
-                            <div className="text-right">
-                              <p className="font-bold text-gray-900">${subtotal.toFixed(2)}</p>
+                            {orderItem.extras.length > 0 && (
+                              <p className="truncate text-xs text-gray-600">
+                                {orderItem.extras
+                                  .map((extraId) => item.extras?.find((candidate) => candidate.id === extraId)?.name)
+                                  .filter(Boolean)
+                                  .map((name) => `+ ${name}`)
+                                  .join(", ")}
+                              </p>
+                            )}
+                            <div className="mt-1 flex items-center gap-1.5">
+                              <button
+                                onClick={() => updateQuantity(item.name, -1, orderItem.extras)}
+                                aria-label={`Remove one ${item.name}${orderItem.extras.length ? " with extras" : " without extras"}`}
+                                className="h-7 w-7 flex items-center justify-center bg-white hover:bg-gray-100 text-gray-700 rounded-full transition-all duration-200"
+                              >
+                                <Minus className="h-3.5 w-3.5" />
+                              </button>
+                              <span className="min-w-[1.5rem] text-center text-sm font-bold text-gray-900">
+                                {orderItem.quantity}
+                              </span>
+                              <button
+                                onClick={() => handleAddItem(item)}
+                                aria-label={`Add another ${item.name}`}
+                                className="h-7 w-7 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-all duration-200"
+                              >
+                                <Plus className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => removeOrderLine(lineKey)}
+                                aria-label={`Remove all ${orderItem.quantity} ${item.name}${orderItem.extras.length ? " with extras" : " without extras"} from order`}
+                                title="Remove this item"
+                                className="ml-auto h-7 w-7 flex items-center justify-center rounded-lg border border-red-200 bg-white text-red-700 transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                              </button>
                             </div>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => updateQuantity(item.name, -1, orderItem.extras)}
-                              aria-label={`Remove one ${item.name}${orderItem.extras.length ? " with extras" : " without extras"}`}
-                              className="h-8 w-8 flex items-center justify-center bg-white hover:bg-gray-100 text-gray-700 rounded-full transition-all duration-200"
-                            >
-                              <Minus className="h-4 w-4" />
-                            </button>
-                            <span className="min-w-[2rem] text-center font-bold text-gray-900">
-                              {orderItem.quantity}
-                            </span>
-                            <button
-                              onClick={() => handleAddItem(item)}
-                              aria-label={`Add another ${item.name}`}
-                              className="h-8 w-8 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-all duration-200"
-                            >
-                              <Plus className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => removeOrderLine(lineKey)}
-                              aria-label={`Remove all ${orderItem.quantity} ${item.name}${orderItem.extras.length ? " with extras" : " without extras"} from order`}
-                              title="Remove this item"
-                              className="ml-auto h-9 w-9 flex items-center justify-center rounded-lg border border-red-200 bg-white text-red-700 transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2"
-                            >
-                              <Trash2 className="h-4 w-4" aria-hidden="true" />
-                            </button>
                           </div>
                         </div>
                       )
@@ -756,15 +754,15 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
                 </div>
               )
             })}
+            </div>
+          </ScrollHintArea>
 
-          </div>
-
-          <div className="shrink-0 border-t bg-white px-6 pt-4 pb-3">
+          <div className="shrink-0 border-t bg-white px-4 pt-3 pb-2 sm:px-6">
             <section aria-labelledby="checkout-details-heading">
-              <h3 id="checkout-details-heading" className="text-sm font-bold text-indigo-700 uppercase tracking-wide mb-3">
+              <h3 id="checkout-details-heading" className="text-xs font-bold text-indigo-700 uppercase tracking-wide mb-2">
                 Your details
               </h3>
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2">
                 <div className="relative">
                   <label htmlFor="customer-name" className="block text-xs font-bold mb-1 text-gray-700 tracking-wide">Name</label>
                   <Input
@@ -778,7 +776,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
                     onFocus={() => customerSuggestions.length > 0 && setShowSuggestions(true)}
                     onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                     placeholder="Enter your name"
-                    className="w-full bg-gray-50 border-gray-200 focus:bg-white h-11 rounded-2xl text-base shadow-sm"
+                    className="w-full bg-gray-50 border-gray-200 focus:bg-white h-10 rounded-2xl text-base shadow-sm"
                   />
                   {showSuggestions && customerSuggestions.length > 0 && (
                     <div className="absolute bottom-full z-50 w-full mb-2 bg-white border border-gray-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto">
@@ -814,10 +812,10 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
             </section>
           </div>
           
-          <div className="shrink-0 bg-white px-6 pb-4" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-lg font-bold text-gray-900">Total</span>
-              <span className="text-2xl font-bold text-indigo-600">${getTotalPrice().toFixed(2)}</span>
+          <div className="shrink-0 bg-white px-4 sm:px-6" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-base font-bold text-gray-900">Total</span>
+              <span className="text-xl font-bold text-indigo-600">${getTotalPrice().toFixed(2)}</span>
             </div>
             
             <Button
@@ -825,7 +823,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
                 setIsCartSheetOpen(false)
                 handleSubmit(e)
               }}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-6 rounded-2xl shadow-lg"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-12 rounded-2xl shadow-lg"
               disabled={!customerName || !phoneNumber || submitStatus === "submitting"}
             >
               {submitStatus === "submitting" ? "Placing Order..." : "Place Order"}
