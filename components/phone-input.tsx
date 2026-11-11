@@ -80,6 +80,7 @@ interface PhoneInputProps {
   onCountryCodeChange?: (code: string) => void
   onPhoneNumberChange?: (number: string) => void
   required?: boolean
+  inputId?: string
 }
 
 export function PhoneInput({
@@ -88,6 +89,7 @@ export function PhoneInput({
   onCountryCodeChange,
   onPhoneNumberChange,
   required,
+  inputId,
 }: PhoneInputProps) {
   const [selectedCode, setSelectedCode] = useState(countryCode)
   const [phoneDigits, setPhoneDigits] = useState(phoneNumber)
@@ -195,6 +197,7 @@ export function PhoneInput({
 
       {/* Phone Number Input */}
       <Input
+        id={inputId}
         type="tel"
         name="tel"
         autoComplete="tel"
