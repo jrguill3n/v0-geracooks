@@ -28,8 +28,9 @@ interface OrderPageClientProps {
 }
 
 interface OrderItem {
+  itemName: string
   quantity: number
-  extras: string[] // Array of extra IDs
+  extras: string[]
 }
 
 interface Customer {
@@ -220,30 +221,43 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
     }
   }
 
+  const getOrderLineKey = (itemName: string, extras: string[]) =>
+    `${encodeURIComponent(itemName)}::${[...extras].sort().join(",")}`
+
+  const getItemOrderLines = (itemName: string) =>
+    Object.entries(orderItems).filter(([, orderItem]) => orderItem.itemName === itemName)
+
   const handleAddItem = (item: MenuItem) => {
     if (item.extras && item.extras.length > 0) {
       setSelectedItemForExtras(item)
-      setTempExtras(orderItems[item.name]?.extras || [])
+      setTempExtras([])
     } else {
-      updateQuantity(item.name, 1)
+      updateQuantity(item.name, 1, [])
     }
   }
 
-  const updateQuantity = (itemName: string, change: number, newExtras?: string[]) => {
+  const updateQuantity = (itemName: string, change: number, extras?: string[]) => {
     setOrderItems((prev) => {
-      const currentItem = prev[itemName]
+      const matchingLines = Object.entries(prev).filter(([, line]) => line.itemName === itemName)
+      const targetKey = extras !== undefined
+        ? getOrderLineKey(itemName, extras)
+        : matchingLines[0]?.[0]
+
+      if (!targetKey) return prev
+      const currentItem = prev[targetKey]
       const newQuantity = (currentItem?.quantity || 0) + change
 
       if (newQuantity <= 0) {
-        const { [itemName]: _, ...rest } = prev
+        const { [targetKey]: _, ...rest } = prev
         return rest
       }
 
       return {
         ...prev,
-        [itemName]: {
+        [targetKey]: {
+          itemName,
           quantity: newQuantity,
-          extras: newExtras !== undefined ? newExtras : currentItem?.extras || [],
+          extras: extras ?? currentItem?.extras ?? [],
         },
       }
     })
@@ -257,33 +271,26 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
     }
   }
 
-  const getTotalItems = () => {
-    return Object.values(orderItems).reduce((sum, item) => sum + item.quantity, 0)
-  }
+  const getTotalItems = () =>
+    Object.values(orderItems).reduce((sum, item) => sum + item.quantity, 0)
 
   const getCategoryItemCount = (category: string) => {
     const items = menuItems[category]
     if (!items) return 0
     return items.reduce((sum, item) => {
-      return sum + (orderItems[item.name]?.quantity || 0)
+      return sum + getItemOrderLines(item.name).reduce((count, [, line]) => count + line.quantity, 0)
     }, 0)
   }
 
   const getTotalPrice = () => {
     let total = 0
-    Object.entries(orderItems).forEach(([itemName, orderItem]) => {
-      const item = Object.values(menuItems)
-        .flat()
-        .find((i) => i.name === itemName)
+    Object.values(orderItems).forEach((orderItem) => {
+      const item = Object.values(menuItems).flat().find((menuItem) => menuItem.name === orderItem.itemName)
       if (item) {
-        let itemPrice = item.price
-        orderItem.extras.forEach((extraId) => {
-          const extra = item.extras?.find((e) => e.id === extraId)
-          if (extra) {
-            itemPrice += extra.price
-          }
-        })
-        total += itemPrice * orderItem.quantity
+        const extrasPrice = orderItem.extras.reduce((sum, extraId) => {
+          return sum + (item.extras?.find((extra) => extra.id === extraId)?.price || 0)
+        }, 0)
+        total += (item.price + extrasPrice) * orderItem.quantity
       }
     })
     return total
@@ -489,8 +496,8 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
 
               <div className="space-y-3">
                 {items.map((item) => {
-                  const itemInCart = orderItems[item.name]
-                  const hasQuantity = itemInCart && itemInCart.quantity > 0
+                  const itemQuantity = getItemOrderLines(item.name).reduce((sum, [, line]) => sum + line.quantity, 0)
+                  const hasQuantity = itemQuantity > 0
 
                   return (
                     <div
@@ -527,13 +534,13 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
                           ) : (
                             <>
                               <button
-                                onClick={() => updateQuantity(item.name, -1)}
+                                onClick={() => updateQuantity(item.name, -1, getItemOrderLines(item.name)[0]?.[1].extras)}
                                 className="h-11 w-11 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-all duration-200 active:scale-95"
                               >
                                 <Minus className="h-5 w-5" />
                               </button>
                               <span className="min-w-[2rem] text-center font-bold text-gray-900 text-lg">
-                                {itemInCart.quantity}
+                                {itemQuantity}
                               </span>
                               <button
                                 onClick={() => handleAddItem(item)}
@@ -644,53 +651,49 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
           
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
             {Object.entries(menuItems).map(([category, items]) => {
-              const categoryItems = items.filter((item) => orderItems[item.name]?.quantity > 0)
-              
-              if (categoryItems.length === 0) return null
-              
+              const categoryLines = items.flatMap((item) =>
+                getItemOrderLines(item.name).map(([lineKey, orderItem]) => ({ item, lineKey, orderItem })),
+              )
+
+              if (categoryLines.length === 0) return null
+
               return (
                 <div key={category}>
                   <h3 className="text-sm font-bold text-indigo-700 uppercase tracking-wide mb-3">
                     {category}
                   </h3>
                   <div className="space-y-3">
-                    {categoryItems.map((item) => {
-                      const orderItem = orderItems[item.name]
-                      let itemPrice = item.price
-                      
-                      orderItem.extras.forEach((extraId) => {
-                        const extra = item.extras?.find((e) => e.id === extraId)
-                        if (extra) {
-                          itemPrice += extra.price
-                        }
-                      })
-                      
-                      const subtotal = itemPrice * orderItem.quantity
-                      
+                    {categoryLines.map(({ item, lineKey, orderItem }) => {
+                      const extrasPrice = orderItem.extras.reduce((sum, extraId) => {
+                        return sum + (item.extras?.find((extra) => extra.id === extraId)?.price || 0)
+                      }, 0)
+                      const subtotal = (item.price + extrasPrice) * orderItem.quantity
+
                       return (
-                        <div key={item.name} className="bg-gray-50 rounded-xl p-3">
+                        <div key={lineKey} className="bg-gray-50 rounded-xl p-3">
                           <div className="flex items-start justify-between gap-3 mb-2">
                             <div className="flex-1">
                               <h4 className="font-bold text-gray-900">{item.name}</h4>
-                              {orderItem.extras.length > 0 && (
+                              {orderItem.extras.length > 0 ? (
                                 <div className="text-xs text-gray-600 mt-1">
                                   {orderItem.extras.map((extraId) => {
-                                    const extra = item.extras?.find((e) => e.id === extraId)
-                                    return extra ? (
-                                      <div key={extra.id}>+ {extra.name}</div>
-                                    ) : null
+                                    const extra = item.extras?.find((candidate) => candidate.id === extraId)
+                                    return extra ? <div key={extra.id}>+ {extra.name}</div> : null
                                   })}
                                 </div>
+                              ) : (
+                                <p className="text-xs text-gray-500 mt-1">No extras</p>
                               )}
                             </div>
                             <div className="text-right">
                               <p className="font-bold text-gray-900">${subtotal.toFixed(2)}</p>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center gap-2">
                             <button
-                              onClick={() => updateQuantity(item.name, -1)}
+                              onClick={() => updateQuantity(item.name, -1, orderItem.extras)}
+                              aria-label={`Remove one ${item.name}${orderItem.extras.length ? " with extras" : " without extras"}`}
                               className="h-8 w-8 flex items-center justify-center bg-white hover:bg-gray-100 text-gray-700 rounded-full transition-all duration-200"
                             >
                               <Minus className="h-4 w-4" />
@@ -700,6 +703,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
                             </span>
                             <button
                               onClick={() => handleAddItem(item)}
+                              aria-label={`Add another ${item.name}`}
                               className="h-8 w-8 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-all duration-200"
                             >
                               <Plus className="h-4 w-4" />

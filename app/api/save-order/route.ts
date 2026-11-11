@@ -69,8 +69,13 @@ export async function POST(request: Request) {
     )
     const itemIdMap = new Map(menuItemsData?.map((item) => [item.name, item.id]) || [])
 
-    const orderItemsData = Object.entries(orderItems).map(([itemName, orderItem]) => {
-      const { quantity, extras } = orderItem as { quantity: number; extras: string[] }
+    const orderItemsData = Object.entries(orderItems).map(([lineKey, orderItem]) => {
+      const { itemName: submittedItemName, quantity, extras } = orderItem as {
+        itemName?: string
+        quantity: number
+        extras: string[]
+      }
+      const itemName = submittedItemName || lineKey
       const unitPrice = priceMap.get(itemName) || 0
       const section = sectionMap.get(itemName) || "Other"
       const itemId = itemIdMap.get(itemName)
