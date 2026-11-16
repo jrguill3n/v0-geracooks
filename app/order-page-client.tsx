@@ -867,12 +867,12 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
                     <Label
                       key={extra.id}
                       htmlFor={extra.id}
-                      className="flex cursor-pointer items-center gap-3 rounded-lg border border-indigo-200 bg-white p-3 transition-colors hover:border-indigo-400 hover:bg-indigo-50 has-[[data-state=checked]]:border-indigo-700 has-[[data-state=checked]]:bg-indigo-50"
+                      className="flex cursor-pointer items-center gap-3 rounded-lg border border-indigo-200 bg-white p-3 transition-colors hover:border-indigo-400 hover:bg-indigo-50 has-[[data-state=checked]]:border-indigo-700 has-[[data-state=checked]]:bg-indigo-100 has-[[data-state=checked]]:ring-2 has-[[data-state=checked]]:ring-indigo-700"
                     >
                       <RadioGroupItem
                         id={extra.id}
                         value={extra.id}
-                        className="size-5 border-2 border-indigo-700 bg-white text-indigo-700 focus-visible:ring-indigo-500"
+                        className="size-6 border-2 border-indigo-700 bg-white text-white focus-visible:ring-indigo-500 data-[state=checked]:bg-indigo-700 [&_svg]:size-2.5"
                       />
                       <span className="flex-1 font-semibold">{extra.name}</span>
                       {extra.price > 0 && <span className="text-teal-400 font-bold">+${extra.price}</span>}
