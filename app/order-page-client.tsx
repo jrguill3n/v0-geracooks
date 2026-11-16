@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { ScrollHintArea } from "@/components/scroll-hint-area"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 import { useState, useRef, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
@@ -21,7 +22,7 @@ interface MenuItem {
   name: string
   price: number
   description?: string
-  extras?: Array<{ id: string; name: string; price: number }>
+  extras?: Array<{ id: string; name: string; price: number; isRequiredChoice?: boolean }>
 }
 
 interface OrderPageClientProps {
@@ -290,8 +291,18 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
     })
   }
 
+  const choiceExtras = selectedItemForExtras?.extras?.filter((extra) => extra.isRequiredChoice) ?? []
+  const optionalExtras = selectedItemForExtras?.extras?.filter((extra) => !extra.isRequiredChoice) ?? []
+  const selectedChoiceId = choiceExtras.find((extra) => tempExtras.includes(extra.id))?.id ?? ""
+  const isChoiceMissing = choiceExtras.length > 0 && !selectedChoiceId
+
+  const selectChoice = (extraId: string) => {
+    const choiceIds = choiceExtras.map((extra) => extra.id)
+    setTempExtras((prev) => [...prev.filter((id) => !choiceIds.includes(id)), extraId])
+  }
+
   const confirmExtras = () => {
-    if (selectedItemForExtras) {
+    if (selectedItemForExtras && !isChoiceMissing) {
       updateQuantity(selectedItemForExtras.name, 1, tempExtras)
       setSelectedItemForExtras(null)
       setTempExtras([])
@@ -841,11 +852,39 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
       <Dialog open={!!selectedItemForExtras} onOpenChange={(open) => !open && setSelectedItemForExtras(null)}>
         <DialogContent className="border-2 border-purple-300 max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Extras to {selectedItemForExtras?.name}</DialogTitle>
+            <DialogTitle>
+              {choiceExtras.length > 0 ? `Customize ${selectedItemForExtras?.name}` : `Add Extras to ${selectedItemForExtras?.name}`}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">Select optional extras for this item:</p>
-            {selectedItemForExtras?.extras?.map((extra) => (
+            {choiceExtras.length > 0 && (
+              <fieldset className="space-y-2">
+                <legend className="mb-2 text-sm font-semibold text-gray-700">
+                  Choose one <span className="text-red-600">(required)</span>
+                </legend>
+                <RadioGroup value={selectedChoiceId} onValueChange={selectChoice} className="gap-2">
+                  {choiceExtras.map((extra) => (
+                    <Label
+                      key={extra.id}
+                      htmlFor={extra.id}
+                      className="flex cursor-pointer items-center gap-3 rounded-lg border border-indigo-200 bg-white p-3 transition-colors hover:border-indigo-400 hover:bg-indigo-50 has-[[data-state=checked]]:border-indigo-700 has-[[data-state=checked]]:bg-indigo-100 has-[[data-state=checked]]:ring-2 has-[[data-state=checked]]:ring-indigo-700"
+                    >
+                      <RadioGroupItem
+                        id={extra.id}
+                        value={extra.id}
+                        className="size-6 border-2 border-indigo-700 bg-white text-white focus-visible:ring-indigo-500 data-[state=checked]:bg-indigo-700 [&_svg]:size-2.5"
+                      />
+                      <span className="flex-1 font-semibold">{extra.name}</span>
+                      {extra.price > 0 && <span className="text-teal-400 font-bold">+${extra.price}</span>}
+                    </Label>
+                  ))}
+                </RadioGroup>
+              </fieldset>
+            )}
+            {optionalExtras.length > 0 && (
+              <p className="text-sm text-gray-600">Select optional extras for this item:</p>
+            )}
+            {optionalExtras.map((extra) => (
               <div key={extra.id} className="flex items-center gap-3 rounded-lg border border-indigo-200 bg-white p-3 transition-colors hover:border-indigo-400 hover:bg-indigo-50">
                 <Checkbox
                   id={extra.id}
@@ -865,6 +904,7 @@ export function OrderPageClient({ menuItems }: OrderPageClientProps) {
             ))}
             <Button
               onClick={confirmExtras}
+              disabled={isChoiceMissing}
               className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-6 rounded-2xl"
             >
               Add to Order

@@ -94,6 +94,14 @@ export async function POST(request: Request) {
         })
       }
 
+      const requiredChoices = extrasData?.filter((e) => e.menu_item_id === itemId && e.is_required_choice) ?? []
+      if (requiredChoices.length > 0) {
+        const selectedChoices = requiredChoices.filter((choice) => extras?.includes(choice.id))
+        if (selectedChoices.length !== 1) {
+          throw new Error(`Please choose an option for ${itemName}`)
+        }
+      }
+
       const totalUnitPrice = unitPrice + extrasPrice
       const itemTotal = totalUnitPrice * quantity
 

@@ -23,7 +23,7 @@ export default async function OrderPage() {
       name: string
       price: number
       description?: string
-      extras?: Array<{ id: string; name: string; price: number }>
+      extras?: Array<{ id: string; name: string; price: number; isRequiredChoice: boolean }>
     }>
   > = {}
 
@@ -43,6 +43,7 @@ export default async function OrderPage() {
                 id: extra.id,
                 name: extra.name,
                 price: Number(extra.price),
+                isRequiredChoice: Boolean(extra.is_required_choice),
               })) || [],
         })) || []
   })
