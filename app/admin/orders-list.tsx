@@ -207,7 +207,8 @@ export function OrdersList({
         message += `• ${item.quantity}x ${item.item_name} - $${Number(item.total_price).toFixed(2)}\n`
         if (item.extras && item.extras.length > 0) {
           item.extras.forEach((extra) => {
-            message += `  + ${extra.name} - $${Number(extra.price).toFixed(2)}\n`
+            const extraPrice = Number(extra.price)
+            message += extraPrice > 0 ? `  + ${extra.name} - $${extraPrice.toFixed(2)}\n` : `  + ${extra.name}\n`
           })
         }
       })
@@ -544,7 +545,9 @@ export function OrdersList({
                                       <span className="text-purple-400">+</span>
                                       <span>{extra.name}</span>
                                     </span>
-                                    <span className="font-medium">${Number(extra.price).toFixed(2)}</span>
+                                    {Number(extra.price) > 0 && (
+                                      <span className="font-medium">${Number(extra.price).toFixed(2)}</span>
+                                    )}
                                   </div>
                                 ))}
                               </div>
